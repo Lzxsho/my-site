@@ -28,6 +28,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const os = require('node:os');
 
 /* Node 自带 SQLite 是 22.5 版本才有的。
    装成老版本（比如 Node 18 / 20）的话这里会失败，
@@ -50,6 +51,13 @@ const ROOT = __dirname;
 const DB_FILE = path.join(ROOT, 'db', 'site.db');
 const START_PORT = Number(process.env.PORT) || 5173;
 const MAX_PORT_TRY = 10;          /* 5173 被占用就试 5174、5175…… */
+
+/* 监听地址：
+   · 默认 0.0.0.0 —— 局域网里的手机 / 别的电脑也能打开（同一个 Wi-Fi 就行），
+     方便发网址给别人试用、用手机写文章传照片。
+   · 只想自己本机看的话，启动前设环境变量：set HOST=127.0.0.1 再 node server.js。
+   写操作都有 token 鉴权拦着，数据库文件等敏感资源也在 BLOCKED 名单里，不怕局域网访问。 */
+const HOST = process.env.HOST || '0.0.0.0';
 const OPEN_BROWSER = process.argv.indexOf('--no-open') < 0;
 
 
@@ -1061,19 +1069,41 @@ server.on('error', function (e) {
   if (e.code === 'EADDRINUSE' && port < START_PORT + MAX_PORT_TRY) {
     port += 1;
     console.log('  端口 ' + (port - 1) + ' 被占用了，换一个：' + port);
-    server.listen(port, '127.0.0.1');
+    server.listen(port, HOST);
     return;
   }
   console.error('启动失败：', e.message);
   process.exit(1);
 });
 
-server.listen(port, '127.0.0.1', function () {
+/* 把本机在局域网里的地址找出来（比如 192.168.1.7），手机直接开这个地址 */
+function lanAddresses() {
+  const out = [];
+  const nets = os.networkInterfaces();
+  for (const name in nets) {
+    (nets[name] || []).forEach(function (n) {
+      /* 只挑 IPv4、跳过 127.0.0.1 和虚拟网卡常见的 169.254 自检地址 */
+      if (n.family === 'IPv4' && n.address !== '127.0.0.1' && !/^169\.254\./.test(n.address)) {
+        out.push(n.address);
+      }
+    });
+  }
+  return out;
+}
+
+server.listen(port, HOST, function () {
   const url = 'http://localhost:' + port + '/';
   console.log('');
   console.log('  ▍朔的小窝 已经跑起来了');
   console.log('');
   console.log('    网站地址    ' + url);
+  const lans = HOST === '127.0.0.1' ? [] : lanAddresses();
+  if (lans.length) {
+    console.log('    手机访问    同一个 Wi-Fi 下，用这个地址：');
+    lans.forEach(function (ip) {
+      console.log('                http://' + ip + ':' + port + '/');
+    });
+  }
   console.log('    数据库      db/site.db');
   console.log('    接口探活    ' + url + 'api/health');
   console.log('');
