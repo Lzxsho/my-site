@@ -125,10 +125,31 @@ git push
 
 ---
 
-## 七、云端（Supabase）—— 已经接好了
+## 七、云端（Supabase）
 
-`js/config.js` 里已经填好了项目地址、anon key 和管理员邮箱，Supabase 后台的
-9 张表和 admins 名单也都建好了。**现在只差最后一步：把本机数据搬上去。**
+`js/config.js` 里已经填好了项目地址、anon key 和管理员邮箱。
+剩下的两步是：**建表**（做一次就行）→ **搬数据**。
+
+### 7.0 建表（做一次就行）
+
+1. 打开 Supabase 后台 → 左边 **SQL Editor** → New query
+2. 把仓库根目录的 **`supabase.sql`** 整段复制进去 → 点 **Run**
+
+   共 10 张表 + 访问策略 + 管理员登记，一次跑完。整段是幂等的
+   （建表 `if not exists`、策略先 drop 再 create），**重复跑不会丢数据**，
+   换电脑 / 加新表时再跑一遍只会补上缺的部分。
+
+3. 体检一下（在 my-site 目录打开 PowerShell）：
+
+```powershell
+node db/check-cloud.js
+```
+
+   逐张表报告「在 / 空 / 不存在 / 连不上」。看到 `✗ 表不存在` 就回 SQL Editor
+   看看报错信息（通常是权限或语法）；全部 `✓` 或 `·` 就说明建好了。
+
+> ⚠️ 建表**必须**在 Supabase 后台做 —— anon key 没有建表权限，
+> 任何脚本都替不了这一步，只能手动粘一次。
 
 ### 7.1 搬数据（在 my-site 目录打开 PowerShell，粘这一行）
 

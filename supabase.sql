@@ -12,6 +12,11 @@
 --         **只有 admins 表里登记过的管理员能写**（is_shuo_admin() 函数把关）
 --      2. 留言表：谁都能看、谁都能写（游客留言是核心功能），但**不开放删除**
 --         想删留言去后台 Table Editor 手动删，更安全
+--      3. 个人记录表（user_progress）：**只有本人能读写自己那一行**，
+--         别人（包括管理员）读不到 —— 游客的练习记录只属于他自己
+--
+--  ★ 整段可以反复执行：建表用 if not exists，策略先 drop 再 create，
+--    已经建过的库再跑一遍只会补上缺的东西，不会丢数据。
 -- ==========================================================================
 
 -- 1. 文章表
@@ -237,3 +242,51 @@ create policy "comments_insert" on public.comments for insert with check (true);
 -- 要去哪删：Supabase 后台 → Table Editor → comments 表 → 勾上那条 → Delete row
 -- 确实想在网页上删，就自己搭一层后端，让删除请求先过你的服务器 ——
 -- 千万**不要**把 service_role key 放进前端。
+
+-- ==========================================================================
+--  10. 访客个人记录表 —— 登录用户的练习进度 / 错题本 / C 语言打卡
+--  --------------------------------------------------------------------
+--  一个人一行，userId 就是 Supabase 登录账号的 id。
+--  data 里直接存整份 JSON（错题本、每日练习、没练完的一轮、C 语言打卡…），
+--  前端读写一次搞定，不用为每种记录各开一张表。
+--
+--  ★ 权限：只有本人能看、能改自己那一行（auth.uid() = userId）。
+--    管理员也读不到别人的进度 —— 这是隐私，故意的。
+--  ★ 没登录的时候前端照旧存 localStorage，不影响使用；
+--    登录后才会同步到这张表，换设备登录就能接着练。
+-- ==========================================================================
+create table if not exists public.user_progress (
+  userId     uuid primary key references auth.users (id) on delete cascade,
+  email      text,
+  data       jsonb      not null default '{}',
+  updatedAt  timestamptz not null default now()
+);
+create index if not exists user_progress_email_idx on public.user_progress (email);
+
+alter table public.user_progress enable row level security;
+
+drop policy if exists "user_progress_read" on public.user_progress;
+drop policy if exists "user_progress_ins"  on public.user_progress;
+drop policy if exists "user_progress_upd"  on public.user_progress;
+
+create policy "user_progress_read" on public.user_progress
+  for select using (auth.uid() = userId);
+create policy "user_progress_ins" on public.user_progress
+  for insert with check (auth.uid() = userId);
+create policy "user_progress_upd" on public.user_progress
+  for update using (auth.uid() = userId) with check (auth.uid() = userId);
+
+-- ⚠️ 故意没有 delete 策略：网页端删不掉（删号走 auth.users 的 cascade）
+
+-- ==========================================================================
+--  11. 登记管理员（已经按你 js/config.js 的 adminEmails 填好了，直接跑即可）
+--  --------------------------------------------------------------------
+--  on conflict do nothing：重复执行也不会报错、不会产生重复行。
+--  要加管理员，照着下面再写一行换邮箱就行。
+--
+--  ★ 前端 js/config.js 的 adminEmails 和这张表必须是同一批邮箱：
+--    前端那份只决定「按钮显不显示」，这张表才决定「数据库让不让写」。
+--    两边不一致的表现是：按钮点得动，但保存时报错「new row violates
+--    row-level security policy」—— 遇到就回来核对这两处。
+-- ==========================================================================
+insert into public.admins (email) values ('2625407261@qq.com') on conflict do nothing;
