@@ -125,17 +125,42 @@ git push
 
 ---
 
-## 七、以后想上云（可选，现在不用做）
+## 七、云端（Supabase）—— 已经接好了
 
-哪天想让所有人共用一份内容、留言全球互通，再按下面的做：
+`js/config.js` 里已经填好了项目地址、anon key 和管理员邮箱，Supabase 后台的
+9 张表和 admins 名单也都建好了。**现在只差最后一步：把本机数据搬上去。**
 
-1. supabase.com 用 GitHub 账号登录 → New project（地区选 Singapore）
-2. SQL Editor → 粘 `supabase.sql` 全部内容 → Run
-3. Settings → API 抄下 Project URL 和 anon key，填进 `js/config.js`（content 和 comments 两处）
-4. `adminEmails` 填你的邮箱；Supabase 的 admins 表也插同一个邮箱
-5. 数据搬家：`node db/export-to-supabase.js --url https://xxxx.supabase.co --key <service_role_key>`
+### 7.1 搬数据（在 my-site 目录打开 PowerShell，粘这一行）
 
-做完这些，Pages 上的站自动切换到云端数据，不用再跑第四节里的导出步骤。
+```powershell
+node db/export-to-supabase.js --url https://jtxccwjeyiqfqhzuruup.supabase.co --key <service_role 那把钥匙>
+```
+
+`service_role` 钥匙在 Supabase → Settings → API 页面拿（标着 service_role，点 reveal 才显示）。
+**这把钥匙只能在这一条命令里用，不要写进任何文件、不要发给别人。**
+
+跑完会逐表打印迁移行数。到 Supabase → Table Editor 打开 `articles`，能看到文章就说明成功了。
+
+### 7.2 三个模式怎么自动切换（不用你管）
+
+| 打开方式 | 走哪套数据 |
+|---|---|
+| 本机开着 `start.bat`，浏览器访问 | 数据库 `db/site.db`（能增删改，断网也行） |
+| GitHub Pages 网址 | 云端 Supabase |
+| 直接双击 html（file://） | 云端，读不到就用仓库里的静态副本 |
+
+### 7.3 云端出问题时的兜底
+
+云端表还是空的、网络不通、或者 Supabase 免费项目超过一周没人访问被自动暂停时，
+网站会**自动改显示仓库里的静态副本**，不会变空白；留言会先存在本机，不会丢。
+页脚会如实写「云端数据库（暂时显示静态副本）」，你一眼能看出来现在用的是哪套。
+
+想让静态副本跟上最新内容，跑第四节那个导出脚本再 push 一次。
+
+### 7.4 云端管理员
+
+- 登录邮箱：`2625407261@qq.com`
+- 本机模式（开着 start.bat 时）登录：账号 `lizhixu`
 
 ---
 
