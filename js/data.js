@@ -1624,7 +1624,8 @@ const DbStore = {
       name: DataTools.str(r.name),
       date: DataTools.str(r.date),
       words: Array.isArray(words) ? words : [],
-      store: 'cloud'   /* 相对「本地 IndexedDB」而言的远端共享资料 */
+      owner: DataTools.str(r.owner),   /* 空 = 管理员共享（所有人可见）；有值 = 该网友的私人资料 */
+      store: 'cloud'   /* 相对「本地 IndexedDB」而言的远端资料 */
     };
   },
 
@@ -1636,7 +1637,9 @@ const DbStore = {
 
   saveEnMaterial(mat) {
     return this.post('/api/en-materials', {
-      id: mat.id, name: mat.name, date: mat.date || '', words: mat.words || []
+      id: mat.id, name: mat.name, date: mat.date || '',
+      words: mat.words || [],
+      owner: mat.owner || ''      /* 空 = 共享给所有人；邮箱 = 只有本人可见 */
     }).then(function () { return true; });
   },
 
@@ -1694,8 +1697,32 @@ const CloudStore = {
     const o = opts || {};
 
     if ((o.method || 'GET') !== 'GET') {
-      const ok = (typeof Auth !== 'undefined' && Auth.isAdmin && Auth.isAdmin());
-      if (!ok) {
+      const isAdmin = !!(typeof Auth !== 'undefined' && Auth.isAdmin && Auth.isAdmin());
+      const loggedIn = !!(typeof Auth !== 'undefined' && Auth.isLogin && Auth.isLogin());
+      const myEmail = String(
+        (typeof Auth !== 'undefined' && Auth.user && Auth.user.email) || ''
+      ).trim().toLowerCase();
+
+      /* 管理员什么都能写。除此之外，每个人还能写「属于自己的那一份」：
+           userProgress  自己的练习进度（一人一行）
+           enMaterials   学习资料 —— owner 空 = 管理员共享（只有管理员能动）；
+                         owner 是自己邮箱 = 私人资料，本人随便改
+         这两处放行都是安全的：真正的硬闸在 supabase.sql 的 RLS 里，
+         就算前端被人改了，云端也只会让他动到自己的那一行。 */
+      let allowed = isAdmin;
+      if (!allowed && loggedIn && table === 'userProgress') { allowed = true; }
+      if (!allowed && loggedIn && table === 'enMaterials') {
+        if (o.method === 'POST') {
+          /* 新建 / 更新：必须是「owner 写成自己邮箱」的私人资料 */
+          allowed = !!myEmail &&
+            String((o.body && o.body.owner) || '').trim().toLowerCase() === myEmail;
+        } else {
+          /* 删除：请求里带不上归属，交给 RLS 判（个人信息本人、公共信息管理员） */
+          allowed = true;
+        }
+      }
+
+      if (!allowed) {
         return Promise.reject(new Error('云端内容只有管理员能改 —— 注册用户可以留言、本地练习'));
       }
     }
@@ -2020,6 +2047,7 @@ const CloudStore = {
           name: DataTools.str(r.name),
           date: DataTools.str(r.date),
           words: Array.isArray(r.words) ? r.words : [],
+          owner: DataTools.str(r.owner),   /* 空 = 管理员共享；邮箱 = 私人 */
           store: 'cloud'
         };
       });
@@ -2035,6 +2063,7 @@ const CloudStore = {
         name: mat.name,
         date: mat.date || '',
         words: mat.words || [],
+        owner: mat.owner || '',            /* 空 = 所有人可见；邮箱 = 只有本人可见 */
         updatedAt: new Date().toISOString()
       }
     }).then(function () { return true; });

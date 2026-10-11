@@ -138,16 +138,25 @@ alter table public.admins enable row level security;
 -- admins 表本身不给任何策略：网页上谁也读不到、改不了，
 -- 只有 Supabase 后台（service_role）能维护它 —— 名单不能泄露给前端。
 
--- 9. 英语学习资料表（管理员导入，所有人共享练习）
+-- 9. 英语学习资料表 —— 管理员共享 + 访客私人，两种资料混在一张表里
 --    words 直接存 JSON 数组 [{en,zh}, …]，前端拿来就用，不用拆表
 create table if not exists public.en_materials (
   id         text primary key,                    -- 前端生成的 'm' + 时间戳
   name       text not null,
   date       text,
   words      jsonb   not null default '[]',
+  owner      text,                                 -- ★ 归属，见下面说明
   createdAt  timestamptz not null default now(),
   updatedAt  timestamptz not null default now()
 );
+
+-- ★ owner 这一列决定资料「谁能看到」（由 RLS 强制执行）：
+--     owner 为空 / NULL  → 管理员上传的共享资料，所有人（包括没登录的）都能看到
+--     owner = 某个邮箱   → 访客上传的私人资料，只有本人能看到
+--   前端不需要自己过滤：RLS 会让每个账号只拿回「公共的 + 自己的」，
+--   别人的私人资料在网络层面就取不到，不是靠前端藏起来。
+alter table public.en_materials add column if not exists owner text;
+create index if not exists en_materials_owner_idx on public.en_materials (owner);
 
 -- ==========================================================================
 --  行级安全（RLS）：这一节是「上云能不能安全用」的关键，顺序不能乱
@@ -187,7 +196,13 @@ create policy "music_read"    on public.music     for select using (true);
 create policy "profile_read"  on public.profile   for select using (true);
 create policy "skills_read"   on public.skills    for select using (true);
 create policy "study_progress_read" on public.study_progress for select using (true);
-create policy "en_materials_read"   on public.en_materials   for select using (true);
+-- 学习资料的读权限 ★ 和别的表不一样 —— 不是「谁都能读」：
+--   公共资料（owner 空）谁都能读；私人资料（owner = 邮箱）只有本人能读。
+--   管理员也读不到别人的私人资料（和用户练习记录 user_progress 一样，隐私优先）。
+create policy "en_materials_read"   on public.en_materials   for select using (
+  coalesce(owner, '') = ''
+  or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))
+);
 
 -- 内容表：**只有管理员**能增删改（admins 表 + is_shuo_admin() 把关）
 --   ★ 为什么不用 auth.role() = 'authenticated'：
@@ -257,9 +272,23 @@ create policy "skills_del" on public.skills for delete using (public.is_shuo_adm
 create policy "study_progress_ins" on public.study_progress for insert with check (public.is_shuo_admin());
 create policy "study_progress_upd" on public.study_progress for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
 
-create policy "en_materials_ins" on public.en_materials for insert with check (public.is_shuo_admin());
-create policy "en_materials_upd" on public.en_materials for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
-create policy "en_materials_del" on public.en_materials for delete using (public.is_shuo_admin());
+-- 学习资料写权限：公共资料只有管理员能动，私人资料只有本人能动。
+-- 下面这个条件三处复用，改的时候一起改。
+create policy "en_materials_ins" on public.en_materials for insert with check (
+  (coalesce(owner, '') = '' and public.is_shuo_admin())                       -- 管理员发共享资料
+  or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))               -- 访客存自己的
+);
+create policy "en_materials_upd" on public.en_materials for update using (
+  (coalesce(owner, '') = '' and public.is_shuo_admin())
+  or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))
+) with check (
+  (coalesce(owner, '') = '' and public.is_shuo_admin())
+  or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))
+);
+create policy "en_materials_del" on public.en_materials for delete using (
+  (coalesce(owner, '') = '' and public.is_shuo_admin())
+  or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))
+);
 
 -- 留言表：谁都能看、谁都能写（游客留言），但不开放删除
 --   （网页上云端留言的 ✕ 按钮走 js/comments.js：提示去后台删，不直接调接口）

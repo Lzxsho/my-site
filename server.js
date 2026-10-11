@@ -234,7 +234,11 @@ const MIGRATIONS = [
   ['music', 'genre', 'TEXT'],   /* 分类，碟架按它分组（9-17 新增） */
   /* 评论支持「楼中楼」回复：parent_id 指向被回复的那条；顶层留言它是空的。
      老数据不受影响 —— 加列有默认值 NULL，历史留言自动算顶层。 */
-  ['comments', 'parent_id', 'INTEGER']
+  ['comments', 'parent_id', 'INTEGER'],
+  /* 学习资料的归属：空 = 管理员共享（所有人可见）；邮箱 = 该用户的私人资料。
+     本机 server.js 只有一个管理员账号，所以实际用到的都是共享，
+     加这一列是为了和云端（Supabase）的表结构保持一致。 */
+  ['en_materials', 'owner', "TEXT NOT NULL DEFAULT ''"]
 ];
 
 /* 反过来：不再用的列删掉。
@@ -322,6 +326,7 @@ function ensureEnMaterialsTable() {
       name       TEXT NOT NULL,
       date       TEXT,
       words      TEXT NOT NULL DEFAULT '[]',
+      owner      TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
@@ -687,7 +692,7 @@ const api = {
       .map(function (r) {
         let words = [];
         try { words = JSON.parse(r.words) || []; } catch (e) { words = []; }
-        return { id: r.id, name: r.name, date: r.date || '', words: Array.isArray(words) ? words : [] };
+        return { id: r.id, name: r.name, date: r.date || '', words: Array.isArray(words) ? words : [], owner: r.owner || '' };
       });
   },
 
@@ -701,14 +706,15 @@ const api = {
       })
       .filter(function (w) { return w.en && w.zh; })
       .slice(0, 20000);
+    const owner = text(body.owner);      /* 空 = 共享；邮箱 = 私人（本机用不到，留给云端结构一致） */
     const now = new Date().toISOString();
     db.prepare(`
-      INSERT INTO en_materials (id, name, date, words, created_at, updated_at)
-      VALUES (?,?,?,?,?,?)
+      INSERT INTO en_materials (id, name, date, words, owner, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET
-        name = excluded.name, date = excluded.date,
+        name = excluded.name, date = excluded.date, owner = excluded.owner,
         words = excluded.words, updated_at = excluded.updated_at
-    `).run(id, name, text(body.date), JSON.stringify(words), now, now);
+    `).run(id, name, text(body.date), JSON.stringify(words), owner, now, now);
     return { ok: true, id: id, words: words.length };
   },
 

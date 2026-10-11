@@ -97,15 +97,44 @@ const EnStore = {
   KEY_ROUND: 'shuoscape_en_round',
 
   materials: [],   /* 我导入的资料（本机 IndexedDB，不上传） */
-  remote: [],      /* 管理员共享的资料（数据库 / 云端拉下来的） */
+  remote: [],      /* 云端 / 数据库里的资料（管理员共享的 + 我自己的私人资料） */
+  seed: [],        /* 站点自带的资料（js/en-seed-materials.js）—— 谁打开都有 */
   wrong: [],       /* 错题记录 */
   daily: {},       /* 每日练习量 */
   round: null,     /* 未完成的这一轮 */
 
-  /* 两份资料合在一起的完整列表（练习、统计、列表都用它） */
-  allMats() { return this.remote.concat(this.materials); },
+  /* 站点自带的四份「固定搭配」—— 写死在 js/en-seed-materials.js 里
+     （从用户给的 3 个 PDF + 1 个 docx 抽出来的词条）。
+     不依赖网络、不依赖登录：任何人打开英语页都能看到、都能拿来练。 */
+  initSeed() {
+    const list = (typeof window !== 'undefined' && window.EN_SEED_MATERIALS) || [];
+    this.seed = list.map(function (m) {
+      return {
+        id: String(m.id),
+        name: String(m.name || '未命名'),
+        date: String(m.date || ''),
+        words: Array.isArray(m.words) ? m.words : [],
+        store: 'builtin'
+      };
+    });
+  },
+
+  /* 界面上看到的完整列表：内置 + 云端/数据库 + 本机
+     ★ 同名去重、云端优先：管理员后来上传了同名的一份，以他那一份为准，
+       这样他想覆盖内置的某份资料，直接上传同名的就行。 */
+  allMats() {
+    const taken = {};
+    this.remote.concat(this.materials).forEach(function (m) {
+      taken[String(m.name || '').trim()] = 1;
+    });
+    const seed = this.seed.filter(function (m) {
+      return !taken[String(m.name || '').trim()];
+    });
+    return seed.concat(this.remote, this.materials);
+  },
 
   load() {
+    this.initSeed();
     try { this.wrong      = JSON.parse(localStorage.getItem(this.KEY_WRONG) || '[]'); } catch (e) { this.wrong = []; }
     try { this.daily      = JSON.parse(localStorage.getItem(this.KEY_DAILY) || '{}'); } catch (e) { this.daily = {}; }
     try { this.round      = JSON.parse(localStorage.getItem(this.KEY_ROUND) || 'null'); } catch (e) { this.round = null; }
@@ -694,6 +723,47 @@ const EnPage = {
            SiteAPI.mode !== 'local';
   },
 
+  /* 后端在不在（db 或云端都算）—— 决定「上传」能不能真的传到网上 */
+  hasBackend() {
+    return typeof SiteAPI !== 'undefined' && SiteAPI.whenReady && SiteAPI.mode !== 'local';
+  },
+
+  /* 当前登录者的邮箱；没登录 / 本机管理员都是 '' */
+  myEmail() {
+    if (typeof Auth === 'undefined' || !Auth.user) { return ''; }
+    return String(Auth.user.email || '').trim().toLowerCase();
+  },
+
+  /* 这份资料属于哪一类 —— 界面标签和「能不能改」都看它
+       builtin  站点自带（js/en-seed-materials.js），谁都能看，不给改
+       public   管理员上传到云端/数据库的共享资料，谁都能看
+       mine     登录访客上传到云端的私人资料，只有本人能看
+       local    没登录时存在这台电脑上的资料，只有这台电脑能看 */
+  matScope(m) {
+    if (!m) { return 'local'; }
+    if (m.store === 'builtin') { return 'builtin'; }
+    if (m.store === 'cloud') { return m.owner ? 'mine' : 'public'; }
+    return 'local';
+  },
+
+  /* 能不能改 / 删这份资料 */
+  canEditMat(m) {
+    const s = this.matScope(m);
+    if (s === 'builtin') { return false; }          /* 站点自带的，动不了 */
+    if (s === 'public') { return typeof Auth !== 'undefined' && Auth.isAdmin(); }
+    return true;                                     /* mine / local：本人的，随便改 */
+  },
+
+  /* 新资料往哪儿存
+       public  管理员 → 云端/数据库，owner 留空，所有人可见
+       mine    登录访客 → 云端，owner 记自己的邮箱，只有本人可见
+       local   没登录 → 只存这台电脑 */
+  uploadTarget() {
+    if (this.canShare()) { return 'public'; }
+    if (this.hasBackend() && this.myEmail()) { return 'mine'; }
+    return 'local';
+  },
+
   renderAll() {
     this.renderStats();
     this.renderPick();
@@ -828,12 +898,22 @@ const EnPage = {
 
   /* 记住上次勾了哪几份（存在浏览器，刷新还在） */
   restorePick() {
-    try {
-      const saved = JSON.parse(localStorage.getItem('shuoscape_en_pick') || '{}');
-      const ids = {};
-      EnStore.allMats().forEach(function (m) { ids[m.id] = 1; });
-      Object.keys(saved).forEach(function (k) { if (ids[k]) { EnPage.state.picked[k] = true; } });
-    } catch (e) { /* 忽略 */ }
+    const KEY = 'shuoscape_en_pick';
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+
+    const ids = {};
+    EnStore.allMats().forEach(function (m) { ids[m.id] = 1; });
+
+    if (saved && typeof saved === 'object') {
+      /* 以前勾过 → 以他自己的选择为准（哪怕全取消也不再强行勾回来） */
+      Object.keys(saved).forEach(function (k) { if (ids[k] && saved[k]) { EnPage.state.picked[k] = true; } });
+      return;
+    }
+
+    /* 从没勾过（第一次打开）→ 把站点自带的四份默认勾上，进来就能直接练 */
+    EnStore.seed.forEach(function (m) { if (ids[m.id]) { EnPage.state.picked[m.id] = true; } });
+    EnPage.savePick();
   },
   savePick() {
     try { localStorage.setItem('shuoscape_en_pick', JSON.stringify(this.state.picked)); } catch (e) { /* 忽略 */ }
@@ -1406,20 +1486,33 @@ const EnPage = {
       return;
     }
 
+    /* 四种归属的标签：内置 / 共享 / 我的 / 本机 */
+    const TAG = {
+      builtin: ['内置', ' en-row__tag--builtin'],
+      public:  ['共享', ' en-row__tag--cloud'],
+      mine:    ['我的', ' en-row__tag--mine'],
+      local:   ['本机', '']
+    };
+
     box.innerHTML = rows.map(function (m) {
-      const isCloud = m.store === 'cloud';
-      /* 共享资料只有管理员能改；本地资料谁导入的谁随便改 */
-      const adminAttr = isCloud ? ' data-admin-only' : '';
+      const scope = self.matScope(m);
+      const tag = TAG[scope] || TAG.local;
+      /* 共享资料只有管理员能改；自己的（云端私人 / 本机）本人随便改；
+         内置的改不了删不了 —— 它跟网页一起来的。 */
+      const canEdit = self.canEditMat(m);
+      const adminAttr = scope === 'public' ? ' data-admin-only' : '';
       return '' +
         '<div class="en-row en-row--mat">' +
           '<span class="en-row__file"><i class="en-row__ficon">▤</i>' + App.escape(m.name) +
-            '<i class="en-row__tag' + (isCloud ? ' en-row__tag--cloud' : '') + '">' + (isCloud ? '共享' : '本地') + '</i></span>' +
+            '<i class="en-row__tag' + tag[1] + '">' + tag[0] + '</i></span>' +
           '<span class="en-row__date">' + App.escape(m.date || '—') + '</span>' +
           '<span class="en-row__count">' + (m.words || []).length + '</span>' +
           '<span class="en-row__ops">' +
             '<button class="icon-mini" type="button" title="查看" data-mat-view="' + App.escape(m.id) + '">👁</button>' +
-            '<button class="icon-mini" type="button" title="编辑"' + adminAttr + ' data-mat-edit="' + App.escape(m.id) + '">✎</button>' +
-            '<button class="icon-mini" type="button" title="删除"' + adminAttr + ' data-mat-del="' + App.escape(m.id) + '">🗑</button>' +
+            (canEdit
+              ? '<button class="icon-mini" type="button" title="编辑"' + adminAttr + ' data-mat-edit="' + App.escape(m.id) + '">✎</button>' +
+                '<button class="icon-mini" type="button" title="删除"' + adminAttr + ' data-mat-del="' + App.escape(m.id) + '">🗑</button>'
+              : '') +
           '</span>' +
         '</div>';
     }).join('');
@@ -1430,10 +1523,10 @@ const EnPage = {
     App.qsa('[data-mat-edit]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
         const id = btn.getAttribute('data-mat-edit');
-        /* 自己导入的本地资料：谁都能改，不用登录
-           共享资料（管理员传上去的）：要先过一遍登录门槛 */
         const m = self.findMat(id);
-        if (m && m.store === 'cloud' && !Auth.gate()) { return; }
+        if (!m || !self.canEditMat(m)) { return; }
+        /* 共享资料（管理员传上去的）：先过一遍登录门槛 */
+        if (self.matScope(m) === 'public' && !Auth.gate()) { return; }
         self.openEditor(id);
       });
     });
@@ -1840,8 +1933,18 @@ const EnPage = {
           '<div class="editor-head__eyebrow">' + (draft ? 'IMPORT' : 'EDIT') + '</div>' +
           '<h3 class="editor-head__title">' + (draft ? '核对导入的词条' : (id ? '编辑学习资料' : '新建学习资料')) + '</h3>' +
           '<p class="editor-head__sub">' +
-            (this.canShare() ? '你以管理员身份操作 —— 保存后存进' + (SiteAPI.isCloud() ? '云端' : '数据库') + '，所有人都能拿来练。'
-              : '保存后只存在这台电脑的浏览器里（IndexedDB），不会上传；管理员导入的资料才会共享给所有人。') +
+            (function () {
+              const t = this.uploadTarget();
+              if (t === 'public') {
+                return '你以管理员身份操作 —— 保存后存进' + (SiteAPI.isCloud() ? '云端' : '数据库') + '，所有人都能拿来练。';
+              }
+              if (t === 'mine') {
+                return '你以访客身份（' + this.myEmail() + '）操作 —— 保存后存进云端，' +
+                       '只有你自己能看到；管理员共享的资料你也能看到，别人的看不到。';
+              }
+              return '还没登录 —— 保存后只存在这台电脑的浏览器里（IndexedDB），不会上传。' +
+                     '登录后上传可以跟着账号走，换设备也能接着看。';
+            }).call(this) +
           '</p>' +
         '</div>' +
         '<div class="en-editor__meta">' +
@@ -1915,40 +2018,50 @@ const EnPage = {
       if (!words.length) { App.toast('至少要有一条完整的词条（英文 + 中文）'); return false; }
 
       const date = (App.qs('#matDate').value || '').trim() || App.today();
-      const share = self.canShare();   /* 管理员 + 有后端：新资料进数据库 / 云端 */
+      /* 新资料往哪儿存：管理员 → 云端共享（所有人可见）
+         登录访客 → 云端私人（owner 记邮箱，只有本人可见）
+         没登录   → 这台电脑（IndexedDB） */
+      const target = self.uploadTarget();
 
       if (self.state.editingId) {
         const m = self.findMat(self.state.editingId);
         if (m) {
           m.name = name; m.date = date; m.words = words;
           if (m.store === 'cloud') {
-            /* 共享资料：改完写回数据库 / 云端 */
+            /* 共享 / 私人资料：改完写回数据库 / 云端 */
             SiteAPI.saveEnMaterial(m).then(function () {
-              App.toast('已保存修改（共享资料，同步到了' + (SiteAPI.isCloud() ? '云端' : '数据库') + '）');
+              App.toast('已保存修改（' +
+                (self.matScope(m) === 'public' ? '共享资料，所有人都能看到' : '私人资料，只有你自己能看到') + '）');
             }).catch(function (e) { App.toast('保存失败：' + (e && e.message || '未知错误')); });
           } else {
             EnStore.saveMats();
             App.toast('已保存修改');
           }
         }
-      } else if (share) {
-        /* 管理员新导入 → 共享资料，进数据库 / 云端，所有人可练 */
-        const mat = { id: 'm' + Date.now(), name: name, date: date, words: words, store: 'cloud' };
+      } else if (target === 'public' || target === 'mine') {
+        /* 上传到云端 / 数据库：owner 留空 = 共享（管理员），owner = 邮箱 = 私人（访客） */
+        const mat = {
+          id: 'm' + Date.now(), name: name, date: date, words: words,
+          store: 'cloud', owner: target === 'mine' ? self.myEmail() : ''
+        };
         EnStore.remote.unshift(mat);
         self.renderAll();
         SiteAPI.saveEnMaterial(mat).then(function () {
-          App.toast('已上传「' + name + '」（' + words.length + ' 个词条，所有人共享）');
+          App.toast(target === 'public'
+            ? '已上传「' + name + '」（' + words.length + ' 个词条，所有人共享）'
+            : '已上传「' + name + '」（' + words.length + ' 个词条，只有你自己能看到）');
         }).catch(function (e) {
           /* 上传失败：退回本地，别让用户白导入 */
           EnStore.remote = EnStore.remote.filter(function (x) { return x.id !== mat.id; });
           mat.store = 'local';
+          delete mat.owner;
           EnStore.materials.unshift(mat);
           EnStore.saveMats();
           self.renderAll();
           App.toast('上传失败（' + (e && e.message || '未知') + '），已改为只保存在这台电脑');
         });
       } else {
-        /* 普通用户 / 未登录 → 只存自己浏览器（IndexedDB），不上传 */
+        /* 没登录 → 只存自己浏览器（IndexedDB），不上传 */
         EnStore.materials.unshift({ id: 'm' + Date.now(), name: name, date: date, words: words });
         EnStore.saveMats();
         App.toast('已保存「' + name + '」（' + words.length + ' 个词条，只存在这台电脑上）');
@@ -1963,8 +2076,10 @@ const EnPage = {
   deleteMaterial(id) {
     const m = this.findMat(id);
     if (!m) { return; }
-    /* 共享资料只有管理员能删；本地资料谁都能删（删的是自己的） */
-    if (m.store === 'cloud' && !Auth.gate()) { return; }
+    /* 内置的删不掉；共享资料只有管理员能删；自己的（云端私人 / 本机）本人随便删 */
+    if (!this.canEditMat(m)) { return; }
+    if (this.matScope(m) === 'public' && !Auth.gate()) { return; }
+    const scope = this.matScope(m);
     const self = this;
     const modal = App.qs('#enModal');
     const body = App.qs('[data-modal-body]', modal);
@@ -1975,8 +2090,9 @@ const EnPage = {
           '<div class="editor-head__eyebrow">DELETE</div>' +
           '<h3 class="editor-head__title">删除「' + App.escape(m.name) + '」？</h3>' +
           '<p class="editor-head__sub">共 ' + (m.words || []).length + ' 个词条，' +
-            (m.store === 'cloud' ? '这是共享资料，删除后所有人都没有了。'
-                                  : '删除后不可恢复（除非之前导出过备份）。') + '</p>' +
+            (scope === 'public' ? '这是共享资料，删除后所有人都看不到了。'
+              : scope === 'mine' ? '这是你的私人资料，删除后你自己的设备上也同步消失。'
+              : '删除后不可恢复（除非之前导出过备份）。') + '</p>' +
         '</div>' +
         '<div class="modal__foot">' +
           '<button class="btn" type="button" data-cancel>取消</button>' +
@@ -1991,7 +2107,10 @@ const EnPage = {
         SiteAPI.deleteEnMaterial(id).then(function () {
           self.renderAll();
           App.toast('已从' + (SiteAPI.isCloud() ? '云端' : '数据库') + '删除');
-        }).catch(function (e) { App.toast('删除失败：' + (e && e.message || '未知错误')); });
+        }).catch(function (e) {
+          App.toast('删除失败：' + (e && e.message || '未知错误'));
+          self.loadShared();       /* 删不掉就按云端实际的样子重画一遍 */
+        });
       } else {
         EnStore.materials = EnStore.materials.filter(function (x) { return x.id !== id; });
         EnStore.saveMats();
