@@ -1,0 +1,18 @@
+# 数据库本体与临时文件（含真实数据，绝不提交）
+db/site.db
+db/site.db-journal
+db/site.db-wal
+db/site.db-shm
+
+# 管理员密码（本机专用，server.js 首次启动时自动生成）
+db/admin.secret
+
+# 旧备份
+_bak/
+
+# 大体积试卷图片（77MB，README 已说明不随站打包）
+c/assets/papers/
+
+# 本地缓存 / 系统文件
+.DS_Store
+Thumbs.db

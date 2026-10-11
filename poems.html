@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>诗札 · Shuoscape</title>
+  <meta name="description" content="随手记下来的几句话，加上时间。点开能看全文，也能直接在这里改。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="诗札 · Shuoscape">
+  <meta property="og:description" content="随手记下来的几句话，加上时间。点开能看全文，也能直接在这里改。">
+  <meta property="og:image" content="assets/hero-poems.jpg">
+  <meta property="og:url" content="poems.html">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <link rel="stylesheet" href="css/poems.css">
+  <link rel="stylesheet" href="css/comments.css">
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ===================== 页面小封面 ===================== -->
+      <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
+      <section class="poem-hero">
+        <img class="hero-bg" src="assets/hero-poems.jpg" alt="二次元插画背景">
+        <span class="hero-scrim hero-scrim--poems"></span>
+        <div class="poem-hero__mark">〝 〞</div>
+        <!-- 栏目名「诗札」来自 js/data.js 的 columns；这里只是写死在页面上的同一个名字 -->
+        <h1 class="poem-hero__title">诗札</h1>
+        <p class="poem-hero__desc">自作小诗 —— 随手记下来的几句话，加上时间，就够了。</p>
+      </section>
+
+      <!-- ===================== 工具栏 ===================== -->
+      <div class="poem-toolbar">
+        <div class="poem-toolbar__left">
+          <span class="poem-count">共 <b data-poem-count>0</b> 条</span>
+          <span class="poem-count" data-poem-tip></span>
+          <!-- 有「隐藏 / 改过」的记录时才出现，点一下全部还原 -->
+          <button class="btn btn--sm btn--ghost" id="restorePoems" hidden>↺ 恢复默认</button>
+        </div>
+
+        <div class="filter-actions">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="poemSearch" placeholder="搜索小诗…">
+          </div>
+          <button class="btn btn--sm" id="copyPoems">⧉ 复制全部</button>
+        </div>
+      </div>
+
+      <!-- 顶部小提示：告诉你怎么用 -->
+      <p class="poem-guide">
+        点任意一条就能展开看全文，展开后可以直接
+        <b>编辑</b> / <b>复制</b> / <b>删除</b>，改完点保存即可。
+      </p>
+
+      <!-- ===================== 时间轴列表 ===================== -->
+      <div class="timeline" data-timeline></div>
+
+      <!-- ===================== 记录一条新的小诗 ===================== -->
+      <section class="card poem-form">
+        <form id="poemForm" autocomplete="off">
+          <div class="poem-form__grid">
+
+            <div class="field">
+              <label for="poemTitle">标题</label>
+              <input type="text" id="poemTitle" placeholder="不写就是「无题」">
+            </div>
+
+            <div class="field">
+              <label for="poemDate">时间</label>
+              <input type="date" id="poemDate">
+            </div>
+
+            <div class="field field--full">
+              <label for="poemText">想记下来的话（可以换行）</label>
+              <textarea id="poemText" placeholder="把话说轻一点，好让它在落地之前还能飞一会儿。"></textarea>
+            </div>
+
+          </div>
+
+          <div class="poem-form__foot">
+            <span class="poem-form__hint">
+              内容会保存在你自己浏览器的 localStorage 里，换电脑或清缓存会没有。
+              等以后接了数据库，这一块就能真正存到服务器上了。
+            </span>
+            <button class="btn btn--primary" type="submit">✎ 记下来</button>
+          </div>
+        </form>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">小诗</a>
+        <a href="index.html#music">曲音拾集</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/comments.js" defer></script>
+  <script src="js/poems.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>

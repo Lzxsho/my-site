@@ -1,0 +1,694 @@
+/* ==========================================================================
+   components.css —— 通用组件样式
+   包含：按钮、卡片、标签、提示框、代码块（含语法高亮配色）、
+        知识点正文排版、首页专用模块
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 按钮
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+}
+.btn:hover { background: var(--bg-hover); text-decoration: none; color: var(--text); }
+.btn:active { transform: translateY(1px); }
+
+/* 主按钮 */
+.btn-primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--brand-hover); border-color: var(--brand-hover); color: #fff; }
+
+/* 次级按钮（浅色底） */
+.btn-soft {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+  color: var(--brand);
+}
+.btn-soft:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+
+/* 纯文字按钮 */
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-2);
+}
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text); }
+
+/* 小尺寸 / 大尺寸 */
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-lg { padding: 12px 26px; font-size: 15.5px; }
+.btn-block { width: 100%; }
+
+/* 外观按钮：打开「模式 + 配色」面板 */
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--text-2);
+  font-size: 13px;
+}
+.theme-btn:hover { color: var(--text); background: var(--bg-hover); }
+.theme-btn svg { flex: none; }
+
+/* --------------------------------------------------------------------------
+   1.1 外观设置面板
+   -------------------------------------------------------------------------- */
+.appearance-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 90;
+  width: 268px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  box-shadow: var(--shadow);
+  animation: apIn .16s ease-out;
+}
+.appearance-panel[hidden] { display: none; }
+@keyframes apIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ap-group + .ap-group { margin-top: 14px; }
+.ap-label {
+  margin-bottom: 8px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+/* 模式：浅色 / 深色 */
+.ap-modes { display: flex; gap: 8px; }
+.ap-mode {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 13px;
+}
+.ap-mode:hover { background: var(--bg-hover); color: var(--text); }
+.ap-mode.is-active {
+  border-color: var(--brand-border);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* 配色：四个色块 */
+.ap-swatches { display: flex; gap: 8px; }
+.ap-sw {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 11.5px;
+  line-height: 1;
+}
+.ap-sw i {
+  width: 24px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+}
+.ap-sw:hover { background: var(--bg-hover); color: var(--text); }
+.ap-sw.is-active {
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--brand) inset;
+}
+
+.ap-tip {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* 窄屏：改用固定定位贴视口右上角，绝不超出屏幕 */
+@media (max-width: 640px) {
+  .appearance-panel {
+    position: fixed;
+    top: calc(var(--header-h) + 8px);
+    right: 12px;
+    width: min(78vw, 268px);
+    padding: 12px;
+  }
+  .ap-sw span { font-size: 11px; }
+  .ap-mode { padding: 9px 0; }   /* 加大触摸区 */
+  .ap-sw { padding: 9px 0 7px; }
+}
+
+/* --------------------------------------------------------------------------
+   2. 卡片
+   -------------------------------------------------------------------------- */
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+.card-hover:hover {
+  border-color: var(--brand-border);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.card h3 { margin-bottom: .35em; }
+.card p:last-child { margin-bottom: 0; }
+
+/* 卡片网格 */
+.grid { display: grid; gap: 18px; }
+.grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+@media (max-width: 1080px) {
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+/* 卡片小图标 */
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* --------------------------------------------------------------------------
+   3. 区块标题 / 标签 / 徽标
+   -------------------------------------------------------------------------- */
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 42px 0 18px;
+  font-size: 20px;
+}
+.section-title::before {
+  content: "";
+  width: 4px; height: 18px;
+  border-radius: 2px;
+  background: var(--brand);
+  transform: translateY(2px);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  background: var(--bg-soft);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.badge-brand { background: var(--brand-soft); color: var(--brand); border-color: var(--brand-border); }
+.badge-ok    { background: var(--ok-soft);    color: var(--ok);    border-color: var(--ok-border); }
+.badge-err   { background: var(--err-soft);   color: var(--err);   border-color: var(--err-border); }
+.badge-warn  { background: var(--warn-soft);  color: var(--warn);  border-color: var(--warn-border); }
+
+/* --------------------------------------------------------------------------
+   4. 提示框（知识点正文里可复用）
+   用法：<div class="tip">…</div> / .tip-warn / .tip-ok / .tip-note
+   -------------------------------------------------------------------------- */
+.tip {
+  position: relative;
+  margin: 0 0 1.2em;
+  padding: 12px 16px 12px 42px;
+  border: 1px solid var(--brand-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+  color: var(--text);
+  font-size: 14.5px;
+}
+.tip::before {
+  content: "i";
+  position: absolute;
+  left: 14px; top: 12px;
+  width: 18px; height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-style: italic;
+}
+.tip > :last-child { margin-bottom: 0; }
+.tip-warn { background: var(--warn-soft); border-color: var(--warn-border); }
+.tip-warn::before { content: "!"; background: var(--warn); font-style: normal; }
+.tip-ok { background: var(--ok-soft); border-color: var(--ok-border); }
+.tip-ok::before { content: "✓"; background: var(--ok); font-style: normal; }
+.tip-note { background: var(--bg-soft); border-color: var(--border); }
+.tip-note::before { content: "※"; background: var(--text-3); font-style: normal; }
+
+/* --------------------------------------------------------------------------
+   5. 代码块 + C 语法高亮配色
+   结构：
+   <div class="code-block">
+     <div class="code-head"><span class="code-lang">C</span><span class="code-title">…</span>
+       <button class="code-copy">复制</button></div>
+     <pre><code class="language-c">…高亮后的 HTML…</code></pre>
+   </div>
+   -------------------------------------------------------------------------- */
+.code-block {
+  margin: 0 0 1.4em;
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius);
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--code-head);
+  border-bottom: 1px solid var(--code-border);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.code-lang {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  color: #fff;
+  background: var(--brand);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.code-title {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-copy {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--bg-elev);
+  color: var(--text-2);
+  font-size: 12px;
+}
+.code-copy:hover { color: var(--brand); border-color: var(--brand-border); }
+
+.code-block pre {
+  margin: 0;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: var(--code-bg);
+  line-height: 1.65;
+  tab-size: 4;
+}
+.code-block pre code {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-size: 13.5px;
+  white-space: pre;
+}
+
+/* 语法高亮 token 配色 */
+.tok-comment { color: var(--tok-comment); font-style: italic; }
+.tok-keyword { color: var(--tok-keyword); font-weight: 600; }
+.tok-string  { color: var(--tok-string); }
+.tok-number  { color: var(--tok-number); }
+.tok-func    { color: var(--tok-func); }
+.tok-preproc { color: var(--tok-preproc); }
+
+/* --------------------------------------------------------------------------
+   6. 知识点正文排版（章节内容区）
+   -------------------------------------------------------------------------- */
+.chapter {
+  padding-top: 8px;
+  margin-bottom: 52px;
+}
+
+/* 黄冈讲义风：章节封面卡（章节号 + 标题 + 考点清单 + 去练习） */
+.ch-cover {
+  display: flex;
+  gap: 18px;
+  padding: 22px 24px;
+  margin-bottom: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 140% at 0% 0%, var(--brand-soft) 0%, transparent 55%),
+    var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.ch-cover-no {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--brand), #6aa6ff);
+  border-radius: 8px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+.ch-cover-main { flex: 1 1 auto; min-width: 0; }
+.ch-cover-main h2 { margin: 2px 0 8px; font-size: 23px; }
+.ch-cover-desc {
+  margin: 0 0 14px;
+  color: var(--text-2);
+  font-size: 14.5px;
+}
+.ch-cover-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ch-cover-points-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: .04em;
+  margin-right: 2px;
+}
+.ch-point {
+  display: inline-block;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-2);
+  font-size: 13px;
+  text-decoration: none;
+  transition: all .15s ease;
+}
+.ch-point:hover {
+  border-color: var(--brand-border);
+  background: var(--brand-soft);
+  color: var(--brand);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.ch-cover-cta { margin-top: 2px; }
+
+/* 小节（考点卡片） */
+.k-section {
+  padding: 16px 18px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+}
+.k-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 10px;
+  font-size: 17.5px;
+}
+.k-section h3::before {
+  content: "";
+  width: 6px; height: 18px;
+  border-radius: 3px;
+  background: var(--brand);
+}
+.k-sec-no {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+/* 本章考点速记（正文补充框） */
+.k-tips {
+  margin: 6px 0 30px;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--warn-border, #f0d9a8);
+  border-radius: var(--radius);
+  background: var(--warn-soft, #fff8ec);
+  box-shadow: var(--shadow-sm);
+}
+.k-tips-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--warn, #b9770d);
+  letter-spacing: .02em;
+}
+.k-tips-list {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.k-tips-list li {
+  margin-bottom: 7px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--text-2);
+}
+.k-tips-cta { margin-top: 2px; }
+
+/* 占位文案样式：明显区别于正式内容，方便你替换 */
+.placeholder-text {
+  margin: 0 0 1em;
+  padding: 14px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.placeholder-text strong { color: var(--text-2); }
+
+/* 知识点关键点列表 */
+.key-list { padding-left: 0; list-style: none; }
+.key-list li {
+  position: relative;
+  padding-left: 22px;
+  margin: .5em 0;
+}
+.key-list li::before {
+  content: "";
+  position: absolute;
+  left: 6px; top: 11px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+
+/* --------------------------------------------------------------------------
+   7. 首页专用
+   -------------------------------------------------------------------------- */
+.hero {
+  padding: 56px 0 40px;
+  text-align: center;
+}
+.hero h1 {
+  font-size: 40px;
+  letter-spacing: -.02em;
+  margin-bottom: 16px;
+}
+.hero .hero-lead {
+  max-width: 680px;
+  margin: 0 auto 26px;
+  font-size: 16.5px;
+  color: var(--text-2);
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+}
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 26px;
+}
+
+/* 数字统计条 */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 34px 0 6px;
+}
+.stat {
+  padding: 16px 14px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+}
+.stat .num {
+  display: block;
+  font-size: 25px;
+  font-weight: 800;
+  color: var(--brand);
+  line-height: 1.3;
+}
+.stat .lbl { font-size: 13px; color: var(--text-2); }
+@media (max-width: 860px) {
+  .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero h1 { font-size: 30px; }
+}
+
+/* 学习路线（章节胶囊按钮） */
+.chapter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+  transition: all .15s ease;
+}
+.chip:hover {
+  border-color: var(--brand-border);
+  background: var(--brand-soft);
+  color: var(--brand);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.chip .chip-no {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.chip:hover .chip-no { background: var(--bg-elev); }
+
+/* 步骤条（使用说明） */
+.steps { counter-reset: step; padding: 0; list-style: none; }
+.steps li {
+  position: relative;
+  padding-left: 38px;
+  margin: 0 0 14px;
+}
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0; top: 1px;
+  width: 24px; height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
+  color: var(--brand);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.steps li strong { display: block; }
+.steps li span { color: var(--text-2); font-size: 14px; }
+
+/* --------------------------------------------------------------------------
+   手机端（窄屏）细节优化：放大触摸目标、避免横向溢出、表格可横滑
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* 按钮触摸区加大 */
+  .btn { padding: 10px 16px; font-size: 14px; }
+  .btn-sm { padding: 8px 12px; font-size: 13px; }
+
+  /* 首页主按钮竖排铺满，方便拇指点按 */
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-actions .btn { width: 100%; }
+  .hero-tags { gap: 6px; }
+
+  /* 正文里的表格改为可横向滑动，避免撑破页面 */
+  .main table,
+  .k-content table,
+  .container table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 13.5px;
+  }
+  th, td { padding: 8px 10px; }
+
+  /* 卡片内边距略收，屏幕更宽松 */
+  .card, .panel { padding: 16px 14px; }
+}

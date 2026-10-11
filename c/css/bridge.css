@@ -1,0 +1,179 @@
+/* ==========================================================================
+   bridge.css —— 把「C 语言练习站」适配进「朔的小窝」
+   --------------------------------------------------------------------------
+   c/ 这套页面原来是一整个独立站点（自己的导航、自己的蓝色主题）。
+   现在它是主站「学习」下的一个子栏目，所以这一层专门负责「长成一家人」：
+
+     ① 品牌色换成主站的粉紫（改的是它自己的 CSS 变量，不动它的布局代码）
+     ② 字体换成主站那套
+     ③ 顶部换成主站的导航条（.site-top），底部加主站的页脚（.site-foot）
+
+   写法上有个原则：**只新增 .site-* 这个类名的样式，不去改它原有的任何类名。**
+   它的 base / layout / components / practice 四份样式表保持原样，
+   这样以后它那边要升级，这层适配不会跟着打架。
+   ========================================================================== */
+
+/* ---------- ① 品牌色：蓝 → 主站的紫 ----------
+   c/ 那套本来是 GitHub 那种蓝（--brand: #2563eb）。
+   这里只覆盖品牌色和它的几个衍生值，其余（灰阶、语义色、代码高亮）都保留 ——
+   语义色动不得：绿=对、红=错，那是做题时的直觉。 */
+:root {
+  --brand:         #8b5cd6;
+  --brand-hover:   #7a4bc4;
+  --brand-soft:    #f3ecff;
+  --brand-border:  #ddd0ff;
+
+  /* 字体跟主站一致（主站 base.css 里的 --font-sans） */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html[data-theme="dark"] {
+  --brand:         #b79bff;
+  --brand-hover:   #c9b2ff;
+  --brand-soft:    #241d38;
+  --brand-border:  #3d3060;
+}
+
+/* ---------- ② 顶部：主站的导航条 ----------
+   c/ 自己的导航条是「固定在顶部、高 60px」的（--header-h）。
+   现在上面要多一条主站的，做法是把 --header-h 整体加高，
+   再把那条原导航往下推 —— 它自己的布局代码一行都不用改。 */
+:root {
+  --site-top-h: 46px;
+  --header-h: calc(60px + var(--site-top-h));
+}
+
+.site-header {
+  top: var(--site-top-h) !important;
+  height: 60px !important;
+}
+
+.site-top {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: var(--site-top-h);
+  padding: 0 20px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(120, 100, 160, 0.16);
+}
+
+html[data-theme="dark"] .site-top {
+  background: rgba(16, 14, 24, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* logo：跟主站一样的粉紫渐变字 */
+.site-top__brand {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-decoration: none;
+  background: linear-gradient(120deg, #ff8fc4, #a98bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.site-top__brand span { opacity: 0.75; }
+
+.site-top__nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.site-top__nav a {
+  font-size: 13.5px;
+  text-decoration: none;
+  color: #6b6577;
+  padding: 4px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.site-top__nav a:hover { color: #8b5cd6; }
+
+/* 当前所在的栏目（学习）高亮；C 语言这几个页面自己高亮成「· C 语言」 */
+.site-top__nav a.is-here {
+  color: #8b5cd6;
+  font-weight: 600;
+  border-bottom-color: #c3a4ff;
+}
+
+html[data-theme="dark"] .site-top__nav a { color: #a8a2b8; }
+html[data-theme="dark"] .site-top__nav a:hover,
+html[data-theme="dark"] .site-top__nav a.is-here { color: #c9b2ff; }
+html[data-theme="dark"] .site-top__nav a.is-here { border-bottom-color: #6a52a8; }
+
+/* 面包屑：说明你现在在主站的哪一层 */
+.site-top__crumb {
+  font-size: 12.5px;
+  color: #8b8598;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .site-top__crumb { color: #8c86a0; }
+
+/* ---------- ③ 底部：主站的页脚 ---------- */
+.site-foot {
+  margin-top: 40px;
+  padding: 26px 20px 30px;
+  border-top: 1px solid rgba(120, 100, 160, 0.16);
+  text-align: center;
+  font-size: 12.5px;
+  color: #8b8598;
+}
+.site-foot__nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.site-foot__nav a {
+  color: #6b6577;
+  text-decoration: none;
+  font-size: 13px;
+}
+.site-foot__nav a:hover { color: #8b5cd6; }
+.site-foot__sign {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #6b6577;
+}
+html[data-theme="dark"] .site-foot { border-top-color: rgba(255, 255, 255, 0.1); color: #8c86a0; }
+html[data-theme="dark"] .site-foot__nav a,
+html[data-theme="dark"] .site-foot__sign { color: #a8a2b8; }
+
+/* ---------- 试卷图片缺失时的占位（见 papers-image.html 底部脚本） ---------- */
+.paper-img--missing {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  margin: 12px 0;
+  padding: 18px;
+  border: 1px dashed rgba(120, 100, 160, 0.35);
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  color: #8b8598;
+  background: rgba(120, 100, 160, 0.05);
+}
+
+/* ---------- 窄屏：导航条压缩一下 ---------- */
+@media (max-width: 760px) {
+  :root { --site-top-h: 42px; }
+  .site-top { gap: 10px; padding: 0 12px; }
+  .site-top__crumb { display: none; }
+  .site-top__nav { gap: 12px; }
+  .site-top__nav a { font-size: 12.5px; }
+  /* 小屏只留最要紧的几个，否则一行放不下会把导航条撑高 */
+  .site-top__nav a:nth-child(2),
+  .site-top__nav a:nth-child(3),
+  .site-top__nav a:nth-child(5) { display: none; }
+}

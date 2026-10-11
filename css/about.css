@@ -1,0 +1,401 @@
+/* ==========================================================================
+   about.css —— 关于页专属样式
+   --------------------------------------------------------------------------
+   目录：
+     1. 页面小封面
+     2. 个人名片（头像 + 自我介绍）
+     3. 正文段落 / 关键词
+     4. 技能时间线
+     5. 联系方式
+     6. 响应式
+   ========================================================================== */
+
+/* ---------- 1. 页面小封面（本地图片 + 柔光罩） ---------- */
+.about-hero {
+  position: relative;
+  margin-top: calc(var(--nav-h) + 18px);
+  height: 380px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-2);
+  display: grid;
+  place-items: center;
+  padding: 0 24px;
+  /* 图片没加载出来时，先用这个渐变顶着，不会白屏 */
+  background: linear-gradient(140deg, #eef5ff 0%, #f6ecff 55%, #ffeef8 100%);
+}
+
+/* 背景插画 —— 用的是 base.css 里的公共 .hero-bg，
+   这里只把「取景中心」往上提一点，人像不容易被切到脸 */
+.about-hero .hero-bg { object-position: center 42%; }
+
+/* 柔光罩：让图片和页面的粉紫调子合在一起，也保证文字看得清。
+   类名统一成公共的 .hero-scrim--about，和其他四个页面保持一致 */
+.hero-scrim--about {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.66) 0%,
+    rgba(255, 247, 252, 0.34) 42%,
+    rgba(255, 255, 255, 0.82) 100%
+  );
+}
+body.theme-dark .hero-scrim--about {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 16, 34, 0.62) 0%,
+    rgba(20, 16, 34, 0.58) 42%,
+    rgba(20, 16, 34, 0.84) 100%
+  );
+}
+/* 深色模式下这层罩子本身就够暗了，不用再叠 base.css 里的压暗滤镜 */
+body.theme-dark .about-hero .hero-bg { filter: none; }
+
+.about-hero__inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.about-hero__avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(140deg, #ffe4f2, #d9c7ff 60%, #c8e6ff);
+  box-shadow: var(--sh-2), 0 0 0 4px rgba(255, 255, 255, 0.85);
+  margin-bottom: 18px;
+}
+.about-hero__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.about-hero__title {
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: var(--ink);
+  text-shadow: 0 2px 20px rgba(255, 255, 255, 0.9);
+}
+body.theme-dark .about-hero__title { text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6); }
+
+.about-hero__desc {
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  max-width: 560px;
+  text-shadow: 0 1px 14px rgba(255, 255, 255, 0.9);
+}
+body.theme-dark .about-hero__desc { text-shadow: 0 1px 14px rgba(0, 0, 0, 0.6); }
+
+/* ---------- 2. 个人名片 ---------- */
+.profile {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: start;
+  padding: 40px 44px;
+  margin-top: 26px;
+}
+.profile__photo {
+  width: 100%;
+  aspect-ratio: 1 / 1.12;
+  border-radius: var(--r-md);
+  /* 兜底渐变：图片加载慢的时候不会闪白 */
+  background: linear-gradient(150deg, #ffe6f3, #dcc9ff 55%, #c3e2ff);
+  box-shadow: var(--sh-2);
+  position: relative;
+  overflow: hidden;
+}
+.profile__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.7s var(--ease);
+}
+.profile__photo:hover img { transform: scale(1.06); }
+/* 照片里面描一圈虚线，做成「相框」的感觉 */
+.profile__photo::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: var(--r-sm);
+  border: 1px dashed rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+/* 顶部那一行：左边「HELLO, THIS IS ME」，右边「编辑资料」按钮 */
+.profile__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.profile__eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 3px;
+  color: var(--ink-4);
+}
+.profile__name {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.profile__sub { font-size: 13px; color: var(--ink-3); }
+
+/* ---------- 3. 正文段落 / 关键词 ---------- */
+.profile__body { margin-top: 20px; }
+.profile__body p {
+  font-size: 14.5px;
+  line-height: 2.1;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+.profile__body em {
+  font-style: normal;
+  font-weight: 600;
+  color: #8a5cd8;
+}
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 4px;
+}
+.keyword {
+  padding: 6px 16px;
+  border-radius: var(--r-full);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+body.theme-dark .keyword { background: rgba(255, 255, 255, 0.06); }
+
+/* ---------- 4. 正在学的东西 ---------- */
+
+/* 面板头部：左边标题，右边三个统计小方块 */
+.skill-panel { margin-top: 22px; }
+.panel__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed var(--line);
+  margin-bottom: 26px;
+}
+.panel__eyebrow {
+  font-size: 10.5px;
+  letter-spacing: 3px;
+  color: var(--ink-4);
+  margin-bottom: 6px;
+}
+.panel__head .panel__title { margin-bottom: 0; }
+
+/* 统计小方块：已掌握 / 正在学 / 计划中 */
+/* 右边那一组：三个统计方块 + 「编辑技能表」按钮 */
+.skill-head__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.skill-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.skill-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--r-full);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  transition: transform 0.3s var(--ease);
+}
+body.theme-dark .skill-stat { background: rgba(255, 255, 255, 0.06); }
+.skill-stat:hover { transform: translateY(-3px); }
+.skill-stat b {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.skill-stat.is-done  { border-color: rgba(122, 225, 190, 0.55); }
+.skill-stat.is-doing { border-color: rgba(195, 164, 255, 0.6); }
+.skill-stat.is-plan  { border-color: var(--line); }
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 每一条技能：一行标题 + 一条进度 + 一句说明 */
+.skill { display: flex; flex-direction: column; gap: 9px; }
+
+.skill__head { display: flex; align-items: center; gap: 10px; }
+.skill__name { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+
+.skill__badge {
+  font-size: 11px;
+  padding: 2px 11px;
+  border-radius: var(--r-full);
+  border: 1px solid transparent;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.skill__badge.is-done {
+  color: #2c8b68;
+  background: rgba(122, 225, 190, 0.22);
+  border-color: rgba(122, 225, 190, 0.5);
+}
+.skill__badge.is-doing {
+  color: #7a4bd0;
+  background: rgba(195, 164, 255, 0.22);
+  border-color: rgba(195, 164, 255, 0.55);
+}
+.skill__badge.is-plan {
+  color: var(--ink-3);
+  background: rgba(150, 150, 170, 0.12);
+  border-color: var(--line);
+}
+
+.skill__num {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+
+.skill__bar {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(195, 164, 255, 0.16);
+  overflow: hidden;
+}
+body.theme-dark .skill__bar { background: rgba(255, 255, 255, 0.08); }
+
+.skill__fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple));
+  transition: width 1.2s var(--ease);
+}
+/* 「计划中」的用斜纹条，一眼就能和已经在学的区分开 */
+.skill.is-plan .skill__fill {
+  background: repeating-linear-gradient(
+    115deg,
+    var(--c-purple) 0 9px,
+    rgba(195, 164, 255, 0.28) 9px 18px
+  );
+}
+.skill.is-done .skill__fill {
+  background: linear-gradient(90deg, var(--c-mint), var(--c-purple));
+}
+
+.skill__note {
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--ink-3);
+}
+
+.panel__foot {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+  font-size: 12.5px;
+  color: var(--ink-4);
+  text-align: center;
+}
+
+/* ---------- 5. 联系方式 ---------- */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 4px;
+}
+.contact-item {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.contact-item__label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+.contact-item__value { font-size: 14.5px; color: var(--ink-2); word-break: break-all; }
+.contact-item__icon { font-size: 20px; margin-bottom: 4px; }
+
+/* 一段引用式结语 */
+.quote {
+  margin-top: 44px;
+  padding: 28px 32px;
+  border-radius: var(--r-lg);
+  background: linear-gradient(120deg, rgba(255, 228, 244, 0.7), rgba(232, 220, 255, 0.7));
+  border: 1px solid var(--line);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 2;
+  color: #4b4168;
+  text-align: center;
+  letter-spacing: 1px;
+}
+body.theme-dark .quote { background: rgba(255, 255, 255, 0.05); color: var(--ink-2); }
+
+/* ---------- 5.5 编辑弹窗里的表单（关于页专用） ---------- */
+
+/* 表单里的分隔小标题：「—— 首页首屏上的字 ——」这种 */
+.form-sep { margin-top: 6px; }
+.form-sep label {
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  color: #8a5cd8;
+  font-weight: 600;
+}
+
+/* 一行技能：四个输入框排成一行 */
+.skill-row__fields {
+  display: grid;
+  grid-template-columns: 1.3fr 92px 112px 1.9fr;
+  gap: 10px;
+}
+
+/* ---------- 6. 响应式 ---------- */
+@media (max-width: 900px) {
+  .skill-row__fields { grid-template-columns: 1fr 1fr; }
+  .profile { grid-template-columns: 1fr; gap: 26px; padding: 28px 24px; }
+  .profile__photo { max-width: 300px; margin: 0 auto; }
+  .about-hero { height: 300px; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .panel__head { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 560px) {
+  .skill-row__fields { grid-template-columns: 1fr; }
+  .profile__name { font-size: 25px; }
+  .quote { padding: 22px 20px; font-size: 15.5px; }
+  .about-hero { height: 250px; }
+  .about-hero__avatar { width: 72px; height: 72px; margin-bottom: 12px; }
+  .skill-stats { width: 100%; }
+  .skill-stat { flex: 1; justify-content: center; }
+  .skill__head { flex-wrap: wrap; }
+}

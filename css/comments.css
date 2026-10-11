@@ -1,0 +1,151 @@
+/* ==========================================================================
+   comments.css —— 留言板
+   --------------------------------------------------------------------------
+   一块留言区 = 标题行 + 留言列表 + 输入框。
+   颜色、圆角全部用 base.css 里的变量，所以深浅色自动跟着换，
+   这里不写死任何一个色值。
+   ========================================================================== */
+
+.comments-box {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+
+.comments__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.comments__title {
+  font-size: 1rem;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+
+.comments__count {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+/* ---------- 留言列表 ---------- */
+.comments__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comments__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-3);
+  padding: 10px 0;
+}
+
+.comment {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card);
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.comment:hover { background: var(--card-hover); }
+
+.comment__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.comment__time {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+
+/* 删除按钮：平时淡淡的，鼠标移上去才明显 —— 免得抢了留言本身的注意力 */
+.comment__del {
+  margin-left: auto;
+  opacity: 0.35;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
+}
+.comment:hover .comment__del { opacity: 1; }
+.comment__del:hover { color: #e8708a; }
+
+.comment__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: var(--ink-2);
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* ---------- 输入区 ---------- */
+.comments__form {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comments__row { display: flex; gap: 8px; }
+
+.comments__nick,
+.comments__text {
+  width: 100%;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--ink);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  outline: none;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.comments__nick { max-width: 240px; }
+
+.comments__text {
+  resize: vertical;
+  min-height: 62px;
+  line-height: 1.7;
+}
+
+.comments__nick:focus,
+.comments__text:focus {
+  border-color: var(--c-purple);
+  background: var(--card-solid);
+}
+
+.comments__nick::placeholder,
+.comments__text::placeholder { color: var(--ink-4); }
+
+.comments__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.comments__hint {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 560px) {
+  .comments__nick { max-width: none; }
+  .comments__foot { flex-direction: column; align-items: stretch; }
+  .comments__foot .btn { width: 100%; }
+}

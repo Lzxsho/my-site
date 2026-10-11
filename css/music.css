@@ -1,0 +1,531 @@
+/* ==========================================================================
+   music.css —— 音乐页专属样式
+   --------------------------------------------------------------------------
+   目录：
+     1. 唱片机（黑胶 + 进度条 + 播放控制）
+     2. 页面小封面
+     3. 唱片列表（按分类分组的碟架）
+     4. 响应式
+
+   ▍唱片机的样式原来放在 base.css，因为首页也用过一台紧凑版；
+     现在首页只留歌单、播放器只此一处，就搬回来了。
+   ========================================================================== */
+
+/* ---------- 1. 唱片机 ----------
+   黑胶 + 唱针 + 进度条 + 播放控制。全站只有音乐页这一台 ——
+   首页的「耳边正在发生」只放一张歌单，点一首跳到这儿来听，
+   所以这些样式跟着音乐页走，就放在这个文件里。
+
+   用法：
+     <div class="player">
+       <div class="disc-wrap">
+         <div class="disc">
+           <div class="disc__label" data-disc-label>—</div>
+           <div class="disc__hole"></div>
+         </div>
+         <div class="tonearm"></div>
+       </div>
+       <div class="player__info"> …播放信息 / 进度条 / 按钮… </div>
+     </div>
+   ---------------------------------------------------------------- */
+.player {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: center;
+  padding: 40px 44px;
+  margin: 30px 0 34px;
+  border-radius: var(--r-lg);
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--sh-2);
+}
+
+/* 黑胶唱片 */
+.disc-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+}
+.disc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  background:
+    repeating-radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.06) 0px,
+      rgba(255, 255, 255, 0.06) 1px,
+      rgba(0, 0, 0, 0.16) 1px,
+      rgba(0, 0, 0, 0.16) 3px),
+    radial-gradient(circle at 50% 50%, #3b3350 0%, #221c34 60%, #15101f 100%);
+  box-shadow: 0 20px 50px rgba(60, 40, 90, 0.45);
+  animation: spin 16s linear infinite;
+  animation-play-state: paused;
+}
+.disc.is-playing { animation-play-state: running; }
+
+/* 唱片中心的彩色标签 */
+.disc__label {
+  position: absolute;
+  inset: 30%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: #fff;
+  letter-spacing: 2px;
+  text-align: center;
+  line-height: 1.5;
+  background: linear-gradient(135deg, var(--c-pink), var(--c-purple));
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.35);
+  padding: 10px;
+}
+/* 中心的小孔 */
+.disc__hole {
+  position: absolute;
+  inset: calc(50% - 7px) calc(50% - 7px) auto auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #efe9ff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12);
+}
+/* 唱针 */
+.tonearm {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  width: 12px;
+  height: 140px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #cfc6e6, #9d93bb);
+  transform-origin: top center;
+  transform: rotate(-26deg);
+  transition: transform 0.8s var(--ease);
+  box-shadow: 0 6px 16px rgba(80, 60, 110, 0.3);
+}
+.tonearm.is-down { transform: rotate(6deg); }
+.tonearm::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 18px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #b9aee0, #8b80b0);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* 右边的播放信息 */
+.player__info { min-width: 0; }
+.player__now {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--ink-4);
+  margin-bottom: 8px;
+}
+.player__name {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.player__artist { font-size: 13.5px; color: var(--ink-3); margin-top: 6px; }
+.player__note {
+  margin-top: 16px;
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: var(--ink-2);
+  padding: 14px 18px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.55);
+  border-left: 3px solid var(--c-purple);
+}
+body.theme-dark .player__note { background: rgba(255, 255, 255, 0.06); }
+
+/* 播放进度条 + 时间。
+   没有音频文件时它就一直停在 0，也不会挡到别的东西 */
+.player__progress {
+  position: relative;
+  height: 6px;
+  margin-top: 20px;
+  border-radius: 999px;
+  background: rgba(195, 164, 255, 0.22);
+  cursor: pointer;
+  overflow: hidden;
+  transition: height 0.2s var(--ease);
+}
+.player__progress:hover { height: 9px; }
+.player__progress-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple));
+  transition: width 0.15s linear;
+}
+.player__time {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;   /* 数字不会因为位数变化而抖动 */
+}
+/* 键盘也能点：焦点进去时给个明显的框，用键盘的人看得见自己在哪 */
+.player__progress:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(195, 164, 255, 0.45);
+}
+
+/* 均衡器（跟着播放状态跳动） */
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 30px;
+  margin-top: 20px;
+}
+.eq__bar {
+  width: 5px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--c-pink), var(--c-purple));
+  height: 30%;
+  animation: eqJump 1s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.eq.is-playing .eq__bar { animation-play-state: running; }
+.eq__bar:nth-child(2) { animation-delay: 0.15s; }
+.eq__bar:nth-child(3) { animation-delay: 0.3s; }
+.eq__bar:nth-child(4) { animation-delay: 0.45s; }
+.eq__bar:nth-child(5) { animation-delay: 0.6s; }
+.eq__bar:nth-child(6) { animation-delay: 0.75s; }
+.eq__bar:nth-child(7) { animation-delay: 0.35s; }
+.eq__bar:nth-child(8) { animation-delay: 0.55s; }
+.eq__bar:nth-child(9) { animation-delay: 0.2s; }
+
+@keyframes eqJump {
+  0%, 100% { height: 24%; }
+  50%      { height: 100%; }
+}
+
+.player__actions { display: flex; align-items: center; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.player__hint { font-size: 12px; color: var(--ink-4); }
+
+/* 提示里提到的文件名 / 字段名，用等宽小底色标出来 */
+.player__hint code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(195, 164, 255, 0.18);
+  color: #7a4fd0;
+}
+/* 深色底下那个紫色太暗了，换成浅一档才看得清 */
+body.theme-dark .player__hint code {
+  background: rgba(195, 164, 255, 0.2);
+  color: #cbb4ff;
+}
+
+/* 唱片机自己的响应式，跟着组件走，不散到各页去 */
+@media (max-width: 980px) {
+  .player {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 30px 24px;
+    text-align: center;
+  }
+  .player .player__note { text-align: left; }
+  .player .eq,
+  .player .player__actions { justify-content: center; }
+}
+
+@media (max-width: 620px) {
+  .player .disc-wrap { width: 220px; height: 220px; }
+  .player .player__name { font-size: 23px; }
+}
+
+
+/* ---------- 2. 页面小封面 ---------- */
+.music-hero {
+  position: relative;
+  margin-top: calc(var(--nav-h) + 18px);
+  height: 270px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  background:
+    radial-gradient(circle at 26% 30%, rgba(255, 232, 246, 0.95), transparent 55%),
+    radial-gradient(circle at 74% 70%, rgba(206, 232, 255, 0.92), transparent 58%),
+    linear-gradient(130deg, #fff0f9 0%, #e8f3ff 100%);
+}
+/* 柔光罩：这张是夜景灯会，偏暗，所以罩得厚一点，文字才压得住 */
+.hero-scrim--music {
+  background:
+    radial-gradient(ellipse 58% 52% at 50% 50%, rgba(255, 250, 254, 0.78), transparent 74%),
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 255, 0.66) 0%,
+      rgba(255, 247, 252, 0.48) 46%,
+      rgba(255, 255, 255, 0.80) 100%
+    );
+}
+.music-hero__title {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 4.4vw, 42px);
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #3a3352;
+  text-shadow: 0 4px 24px rgba(255, 255, 255, 0.92);
+}
+.music-hero__desc {
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: rgba(80, 62, 110, 0.78);
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95);
+}
+
+/* ---------- 3. 唱片列表（按分类分组） ---------- */
+/* 外层：一组一组竖着排 */
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* 分组的表头：分类名 + 「N 首」，
+   下面压一条细线，把一组和下一组分开 */
+.record-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+}
+.record-group__name {
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+/* 分类名前面点一小块粉紫渐变，跟站内其他小标题一个语感 */
+.record-group__name::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 14px;
+  margin-right: 9px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--c-pink), var(--c-purple));
+}
+.record-group__count {
+  font-size: 12px;
+  color: var(--ink-4);
+  letter-spacing: 0.04em;
+}
+
+/* 一组里面的卡片网格 */
+.records__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+/* 一张碟都没有时的提示 */
+.records__empty {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--ink-4);
+  border-radius: var(--r-lg);
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.4);
+}
+body.theme-dark .records__empty { background: rgba(255, 255, 255, 0.04); }
+.record {
+  position: relative;   /* 右上角那个「✎ 编辑」按钮以它为定位参照 */
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: center;
+  cursor: pointer;
+}
+.record__cover {
+  flex: 0 0 84px;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  background:
+    repeating-radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.08) 0px,
+      rgba(255, 255, 255, 0.08) 1px,
+      rgba(0, 0, 0, 0.18) 1px,
+      rgba(0, 0, 0, 0.18) 2.5px),
+    radial-gradient(circle at 50% 50%, #3b3350, #171223);
+  box-shadow: var(--sh-1);
+  transition: transform 0.6s var(--ease);
+}
+.record:hover .record__cover { transform: rotate(60deg); }
+.record.is-active .record__cover { animation: spin 8s linear infinite; }
+.record__cover i {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: block;
+  background: linear-gradient(135deg, var(--c-pink), var(--c-purple));
+}
+.record__body { min-width: 0; flex: 1; }
+.record__name {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.record__artist { font-size: 12.5px; color: var(--ink-4); margin-top: 2px; }
+.record__note {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  margin-top: 8px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* 每张碟底下的一行：本地文件状态标记（本地有声 / 待放文件） */
+.record__links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.chip {
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease);
+}
+.chip:hover {
+  background: #fff;
+  border-color: rgba(170, 150, 205, 0.5);
+  color: var(--ink);
+}
+
+/* 本地文件状态：不是按钮，是个标记，所以不跟着亮 */
+.chip--local {
+  cursor: default;
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-4);
+}
+.chip--local:hover { background: transparent; border-color: var(--line); color: var(--ink-4); }
+.chip--local.is-ok {
+  color: #0f6e56;
+  border-color: rgba(29, 158, 117, 0.45);
+  background: rgba(169, 239, 220, 0.3);
+}
+.chip--local.is-off {
+  color: #854f0b;
+  border-color: rgba(186, 117, 23, 0.4);
+  background: rgba(250, 238, 218, 0.62);
+}
+body.theme-dark .chip { background: rgba(255, 255, 255, 0.06); }
+body.theme-dark .chip:hover { background: rgba(255, 255, 255, 0.13); }
+body.theme-dark .chip--local,
+body.theme-dark .chip--local:hover { background: transparent; }
+body.theme-dark .chip--local.is-ok  { background: rgba(29, 158, 117, 0.18); }
+body.theme-dark .chip--local.is-off { background: rgba(186, 117, 23, 0.2); }
+
+.record.is-active { border-color: rgba(195, 164, 255, 0.7); box-shadow: var(--sh-2); }
+
+/* 每张碟右上角的小铅笔（编辑）
+   平时很淡，鼠标移到卡片上才变明显 —— 不抢唱片的戏 */
+.record__edit {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  opacity: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  box-shadow: 0 4px 12px rgba(120, 90, 160, 0.16);
+  transition: all 0.24s var(--ease);
+}
+.record:hover .record__edit,
+.record__edit:focus-visible { opacity: 1; }
+.record__edit:hover {
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  color: #fff;
+  border-color: transparent;
+}
+body.theme-dark .record__edit { background: rgba(48, 42, 66, 0.92); color: #efeaf7; }
+/* 手机端没有 hover，干脆一直显示 */
+@media (hover: none) {
+  .record__edit { opacity: 1; }
+}
+
+/* 碟架标题右边：一句提示 + 「添加唱片」按钮 */
+.section__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+@media (max-width: 560px) {
+  .section__actions { width: 100%; justify-content: space-between; }
+  .section__actions .section__more { display: none; }
+}
+
+/* ---------- 4. 响应式 ---------- */
+@media (max-width: 980px) {
+  .records__grid { grid-template-columns: repeat(2, 1fr); }
+  .music-hero { height: 230px; }
+}
+
+@media (max-width: 620px) {
+  .records__grid { grid-template-columns: 1fr; }
+}

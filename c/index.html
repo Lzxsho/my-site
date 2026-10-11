@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>湖北专升本 C语言程序设计 · 备考学习站</title>
+<meta name="description" content="湖北专升本C语言备考学习网站：按谭浩强《C程序设计》章节整理知识点，配套章节习题与综合模拟试卷。">
+
+<!-- 浏览器标签页上的小图标（在子目录里，路径要往上一级） -->
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+
+<!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="朔的小窝 · Shuoscape">
+<meta property="og:title" content="C 语言备考站 · 湖北专升本">
+<meta property="og:description" content="湖北专升本C语言备考学习网站：按谭浩强《C程序设计》章节整理知识点，配套章节习题与综合模拟试卷。">
+<meta property="og:image" content="../assets/hero-home.jpg">
+<meta property="og:url" content="c/index.html">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/bridge.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<!-- 防闪屏：在样式生效前先套用上次选择的主题 -->
+<script>
+  (function () {
+    try {
+      var d = document.documentElement;
+      if (localStorage.getItem('c-site-theme') === 'dark') {
+        d.setAttribute('data-theme', 'dark');
+      }
+      var p = localStorage.getItem('c-site-palette');
+      if (p && p !== 'default') {
+        d.setAttribute('data-palette', p);
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<!-- ===== 主站统一的导航条（样式在 css/bridge.css，不碰本页原有样式）===== -->
+<div class="site-top">
+  <a class="site-top__brand" href="../index.html">Shuo<span>scape</span></a>
+  <span class="site-top__crumb">主站 · 学习 · C 语言</span>
+  <nav class="site-top__nav">
+    <a href="../index.html">首页</a>
+    <a href="../articles.html">文章</a>
+    <a href="../poems.html">诗札</a>
+    <a href="../study.html" class="is-here">学习</a>
+    <a href="../about.html">关于</a>
+    <a href="../study.html#c">· C 语言</a>
+    <a href="../study.html#en">· 英语</a>
+  </nav>
+</div>
+
+
+<!-- ============================ 顶部固定导航 ============================ -->
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">C</span>
+      <span>湖北专升本 · C语言</span>
+      <span class="brand-sub">谭浩强《C程序设计》知识体系</span>
+    </a>
+
+    <button class="menu-btn" type="button" data-menu-toggle aria-label="展开导航菜单">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M3 12h18M3 18h18"/>
+      </svg>
+    </button>
+
+    <ul class="nav-links">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="knowledge.html">知识点</a></li>
+      <li><a href="practice.html">习题训练</a></li>
+      <li><a href="papers-image.html">图片卷</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button class="theme-btn" type="button" data-appearance-toggle aria-expanded="false" aria-haspopup="true" title="外观设置（明暗模式与配色）">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+          <path d="M12 3a9 9 0 100 18h.6a2 2 0 001.7-3.1 1.8 1.8 0 011.5-2.8H17a4 4 0 004-4c0-4.5-4-8.1-9-8.1z"/>
+          <circle cx="7.6" cy="11.2" r="1.05" fill="currentColor" stroke="none"/>
+          <circle cx="10.4" cy="7.4" r="1.05" fill="currentColor" stroke="none"/>
+          <circle cx="14.8" cy="7.8" r="1.05" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>外观</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============================== 首屏介绍 ============================== -->
+  <section class="container hero">
+    <div class="hero-tags">
+      <span class="badge badge-brand">纯本地网页</span>
+      <span class="badge">无需安装</span>
+      <span class="badge">无需联网</span>
+      <span class="badge badge-ok">双击即可使用</span>
+    </div>
+    <h1>湖北专升本 · C语言程序设计<br>备考学习站</h1>
+    <p class="hero-lead">
+      面向湖北省普通专升本《C语言程序设计》考试。知识点按谭浩强《C程序设计》教材章节体系整理，
+      排版参考菜鸟教程的阅读风格；配套章节习题与成套模拟试卷，学完一章即可刷对应章节的题。
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" href="knowledge.html">
+        进入知识点
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn btn-lg" href="practice.html">
+        开始刷题
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a class="btn btn-ghost btn-lg" href="papers-image.html">图片卷刷题</a>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><span class="num" data-stat="chapters">10</span><span class="lbl">大章节知识点</span></div>
+      <div class="stat"><span class="num" data-stat="papers">32</span><span class="lbl">套模拟试卷</span></div>
+      <div class="stat"><span class="num" data-stat="specials">5</span><span class="lbl">大专项强化</span></div>
+      <div class="stat"><span class="num" data-stat="total">1517</span><span class="lbl">道练习题</span></div>
+    </div>
+  </section>
+
+  <!-- ============================== 网站功能 ============================== -->
+  <section class="container">
+    <h2 class="section-title">网站能做什么</h2>
+    <div class="grid grid-4">
+      <div class="card card-hover">
+        <div class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5z"/><path d="M4 5.5v15"/>
+          </svg>
+        </div>
+        <h3>章节知识点速查</h3>
+        <p class="text-muted">按谭浩强教材十章编排，左侧目录一键跳转，代码块高亮显示，支持一键复制。</p>
+      </div>
+      <div class="card card-hover">
+        <div class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/>
+          </svg>
+        </div>
+        <h3>章节配套习题</h3>
+        <p class="text-muted">每章配有选择题、填空题、程序阅读题，学完一章马上练，错题可回看对应知识点。</p>
+      </div>
+      <div class="card card-hover">
+        <div class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 4h16v5H4zM4 15h16v5H4z"/><path d="M8 9v6M16 9v6"/>
+          </svg>
+        </div>
+        <h3>综合模拟试卷</h3>
+        <p class="text-muted">32 套整卷（模拟卷 15 套、强哥预测 15 套、编程经典 100 例、章节综合卷），交卷后自动统计得分，整卷自测查漏补缺。</p>
+      </div>
+      <div class="card card-hover">
+        <div class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>
+          </svg>
+        </div>
+        <h3>自动判分与记录</h3>
+        <p class="text-muted">选择题勾选后交卷自动统计得分，答题记录保存在本机浏览器里，下次打开还在。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 学习路线 ============================== -->
+  <section class="container">
+    <h2 class="section-title">十章学习路线</h2>
+    <p class="text-muted" style="margin-bottom:16px">建议按顺序学习：先看知识点，再做该章习题，最后用模拟卷查漏补缺。点击下方章节直接跳转。</p>
+    <div class="chapter-chips">
+      <a class="chip" href="knowledge.html#ch01"><span class="chip-no">01</span>C语言概述</a>
+      <a class="chip" href="knowledge.html#ch02"><span class="chip-no">02</span>数据类型与运算符</a>
+      <a class="chip" href="knowledge.html#ch03"><span class="chip-no">03</span>顺序程序设计</a>
+      <a class="chip" href="knowledge.html#ch04"><span class="chip-no">04</span>选择结构</a>
+      <a class="chip" href="knowledge.html#ch05"><span class="chip-no">05</span>循环结构</a>
+      <a class="chip" href="knowledge.html#ch06"><span class="chip-no">06</span>数组</a>
+      <a class="chip" href="knowledge.html#ch07"><span class="chip-no">07</span>函数</a>
+      <a class="chip" href="knowledge.html#ch08"><span class="chip-no">08</span>指针</a>
+      <a class="chip" href="knowledge.html#ch09"><span class="chip-no">09</span>结构体</a>
+      <a class="chip" href="knowledge.html#ch10"><span class="chip-no">10</span>文件</a>
+    </div>
+  </section>
+
+  <!-- ============================== 习题入口 ============================== -->
+  <section class="container">
+    <h2 class="section-title">习题训练</h2>
+    <div class="grid grid-4">
+      <div class="card card-hover">
+        <span class="badge badge-brand">板块一</span>
+        <h3 style="margin-top:12px">章节配套习题</h3>
+        <p class="text-muted">与十个知识点章节一一对应，每章 40 题以上：选择题勾选后即时判分，填空题自动比对，阅读 / 编程 / 改错题可展开参考答案。成绩自动保存。</p>
+        <p style="margin-top:14px"><a class="btn btn-soft" href="practice.html">按章节刷题 →</a></p>
+      </div>
+      <div class="card card-hover">
+        <span class="badge badge-ok">板块二</span>
+        <h3 style="margin-top:12px">综合模拟试卷</h3>
+        <p class="text-muted">32 套整卷（模拟卷 15 套、强哥预测 15 套、编程经典 100 例、章节综合卷），交卷后自动统计得分，用来整卷自测、查漏补缺。</p>
+        <p style="margin-top:14px"><a class="btn btn-primary" href="practice.html?mode=papers">进入模拟卷 →</a></p>
+      </div>
+      <div class="card card-hover">
+        <span class="badge badge-warn">板块三</span>
+        <h3 style="margin-top:12px">专项强化</h3>
+        <p class="text-muted">把全库题目按题型聚合为 5 大专项：选择 / 填空 / 程序阅读 / 程序改错 / 编程，每 50 题一组，集中突破你的薄弱题型。</p>
+        <p style="margin-top:14px"><a class="btn btn-soft" href="practice.html?mode=specials">进入专项强化 →</a></p>
+      </div>
+      <div class="card card-hover">
+        <span class="badge" style="background:#f8eeda;color:#8a6310;border-color:#e6d2ab">板块四</span>
+        <h3 style="margin-top:12px">图片卷（原图）</h3>
+        <p class="text-muted">黄冈师范学院预测卷等纯图扫描件，以原图呈现，旁边可写答案、一键显示参考答案，适合直接在纸上作答。</p>
+        <p style="margin-top:14px"><a class="btn btn-soft" href="papers-image.html">打开图片卷 →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== 使用说明 ============================== -->
+  <section class="container" style="padding-bottom:20px">
+    <h2 class="section-title">怎么使用</h2>
+    <div class="grid grid-3">
+      <div class="card">
+        <h3>直接双击打开就行</h3>
+        <ol class="steps">
+          <li><strong>打开网站</strong><span>双击文件夹里的 <code>index.html</code>，用浏览器打开即可，不需要安装任何软件，也不需要联网。</span></li>
+          <li><strong>切换主题</strong><span>点右上角的「深色 / 浅色」按钮，可以切换阅读模式，选择会自动记住。</span></li>
+          <li><strong>开始学习</strong><span>先到「知识点」按章节阅读，再到「习题训练」刷题，最后在习题训练里用「综合模拟试卷」整卷自测。</span></li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>怎么分享给同学</h3>
+        <ol class="steps">
+          <li><strong>发在线链接（最快）</strong><span>把在线分享链接发到微信 / QQ，对方点开就能用，手机电脑都行，不用下载、不用解压。</span></li>
+          <li><strong>发轻量包（约 0.5 MB）</strong><span>微信发送 <code>专升本C语言学习站-轻量版.zip</code>，秒传。对方解压后双击 <code>index.html</code> 即可（不含扫描图片卷）。</span></li>
+          <li><strong>发完整包（约 53 MB）</strong><span>含黄师预测卷等扫描原图，适合发电脑端或走网盘。同样解压后双击 <code>index.html</code>。</span></li>
+        </ol>
+        <div class="tip tip-note">手机上直接用浏览器打开链接即可；图片卷支持双指缩放、拖动查看。</div>
+      </div>
+      <div class="card">
+        <h3>想补充自己的资料？</h3>
+        <ol class="steps">
+          <li><strong>补充知识点</strong><span>用记事本打开 <code>js/data/knowledge-data.js</code>（第 1~5 章）和 <code>knowledge-data-2.js</code>（第 6~10 章），把整理好的内容放到对应小节的 <code>content</code> 字段里。文件开头写清楚了写法。</span></li>
+          <li><strong>补充题目</strong><span>打开 <code>js/data/practice-data.js</code>，按里面说明的四种题型格式添加题目，页面会自动排版。</span></li>
+          <li><strong>不需要动页面代码</strong><span>只改 data 文件夹里的数据文件即可，页面结构会自动适配。</span></li>
+        </ol>
+        <div class="tip tip-note">所有内容都是本地文件，改完保存、刷新浏览器就能看到效果。</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================================= 页脚 ================================= -->
+<footer class="site-footer">
+  <div class="container">
+    <span>湖北专升本 C语言程序设计备考学习站 · 知识点体系参考谭浩强《C程序设计》</span>
+    <span>共 10 章知识点 · 515 道章节习题 · 32 套模拟试卷 · 图片卷若干　© <span data-year>2026</span></span>
+  </div>
+</footer>
+
+<!-- 回到顶部 -->
+<button class="to-top" type="button" data-to-top aria-label="回到顶部">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+</button>
+
+<!-- ================================= 脚本 ================================= -->
+<script src="js/highlight-c.js"></script>
+<script src="js/data/site-stats.js"></script>
+<script src="js/common.js"></script>
+<script src="js/theme.js"></script>
+<script>
+  /* 首页统计：优先用自动生成的精确数字，加载失败则保留页面上的默认值 */
+  (function () {
+    try {
+      var S = window.SITE_STATS;
+      if (!S) { return; }
+      var set = function (k, v) {
+        var el = document.querySelector('[data-stat="' + k + '"]');
+        if (el) { el.textContent = v; }
+      };
+      set('chapters', S.chapters);
+      set('papers', S.papers);
+      set('specials', S.specials);
+      set('total', S.total);
+    } catch (e) {}
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,489 @@
+/* ==========================================================================
+   study.css —— 学习页样式
+   --------------------------------------------------------------------------
+   目录：
+     1. 顶部两块进度概览
+     2. C 语言：分组卡片 + 勾选行
+     3. 英语：单词卡（翻面）+ 每日一句
+     4. 首页「今天学了什么」小预览
+     5. 响应式
+
+   配色全部用 base.css 里定义的变量，所以深浅色模式自动跟着变，
+   这里不写任何具体颜色值。
+   ========================================================================== */
+
+/* ---------- 1. 进度概览 ---------- */
+.study-overview {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.study-stat {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "name bar  num"
+    "tag  bar  num";
+  align-items: center;
+  gap: 2px 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.68);
+  text-decoration: none;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.study-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(120, 100, 160, 0.14);
+}
+body.theme-dark .study-stat { background: rgba(255, 255, 255, 0.05); }
+
+.study-stat__name { grid-area: name; font-size: 15px; font-weight: 600; color: var(--ink); }
+.study-stat__tag  { grid-area: tag;  font-size: 11.5px; color: var(--ink-4); }
+.study-stat__num  { grid-area: num;  font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+.study-stat__num b { font-size: 18px; color: var(--c-purple); }
+
+.study-stat__bar {
+  grid-area: bar;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: rgba(120, 100, 160, 0.14);
+  overflow: hidden;
+}
+.study-stat__bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple));
+  transition: width 0.4s var(--ease);
+}
+
+/* ---------- 2. C 语言 ---------- */
+.study-intro {
+  margin: -8px 0 18px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--ink-3);
+}
+
+.study-groups {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.study-group { padding: 18px 20px; }
+
+.study-group__title {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.study-group__title::before {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  margin-right: 8px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  background: linear-gradient(180deg, var(--c-pink), var(--c-purple));
+}
+
+.study-group__items { display: flex; flex-direction: column; gap: 2px; }
+
+/* 一条知识点 = 一行可勾选 */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.18s var(--ease);
+}
+.check-row:hover { background: rgba(120, 100, 160, 0.06); }
+
+/* 真正的复选框藏起来，用下面这个方块画出来 —— 各浏览器长得才一致 */
+.check-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.check-row__box {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  border: 1.5px solid var(--line);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.8);
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.check-row input:checked + .check-row__box {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+}
+/* 勾：用两条边拼一个 ✓，比贴图片省事，也不会糊 */
+.check-row input:checked + .check-row__box::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 8px;
+  margin: 1.5px auto 0;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(40deg);
+}
+.check-row input:focus-visible + .check-row__box {
+  outline: 2px solid var(--c-purple);
+  outline-offset: 2px;
+}
+
+.check-row__main { display: flex; flex-direction: column; gap: 2px; }
+.check-row__name { font-size: 13.5px; color: var(--ink); }
+.check-row__note { font-size: 11.5px; line-height: 1.6; color: var(--ink-4); }
+
+/* 勾上了：字变淡、加删除线，一眼看出「这条过了」 */
+.check-row.is-done .check-row__name {
+  color: var(--ink-4);
+  text-decoration: line-through;
+}
+
+/* ---------- 3. 英语：单词卡 ---------- */
+.word-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.word-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.68);
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.word-card:hover { transform: translateY(-2px); }
+.word-card:focus-visible { border-color: var(--c-purple); }
+body.theme-dark .word-card { background: rgba(255, 255, 255, 0.05); }
+
+/* 翻面：外层给高度，内层两块做 3D 翻转 */
+.word-card__inner {
+  position: relative;
+  height: 116px;
+  transform-style: preserve-3d;
+  transition: transform 0.45s var(--ease);
+}
+.word-card.is-flipped .word-card__inner { transform: rotateY(180deg); }
+
+.word-card__front,
+.word-card__back {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+.word-card__front {
+  background: linear-gradient(150deg, rgba(255, 176, 216, 0.16), rgba(195, 164, 255, 0.16));
+  text-align: center;
+}
+.word-card__back {
+  background: rgba(120, 100, 160, 0.08);
+  transform: rotateY(180deg);
+}
+
+.word-card__word   { font-size: 20px; font-weight: 600; color: var(--ink); }
+.word-card__phonic { font-size: 12px; color: var(--ink-4); }
+.word-card__tip    { margin-top: 4px; font-size: 11px; color: var(--ink-4); opacity: 0.8; }
+.word-card__meaning { font-size: 13px; font-weight: 600; color: var(--ink); }
+.word-card__example { font-size: 11.5px; line-height: 1.6; color: var(--ink-3); }
+
+/* 标为已掌握的小按钮 */
+.word-card__mark {
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.word-card__mark:hover { border-color: rgba(170, 150, 205, 0.5); color: var(--ink); }
+body.theme-dark .word-card__mark { background: rgba(255, 255, 255, 0.07); }
+
+/* 已掌握：整张卡淡一点，按钮填满渐变 */
+.word-card.is-known { opacity: 0.72; }
+.word-card.is-known .word-card__mark {
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  border-color: transparent;
+  color: #fff;
+}
+
+/* ---------- 每日一句 ---------- */
+.sentence-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.sentence {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c-purple);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.62);
+}
+body.theme-dark .sentence { background: rgba(255, 255, 255, 0.05); }
+.sentence__en {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.sentence__zh { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+
+/* 副标题（碟架、每日一句这种二级区块的标题） */
+.section__head--sub { margin-top: 28px; }
+.section__head--sub .section__title { font-size: 17px; }
+
+/* ---------- 4. 首页「今天学了什么」 ---------- */
+.study-peek { display: flex; flex-direction: column; gap: 10px; }
+
+.study-peek__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "name bar num"
+    "hint bar num";
+  align-items: center;
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  text-decoration: none;
+  transition: background 0.18s var(--ease);
+}
+.study-peek__row:hover { background: rgba(120, 100, 160, 0.06); }
+
+.study-peek__name { grid-area: name; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.study-peek__hint { grid-area: hint; font-size: 11px; color: var(--ink-4); }
+.study-peek__num  { grid-area: num;  font-size: 12px; color: var(--ink-3); }
+.study-peek__bar {
+  grid-area: bar;
+  height: 7px;
+  border-radius: var(--r-full);
+  background: rgba(120, 100, 160, 0.14);
+  overflow: hidden;
+}
+.study-peek__bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple));
+}
+
+/* ---------- 5. 响应式 ---------- */
+@media (max-width: 980px) {
+  .word-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 760px) {
+  .study-overview,
+  .study-groups,
+  .sentence-list { grid-template-columns: 1fr; }
+  .word-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 520px) {
+  .word-grid { grid-template-columns: 1fr; }
+  .word-card__inner { height: 104px; }
+}
+
+/* ---------- 3.5 练习站入口卡片 + 说明条 ---------- */
+.study-entries {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.study-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.68);
+  text-decoration: none;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.study-entry:hover {
+  transform: translateY(-3px);
+  border-color: rgba(170, 150, 205, 0.45);
+  box-shadow: 0 12px 24px rgba(120, 100, 160, 0.16);
+}
+body.theme-dark .study-entry { background: rgba(255, 255, 255, 0.05); }
+
+.study-entry__name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* 那个箭头默认往右退一点，鼠标移上去才滑出来 */
+.study-entry__name i {
+  font-style: normal;
+  color: var(--c-purple);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.study-entry:hover .study-entry__name i { opacity: 1; transform: translateX(0); }
+
+.study-entry__desc { font-size: 11.5px; line-height: 1.6; color: var(--ink-3); }
+.study-entry__num {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-purple);
+}
+
+/* 一段「这块还在等什么」的说明 */
+.study-note {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--c-pink);
+  border-radius: var(--r-sm);
+  background: rgba(255, 176, 216, 0.12);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink-3);
+}
+body.theme-dark .study-note { background: rgba(255, 176, 216, 0.08); }
+
+@media (max-width: 900px) { .study-entries { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .study-entries { grid-template-columns: 1fr; } }
+
+/* ---------- 0. 页面小封面 ----------
+   这套样式原本在 articles.css 里（那边是文章页专用）。
+   学习页也需要同款封面，复制一份过来，而不是整份引它的样式表 ——
+   免得文章页自己的卡片样式也跟着灌进来。 */
+.page-hero {
+  position: relative;
+  margin-top: calc(var(--nav-h) + 18px);
+  height: 300px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-2);
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255, 232, 246, 0.95), transparent 55%),
+    radial-gradient(circle at 76% 66%, rgba(200, 232, 255, 0.9), transparent 58%),
+    linear-gradient(130deg, #ffeaf6 0%, #e7f4ff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+}
+.hero-scrim--articles {
+  background:
+    radial-gradient(ellipse 58% 52% at 50% 50%, rgba(255, 252, 255, 0.66), transparent 72%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 247, 252, 0.40) 46%,
+      rgba(255, 255, 255, 0.76) 100%
+    );
+}
+.page-hero__icon {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--sh-1);
+  margin-bottom: 16px;
+}
+.page-hero__title {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #3a3352;
+  text-shadow: 0 4px 24px rgba(255, 255, 255, 0.9);
+}
+.page-hero__desc {
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: rgba(80, 62, 110, 0.78);
+  max-width: 620px;
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95);
+}
+
+/* ==========================================================================
+   学习页的三段式分区（纵向）
+   --------------------------------------------------------------------------
+   从上到下：① C 语言入口 → ② 英语 → ③ C 语言知识点清单。
+   每段是一张大卡片，顶上有一条自己的色带 ——
+   C 偏蓝紫、英语偏粉，扫一眼就知道这一段是谁的地盘。
+   ========================================================================== */
+.study-block {
+  position: relative;
+  padding: 24px 28px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: var(--sh-1);
+}
+
+/* 段与段之间的空隙 */
+.study-block + .study-block { margin-top: 34px; }
+
+/* 每段顶上的色带，兼作「这是哪一段」的标识 */
+.study-block::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+}
+.study-block--c::before  { background: linear-gradient(90deg, var(--c-blue), var(--c-purple)); }
+.study-block--en::before { background: linear-gradient(90deg, var(--c-pink), var(--c-purple)); }
+
+/* 两段各自的栏目标签也带上自己的颜色 */
+.study-block--c  .section__eyebrow { color: var(--c-blue); }
+.study-block--en .section__eyebrow { color: var(--c-pink); }
+
+/* 窄屏：内边距收一收，其它不用变 —— 纵向布局天生适配 */
+@media (max-width: 640px) {
+  .study-block { padding: 18px 16px 22px; }
+  .study-block + .study-block { margin-top: 24px; }
+}
+

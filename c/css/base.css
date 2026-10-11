@@ -1,0 +1,385 @@
+/* ==========================================================================
+   base.css —— 全局主题变量 / 重置样式 / 基础排版
+   作用：定义浅色与深色两套主题变量，所有颜色都通过变量引用，
+        这样切换主题时只需切换 html[data-theme] 即可整体换肤。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 浅色主题（默认）
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  /* 页面底色与容器层次（默认：纯白，最中性） */
+  --bg:            #ffffff;   /* 页面背景 */
+  --bg-soft:       #f6f8fa;   /* 次级背景（侧边栏、页脚） */
+  --bg-elev:       #ffffff;   /* 卡片背景 */
+  --bg-hover:      #eef1f4;   /* 悬停背景 */
+
+  /* 描边 */
+  --border:        #e3e7eb;
+  --border-strong: #ccd4dc;
+
+  /* 文字三级灰阶 */
+  --text:          #1f2328;   /* 正文 */
+  --text-2:        #57606a;   /* 次要文字 */
+  --text-3:        #8b949e;   /* 弱化文字 */
+
+  /* 品牌色 */
+  --brand:         #2563eb;
+  --brand-hover:   #1d4ed8;
+  --brand-soft:    #eaf1ff;
+  --brand-border:  #c7d9ff;
+
+  /* 语义色：正确 / 错误 / 提示 */
+  --ok:            #15803d;
+  --ok-soft:       #e9f7ee;
+  --ok-border:     #b7e0c4;
+  --err:           #d1242f;
+  --err-soft:      #fdecee;
+  --err-border:    #f5b8bd;
+  --warn:          #96650a;
+  --warn-soft:     #fff7e3;
+  --warn-border:   #f0dca8;
+
+  /* 代码块 */
+  --code-bg:       #f6f8fa;
+  --code-head:     #eaeef2;
+  --code-border:   #e1e6ea;
+  --tok-comment:   #6a737d;   /* 注释 */
+  --tok-keyword:   #cf222e;   /* 关键字 */
+  --tok-string:    #0a3069;   /* 字符串 */
+  --tok-number:    #0550ae;   /* 数字 */
+  --tok-func:      #8250df;   /* 函数名 */
+  --tok-preproc:   #953800;   /* 预处理指令 */
+
+  /* 尺寸与圆角 */
+  --header-h:      60px;      /* 顶部导航高度 */
+  --sidebar-w:     268px;     /* 侧边目录宽度 */
+  --radius:        10px;
+  --radius-sm:     6px;
+  --shadow-sm:     0 1px 2px rgba(16, 24, 40, .06);
+  --shadow:        0 8px 24px rgba(16, 24, 40, .09);
+
+  /* 字体 */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+}
+
+/* --------------------------------------------------------------------------
+   2. 深色主题（切换 data-theme="dark" 生效）
+   -------------------------------------------------------------------------- */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:            #0d1117;
+  --bg-soft:       #10161d;
+  --bg-elev:       #161b22;
+  --bg-hover:      #1d242e;
+
+  --border:        #262d36;
+  --border-strong: #3b444f;
+
+  --text:          #e6edf3;
+  --text-2:        #9aa7b4;
+  --text-3:        #7d8590;
+
+  --brand:         #559bfa;
+  --brand-hover:   #7cb2ff;
+  --brand-soft:    #142438;
+  --brand-border:  #24405f;
+
+  --ok:            #4ac26b;
+  --ok-soft:       #12251a;
+  --ok-border:     #24522f;
+  --err:           #ff7b72;
+  --err-soft:      #2a1517;
+  --err-border:    #5c2b2b;
+  --warn:          #e3b341;
+  --warn-soft:     #261f10;
+  --warn-border:   #4d3c14;
+
+  --code-bg:       #161b22;
+  --code-head:     #1b222b;
+  --code-border:   #262d36;
+  --tok-comment:   #8b949e;
+  --tok-keyword:   #ff7b72;
+  --tok-string:    #a5d6ff;
+  --tok-number:    #79c0ff;
+  --tok-func:      #d2a8ff;
+  --tok-preproc:   #ffa657;
+
+  --shadow-sm:     0 1px 2px rgba(0, 0, 0, .4);
+  --shadow:        0 8px 24px rgba(0, 0, 0, .45);
+}
+
+/* --------------------------------------------------------------------------
+   2.1 配色方案（色板）—— html[data-palette="..."]
+   --------------------------------------------------------------------------
+   与深色/浅色「模式」正交：模式决定明暗，色板决定色系。
+   不设 data-palette 或设为 default 时，使用上面的纯白/默认深色。
+   -------------------------------------------------------------------------- */
+
+/* —— 浅色模式下的三套色板 —— */
+
+/* 米黄：暖色纸张感，长时间阅读不刺眼 */
+html[data-palette="cream"]:not([data-theme="dark"]) {
+  --bg:            #f5efe1;
+  --bg-soft:       #ece2cd;
+  --bg-elev:       #fdfaf3;
+  --bg-hover:      #e6dbc3;
+  --border:        #e0d5bd;
+  --border-strong: #c6b795;
+  --text:          #2b2620;
+  --text-2:        #5f5749;
+  --text-3:        #8d8371;
+  --brand-soft:    #f8eeda;
+  --brand-border:  #e6d2ab;
+  --code-bg:       #f9f3e5;
+  --code-head:     #f0e7d3;
+  --code-border:   #e0d5bd;
+  --shadow-sm:     0 1px 2px rgba(74, 56, 24, .07);
+  --shadow:        0 8px 24px rgba(74, 56, 24, .10);
+}
+
+/* 淡蓝：清新护眼 */
+html[data-palette="blue"]:not([data-theme="dark"]) {
+  --bg:            #e4eefb;
+  --bg-soft:       #d3e3f7;
+  --bg-elev:       #f9fcff;
+  --bg-hover:      #cbdcf3;
+  --border:        #c2d5ea;
+  --border-strong: #a3bfdd;
+  --brand-soft:    #dfeafd;
+  --brand-border:  #b4cdf5;
+  --code-bg:       #e0ecfa;
+  --code-head:     #d2e3f7;
+  --code-border:   #c2d5ea;
+}
+
+/* 淡灰：低饱和中性灰，适合专注刷题 */
+html[data-palette="gray"]:not([data-theme="dark"]) {
+  --bg:            #eef0f2;
+  --bg-soft:       #e2e6ea;
+  --bg-elev:       #fafbfc;
+  --bg-hover:      #dde2e6;
+  --border:        #d4dae0;
+  --border-strong: #b4bcc4;
+  --brand-soft:    #e8eef5;
+  --brand-border:  #c2ccd8;
+  --code-bg:       #e9ecef;
+  --code-head:     #dee2e6;
+  --code-border:   #d4dae0;
+}
+
+/* —— 深色模式下的色板（只调底色/描边，文字与品牌色沿用深色默认） —— */
+
+html[data-theme="dark"][data-palette="cream"] {
+  --bg:            #14110b;
+  --bg-soft:       #1a160e;
+  --bg-elev:       #201b12;
+  --bg-hover:      #2a2317;
+  --border:        #352d1e;
+  --border-strong: #4d4230;
+  --code-bg:       #201b12;
+  --code-head:     #262015;
+  --code-border:   #352d1e;
+}
+
+html[data-theme="dark"][data-palette="blue"] {
+  --bg:            #0b1220;
+  --bg-soft:       #0e1729;
+  --bg-elev:       #121c2f;
+  --bg-hover:      #18243c;
+  --border:        #23324c;
+  --border-strong: #35496b;
+  --code-bg:       #121c2f;
+  --code-head:     #162238;
+  --code-border:   #23324c;
+}
+
+html[data-theme="dark"][data-palette="gray"] {
+  --bg:            #121314;
+  --bg-soft:       #17191a;
+  --bg-elev:       #1c1e20;
+  --bg-hover:      #25282a;
+  --border:        #2f3335;
+  --border-strong: #474c4f;
+  --code-bg:       #1c1e20;
+  --code-head:     #212426;
+  --code-border:   #2f3335;
+}
+
+/* --------------------------------------------------------------------------
+   3. 基础重置
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  /* 锚点跳转时给固定导航栏留出空间 */
+  scroll-padding-top: calc(var(--header-h) + 16px);
+}
+
+body {
+  margin: 0;
+  padding-top: var(--header-h);      /* 为固定顶部导航让位 */
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* 主题切换时的柔和过渡 */
+  transition: background-color .25s ease, color .25s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 .6em;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+  scroll-margin-top: calc(var(--header-h) + 16px);   /* 锚点定位留白 */
+}
+h1 { font-size: 30px; }
+h2 { font-size: 24px; }
+h3 { font-size: 19px; }
+h4 { font-size: 16px; }
+
+p { margin: 0 0 1em; }
+
+a {
+  color: var(--brand);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+a:hover { color: var(--brand-hover); text-decoration: underline; }
+
+img { max-width: 100%; display: block; }
+
+ul, ol { margin: 0 0 1em; padding-left: 1.5em; }
+li { margin: .35em 0; }
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 28px 0;
+}
+
+code, kbd, pre, samp { font-family: var(--font-mono); font-size: 13.5px; }
+
+/* 行内代码 */
+:not(pre) > code {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* 表格 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.2em;
+  font-size: 14px;
+}
+th, td {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--bg-soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 引用块 */
+blockquote {
+  margin: 0 0 1em;
+  padding: 8px 16px;
+  border-left: 3px solid var(--brand-border);
+  background: var(--bg-soft);
+  color: var(--text-2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* --------------------------------------------------------------------------
+   4. 表单元素基线
+   -------------------------------------------------------------------------- */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+button { cursor: pointer; }
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 选中文字颜色 */
+::selection { background: var(--brand-soft); color: var(--text); }
+
+/* --------------------------------------------------------------------------
+   5. 滚动条（Chromium / Edge）
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid var(--bg);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* --------------------------------------------------------------------------
+   6. 通用工具类
+   -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* 仅屏幕阅读器可见 */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.text-muted  { color: var(--text-2); }
+.text-dim    { color: var(--text-3); }
+.text-ok     { color: var(--ok); }
+.text-err    { color: var(--err); }
+.mono        { font-family: var(--font-mono); }
+
+/* 轻量淡入动画，用于页面内容出现 */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up { animation: fadeUp .35s ease both; }
+
+/* 尊重系统「减少动态效果」设置 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>关于 · 朔的小窝</title>
+  <meta name="description" content="你好，我是 L小旭。在文字、音乐、技术与想象之间，慢慢确认自己。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="关于 · 朔的小窝">
+  <meta property="og:description" content="你好，我是 L小旭。在文字、音乐、技术与想象之间，慢慢确认自己。">
+  <meta property="og:image" content="assets/hero-about.jpg">
+  <meta property="og:url" content="about.html">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <link rel="stylesheet" href="css/about.css">
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ===================== 页面小封面 ===================== -->
+      <!-- 这里的背景图放在 assets/ 文件夹里，换图只要改 src 即可 -->
+      <section class="about-hero">
+        <img class="hero-bg" src="assets/hero-about.jpg" alt="二次元插画背景">
+        <span class="hero-scrim hero-scrim--about"></span>
+        <div class="about-hero__inner">
+          <div class="about-hero__avatar">
+            <img src="assets/avatar.jpg" alt="L小旭的头像">
+          </div>
+          <h1 class="about-hero__title">关于我</h1>
+          <p class="about-hero__desc">文字与记录之外，一个还在慢慢长大的普通人。</p>
+        </div>
+      </section>
+
+      <!-- ===================== 个人名片 ===================== -->
+      <section class="card profile">
+        <div class="profile__photo">
+          <img src="assets/avatar.jpg" alt="L小旭的头像">
+        </div>
+
+        <div>
+          <div class="profile__head">
+            <p class="profile__eyebrow">HELLO, THIS IS ME</p>
+            <!-- 点这里可以改下面这一整块：「你好，我是……」、签名、自我介绍、关键词 -->
+            <button class="btn btn--sm" id="editProfileBtn" data-admin-only>✎ 编辑资料</button>
+          </div>
+          <h2 class="profile__name" data-about-name>你好，我是 L小旭。</h2>
+          <p class="profile__sub" data-about-slogan></p>
+          <!-- 段落由 js/about.js 渲染 -->
+          <div class="profile__body" data-about-body></div>
+          <div class="keywords" data-about-keywords></div>
+        </div>
+      </section>
+
+      <!-- ===================== 正在学的东西 ===================== -->
+      <section class="card panel skill-panel">
+        <div class="panel__head">
+          <div>
+            <p class="panel__eyebrow">LEARNING TRACK</p>
+            <h3 class="panel__title">正在学的东西</h3>
+          </div>
+          <div class="skill-head__right">
+            <!-- 统计小方块由 js/about.js 渲染 -->
+            <div class="skill-stats" data-skill-stats></div>
+            <!-- 点这里可以改整张技能表：加一条、删一条、改进度和状态 -->
+            <button class="btn btn--sm" id="editSkillsBtn" data-admin-only>✎ 编辑技能表</button>
+          </div>
+        </div>
+
+        <!-- 进度条由 js/about.js 渲染并做动画 -->
+        <div class="skill-list" data-skills></div>
+
+        <p class="panel__foot">
+          这张表每隔一阵就会变一次 —— 变的是百分比，不变的是还在往前走。
+        </p>
+      </section>
+
+      <!-- ===================== 联系方式 ===================== -->
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">CONTACT</p>
+            <h2 class="section__title">想找我的话</h2>
+          </div>
+          <button class="btn btn--sm" id="copyEmail">⧉ 复制邮箱</button>
+        </div>
+        <div class="contact-grid" data-contact></div>
+      </section>
+
+      <!-- ===================== 结语 ===================== -->
+      <p class="quote">「写下来的东西不一定要有意义，能被记住就已经很好。」</p>
+
+    </div>
+  </main>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">小诗</a>
+        <a href="index.html#music">曲音拾集</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <!-- ===================== 编辑弹窗 =====================
+       「编辑资料」和「编辑技能表」共用这一个弹窗，
+       js/about.js 按 state.mode 决定里面渲染哪一套表单。
+       弹窗的样式在 base.css 的 6.6 / 6.7 节（公共的）。 -->
+  <div class="modal" id="aboutModal">
+    <div class="modal__box" data-modal-body tabindex="-1"></div>
+  </div>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/about.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>

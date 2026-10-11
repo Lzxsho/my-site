@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>朔的小窝 · Shuoscape</title>
+  <meta name="description" content="朔的个人小站：文字、记录、音乐与开发。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="朔的小窝 · Shuoscape">
+  <meta property="og:description" content="朔的个人小站：文字、记录、音乐与开发。">
+  <meta property="og:image" content="assets/hero-home.jpg">
+  <meta property="og:url" content="index.html">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/music.css">
+</head>
+<body>
+
+  <!-- 页面柔和渐变底色 -->
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+
+      <!-- 音乐不再单独占一页：整台唱片机搬到了本页底部的「曲音拾集」 -->
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+
+    </div>
+  </header>
+
+  <main>
+
+    <div class="container">
+
+      <!-- ===================== 首屏大封面 ===================== -->
+      <section class="hero">
+        <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
+        <img class="hero-bg" src="assets/hero-home.jpg" alt="二次元插画背景">
+        <!-- 柔光罩：让插画和页面配色融合，同时保证文字看得清 -->
+        <span class="hero-scrim hero-scrim--home"></span>
+
+        <!-- 三层装饰光斑，想换风格改 css/home.css 里的颜色即可 -->
+        <span class="hero__glow hero__glow--1"></span>
+        <span class="hero__glow hero__glow--2"></span>
+        <span class="hero__glow hero__glow--3"></span>
+
+        <div class="hero__content">
+          <p class="hero__eyebrow" data-hero-eyebrow>L小旭 · PERSONAL SPACE</p>
+          <h1 class="hero__title" data-hero-title>朔的小窝</h1>
+          <p class="hero__desc" data-hero-desc></p>
+          <div class="hero__tags" data-hero-tags></div>
+        </div>
+
+        <span class="hero__scroll">SCROLL ↓</span>
+      </section>
+
+      <!-- 说明：首页不再显示那段「C / Java / Python 代码」打字机。
+           代码雨的视觉效果还在 —— 右下角那个 &lt;/&gt; 小按钮照样能开关。 -->
+
+      <!-- ===================== 关于我 + 推荐阅读 ===================== -->
+      <section class="hero-row">
+
+        <!-- 左边：关于我小卡片（内容由 js/home.js 填充） -->
+        <div class="card about-card" data-about-card></div>
+
+        <!-- 右边：近期推荐。挑的是最新一篇，内容由 js/home.js 填进来
+             （左侧文字 + 右侧封面，封面有照片就显示照片，没有就是粉紫渐变） -->
+        <article class="card feature-card" data-feature>
+          <div class="feature-card__body">
+            <span class="tag tag--pink feature-card__badge">近期推荐</span>
+            <p class="feature-card__meta" data-feature-meta></p>
+            <h2 class="feature-card__title" data-feature-title>—</h2>
+            <p class="feature-card__desc" data-feature-desc></p>
+            <span class="feature-card__more">阅读全文 <span>→</span></span>
+          </div>
+          <div class="feature-card__cover" data-feature-cover></div>
+        </article>
+
+      </section>
+
+      <!-- ===================== 近期文章 ===================== -->
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">RECENT POSTS</p>
+            <h2 class="section__title">近期文章</h2>
+          </div>
+          <a class="section__more" href="articles.html">查看全部 <span>→</span></a>
+        </div>
+
+        <!-- 三张文章卡片由 js/home.js 渲染 -->
+        <div class="posts-grid" data-recent-posts></div>
+      </section>
+
+      <!-- ===================== 小诗 / 音乐 双栏 ===================== -->
+      <section class="section">
+        <div class="duo-grid">
+
+          <!-- 小诗预告 -->
+          <div class="card duo-card">
+            <div class="duo-card__head">
+              <div>
+                <p class="section__eyebrow">SMALL POEMS</p>
+                <h3 class="duo-card__title">三行风与梦</h3>
+              </div>
+              <a class="section__more" href="poems.html">走进诗页 <span>→</span></a>
+            </div>
+            <div class="duo-list" data-home-poems></div>
+          </div>
+
+          <!-- 学习：两块进度的小预览，内容由 js/home.js 填 -->
+          <div class="card duo-card study-card">
+            <div class="duo-card__head">
+              <div>
+                <p class="section__eyebrow">STUDY</p>
+                <h3 class="duo-card__title">今天学了什么</h3>
+              </div>
+              <a class="section__more" href="study.html">进入学习页 <span>→</span></a>
+            </div>
+
+            <!-- 由 js/home.js 渲染：C 语言 / 英语 两个进度条 -->
+            <div class="study-peek" data-home-study></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ===================== 音乐：曲音拾集 =====================
+           原来这是一整个独立的音乐页，现在整台唱片机搬到了首页底部。
+           结构和之前完全一样（播放器 + 碟架），脚本还是 js/music.js。
+           从别处带 ?id= 进来（比如文章里的链接）会直接选中那一首。 -->
+      <section class="section" id="music">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">MUSIC · 乐曲</p>
+            <h2 class="section__title">曲音拾集</h2>
+          </div>
+          <div class="section__actions">
+            <span class="section__more">最近在循环的几首</span>
+          </div>
+        </div>
+
+        <!-- ===================== 唱片机 ===================== -->
+        <section class="player">
+
+          <!-- 左：黑胶唱片 -->
+          <div class="disc-wrap">
+            <div class="disc">
+              <div class="disc__label" data-disc-label>—</div>
+              <div class="disc__hole"></div>
+            </div>
+            <div class="tonearm"></div>
+          </div>
+
+          <!-- 右：当前播放信息 -->
+          <div class="player__info">
+            <p class="player__now">NOW PLAYING · <span data-player-index>01 / 01</span></p>
+            <h2 class="player__name" data-player-name>—</h2>
+            <p class="player__artist" data-player-artist></p>
+            <p class="player__note" data-player-note></p>
+
+            <!--
+              ============================================================
+               本地音频怎么接上（唯一需要你动手的一步）
+              ============================================================
+               把 mp3 放进 assets/audio/ 就行，文件名和曲名对得上就自动生效，
+               不用改任何代码、也不用改配置。两种放法都认：
+
+                 · 平铺（最省事）
+                     assets/audio/日落大道.mp3
+                 · 按分类建文件夹（歌多了以后好找）
+                     assets/audio/摇滚/日落大道.mp3
+                     assets/audio/民谣/归去来兮.mp3
+
+               后缀也不挑：mp3 / m4a / ogg / wav / flac 都能认出来。
+               想用完全不同的文件名/路径，就点那张碟右上角的 ✎ 自己填。
+
+               注意：这六首都是正版商业歌曲，本站不提供下载；
+               QQ音乐 / 网易云的加密格式（.mgg / .ncm 等）浏览器放不了。
+              ============================================================
+            -->
+
+            <!-- 播放进度条：有音频时点一下就跳到那个位置 -->
+            <div class="player__progress" id="progressBar" role="slider"
+                 aria-label="播放进度" tabindex="0" aria-valuemin="0" aria-valuemax="100">
+              <span class="player__progress-fill" data-progress-fill></span>
+            </div>
+            <div class="player__time">
+              <span data-time-now>00:00</span>
+              <span data-time-total>--:--</span>
+            </div>
+
+            <!-- 均衡器（跟着播放状态跳动） -->
+            <div class="eq">
+              <span class="eq__bar"></span><span class="eq__bar"></span>
+              <span class="eq__bar"></span><span class="eq__bar"></span>
+              <span class="eq__bar"></span><span class="eq__bar"></span>
+              <span class="eq__bar"></span><span class="eq__bar"></span>
+              <span class="eq__bar"></span>
+            </div>
+
+            <!-- 播放控制 -->
+            <div class="player__actions">
+              <button class="btn btn--sm" id="prevBtn">◀ 上一首</button>
+              <button class="btn btn--primary btn--sm" id="playBtn">▶ 播放</button>
+              <button class="btn btn--sm" id="nextBtn">下一首 ▶</button>
+              <button class="btn btn--sm btn--ghost" id="shuffleBtn">⤨ 随机</button>
+            </div>
+
+            <!-- 这行字由 js/music.js 按「当前这张碟有没有本地文件」实时改写 -->
+            <p class="player__hint">
+              键盘 ← → 切歌，空格播放 / 暂停。
+              <span id="audioHint">正在检查本地音频…</span>
+            </p>
+          </div>
+
+        </section>
+
+        <!-- ===================== 碟架 ===================== -->
+        <div class="section__head section__head--sub">
+          <div>
+            <p class="section__eyebrow">RECORDS</p>
+            <h3 class="section__title">碟架</h3>
+          </div>
+          <div class="section__actions">
+            <span class="section__more">点一张碟，唱针会自己放下来</span>
+            <button class="btn btn--sm" id="addRecordBtn" data-admin-only>＋ 添加唱片</button>
+          </div>
+        </div>
+
+        <!-- 唱片卡片由 js/music.js 渲染：按分类分成几组，每组一张网格 -->
+        <div class="records" data-records></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+        <a href="index.html#music">曲音拾集</a>
+      </nav>
+      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <!-- 回到顶部 -->
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <!-- 唱片编辑弹窗：「＋ 添加唱片」和每张碟上的「✎」共用这一个 -->
+  <div class="modal" id="musicModal">
+    <div class="modal__box" data-modal-body tabindex="-1"></div>
+  </div>
+
+  <!-- 真正的音频播放器：src 由 js/music.js 根据每首歌的 src 自动填。
+       preload 用 none —— 本地文件可能还没放进来，
+       提前去要文件只会在控制台刷一串 404，没必要。点播放时才去取。 -->
+  <audio id="audioEl" preload="none"></audio>
+
+  <!-- 脚本加载顺序：先数据，再公共方法，最后页面自己的逻辑。
+       唱片机搬进首页了，所以 js/music.js 也在首页加载。 -->
+  <script src="js/data.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/home.js" defer></script>
+  <script src="js/music.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,408 @@
+/* ==========================================================================
+   layout.css —— 页面骨架布局
+   包含：顶部固定导航、页面容器、左侧目录栏、主内容区、页脚、回到顶部按钮
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 顶部固定导航栏
+   -------------------------------------------------------------------------- */
+.site-header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: var(--header-h);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--border);
+  transition: background-color .25s ease, border-color .25s ease;
+}
+
+/* 不支持 color-mix 的旧浏览器回退 */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .site-header { background: var(--bg); }
+}
+
+.nav {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* 站点 Logo */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--text);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.brand:hover { text-decoration: none; color: var(--text); }
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand), #6aa6ff);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+}
+.brand-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  padding-left: 9px;
+  margin-left: 3px;
+  border-left: 1px solid var(--border);
+}
+
+/* 主导航链接 */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  list-style: none;
+  padding: 0; margin-bottom: 0;
+}
+.nav-links a {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+.nav-links a:hover { background: var(--bg-hover); color: var(--text); }
+
+/* 当前所在页面高亮 */
+.nav-links a.is-active {
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-weight: 600;
+}
+
+/* 右侧操作区（主题切换等） */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 6px;
+}
+
+/* 移动端菜单按钮（窄屏才显示） */
+.menu-btn {
+  display: none;
+  width: 36px; height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  color: var(--text-2);
+}
+.menu-btn:hover { background: var(--bg-hover); }
+
+/* --------------------------------------------------------------------------
+   2. 页面主区域：左侧目录 + 右侧内容
+   -------------------------------------------------------------------------- */
+.layout {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* 左侧目录栏（粘性定位，跟随滚动） */
+.sidebar {
+  position: sticky;
+  top: var(--header-h);
+  flex: 0 0 var(--sidebar-w);
+  width: var(--sidebar-w);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 20px 14px 40px;
+  background: var(--bg-soft);
+  border-right: 1px solid var(--border);
+}
+
+/* 主内容区 */
+.main {
+  flex: 1 1 auto;
+  min-width: 0;                       /* 防止长代码撑破布局 */
+  padding: 28px 40px 96px;
+}
+
+/* 内容阅读宽度限制，保证长文可读性 */
+.main-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* 页面标题头 */
+.page-head {
+  padding-bottom: 18px;
+  margin-bottom: 26px;
+  border-bottom: 1px solid var(--border);
+}
+.page-head .eyebrow {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 6px;
+}
+.page-head h1 { margin-bottom: 8px; }
+.page-head p { color: var(--text-2); margin: 0; }
+
+/* --------------------------------------------------------------------------
+   3. 侧边目录内部结构
+   -------------------------------------------------------------------------- */
+.side-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 0 8px 10px;
+}
+
+/* 侧边栏搜索框 */
+.side-search {
+  position: relative;
+  margin: 0 4px 14px;
+}
+.side-search input {
+  width: 100%;
+  padding: 8px 10px 8px 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  font-size: 13.5px;
+}
+.side-search input::placeholder { color: var(--text-3); }
+.side-search svg {
+  position: absolute;
+  left: 9px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+/* 章节目录：一级 */
+.side-chapter { margin-bottom: 2px; }
+
+.side-chapter-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  transition: background-color .15s ease, color .15s ease;
+}
+.side-chapter-head:hover { background: var(--bg-hover); }
+.side-chapter-head .ch-no {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.side-chapter-head .ch-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 展开箭头 */
+.side-chapter-head .caret {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  transition: transform .2s ease;
+}
+.side-chapter.is-open > .side-chapter-head .caret { transform: rotate(90deg); }
+
+/* 章节目录：二级（小节） */
+.side-sections {
+  display: none;
+  margin: 2px 0 6px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  margin-left: 12px;
+}
+.side-chapter.is-open > .side-sections { display: block; }
+
+.side-sections a {
+  display: block;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+.side-sections a:hover { background: var(--bg-hover); color: var(--text); }
+/* 滚动联动：当前阅读位置高亮 */
+.side-sections a.is-current {
+  color: var(--brand);
+  background: var(--brand-soft);
+  font-weight: 600;
+  border-left-color: var(--brand);
+}
+/* 小节编号 */
+.side-sections a .sec-no {
+  display: inline-block;
+  min-width: 26px;
+  margin-right: 6px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.side-sections a.is-current .sec-no { color: var(--brand); }
+/* 章节小节计数徽标 */
+.side-chapter-head .ch-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+/* 目录工具：展开/收起全部 */
+.side-util {
+  display: flex;
+  gap: 6px;
+  padding: 8px 4px 12px;
+}
+.side-util .btn { flex: 1 1 0; padding: 5px 8px; font-size: 12.5px; }
+
+/* 筛选无结果提示 */
+.side-empty {
+  padding: 16px 10px;
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   4. 页脚
+   -------------------------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+  padding: 26px 0;
+  color: var(--text-3);
+  font-size: 13px;
+}
+.site-footer .container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  justify-content: space-between;
+  align-items: center;
+}
+.site-footer a { color: var(--text-2); }
+
+/* --------------------------------------------------------------------------
+   5. 回到顶部按钮
+   -------------------------------------------------------------------------- */
+.to-top {
+  position: fixed;
+  right: 26px; bottom: 26px;
+  z-index: 90;
+  width: 42px; height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg-elev);
+  color: var(--text-2);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity .2s ease, transform .2s ease, visibility .2s;
+}
+.to-top.is-show { opacity: 1; visibility: visible; transform: none; }
+.to-top:hover { color: var(--brand); border-color: var(--brand-border); }
+
+/* --------------------------------------------------------------------------
+   6. 响应式适配（电脑端优先，窄屏降级）
+   -------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .main { padding: 24px 26px 96px; }
+  .brand-sub { display: none; }
+}
+
+@media (max-width: 860px) {
+  /* 移动端：侧边栏变成抽屉式浮层 */
+  .sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    z-index: 95;
+    width: 86vw;
+    max-width: 320px;
+    box-shadow: var(--shadow);
+    transform: translateX(-102%);
+    transition: transform .25s ease;
+  }
+  .sidebar.is-open { transform: none; }
+
+  .main { padding: 20px 16px 88px; }
+
+  /* 顶部导航链接收进下拉面板 */
+  .menu-btn { display: grid; place-items: center; }
+  .nav-links {
+    position: absolute;
+    top: var(--header-h);
+    left: 0; right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 10px 16px 14px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  .nav-links.is-open { display: flex; }
+  .nav-links a { padding: 10px 12px; }
+  .nav-actions { margin-left: auto; }
+}
+
+/* 窄屏下的遮罩层（侧边栏打开时） */
+.scrim {
+  display: none;
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  z-index: 94;
+  background: rgba(0, 0, 0, .35);
+}
+.scrim.is-show { display: block; }

@@ -1,0 +1,684 @@
+/* ==========================================================================
+   practice.css —— 习题训练页专用样式
+   包含：板块切换页签、题组容器、选择题选项、填空题输入框、
+        参考答案折叠面板、得分统计条
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 板块切换页签（章节配套习题 / 综合模拟试卷）
+   -------------------------------------------------------------------------- */
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+}
+.tab-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 14.5px;
+  font-weight: 600;
+  transition: all .18s ease;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.is-active {
+  background: var(--bg-elev);
+  color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 侧边栏中「上次得分」提示 */
+.side-score {
+  display: block;
+  padding: 3px 6px 4px 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.side-score .val { color: var(--ok); font-weight: 700; }
+
+/* --------------------------------------------------------------------------
+   2. 题组（一个题型分组，如「一、单项选择题」）
+   -------------------------------------------------------------------------- */
+.qgroup {
+  margin-bottom: 34px;
+}
+.qgroup-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+.qgroup-head h3 { margin: 0; font-size: 17px; }
+.qgroup-head .qgroup-count { font-size: 13px; color: var(--text-3); }
+.qgroup-tools {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+/* 题组得分小结 */
+.score-box {
+  display: none;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+.score-box.is-show { display: flex; }
+.score-box .score-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand);
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.score-box .score-txt { font-size: 13.5px; color: var(--text-2); }
+.score-bar {
+  flex: 1 1 auto;
+  min-width: 120px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+.score-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), #6aa6ff);
+  transition: width .5s ease;
+}
+
+/* --------------------------------------------------------------------------
+   3. 单道题目
+   -------------------------------------------------------------------------- */
+.question {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+}
+.question-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.q-no {
+  flex: 0 0 auto;
+  min-width: 26px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.q-stem {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.q-stem p:last-child { margin-bottom: 0; }
+.q-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* 占位题目的样式：整体弱化，提示你替换 */
+.question.is-placeholder {
+  border-style: dashed;
+  background: var(--bg-soft);
+  box-shadow: none;
+}
+.question.is-placeholder .q-stem { color: var(--text-3); }
+
+/* --------------------------------------------------------------------------
+   4. 选择题选项
+   -------------------------------------------------------------------------- */
+.options {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 14.5px;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.option:hover { border-color: var(--brand-border); background: var(--brand-soft); }
+.option input { margin-top: 5px; accent-color: var(--brand); flex: 0 0 auto; }
+.option .opt-key {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-2);
+}
+.option .opt-text { flex: 1 1 auto; }
+.option:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* 提交后：正确选项 / 选错的选项 */
+.option.is-correct {
+  border-color: var(--ok-border);
+  background: var(--ok-soft);
+}
+.option.is-correct .opt-key { color: var(--ok); }
+.option.is-wrong {
+  border-color: var(--err-border);
+  background: var(--err-soft);
+}
+.option.is-wrong .opt-key { color: var(--err); }
+.option.is-locked { cursor: default; }
+.option.is-locked:hover { background: inherit; border-color: var(--border); }
+.option.is-correct:hover { background: var(--ok-soft); border-color: var(--ok-border); }
+.option.is-wrong:hover { background: var(--err-soft); border-color: var(--err-border); }
+
+/* --------------------------------------------------------------------------
+   5. 填空题输入框
+   -------------------------------------------------------------------------- */
+.blanks {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.blank-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.blank-label {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--text-3);
+  min-width: 46px;
+}
+.blank-input {
+  flex: 1 1 220px;
+  max-width: 420px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.blank-input:focus { border-color: var(--brand); outline: none; }
+.blank-input:disabled { background: var(--bg-soft); color: var(--text-2); }
+.blank-input.is-correct { border-color: var(--ok-border); background: var(--ok-soft); }
+.blank-input.is-wrong   { border-color: var(--err-border); background: var(--err-soft); }
+
+/* --------------------------------------------------------------------------
+   6. 程序阅读题作答区
+   -------------------------------------------------------------------------- */
+.answer-area {
+  width: 100%;
+  min-height: 96px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.answer-area:focus { border-color: var(--brand); outline: none; }
+
+/* 程序阅读题：「写出运算答案」作答区标签 */
+.answer-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--brand);
+  letter-spacing: .02em;
+}
+.answer-label-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-soft);
+  letter-spacing: 0;
+}
+.answer-label + .answer-area { margin-top: 6px; }
+
+/* --------------------------------------------------------------------------
+   7. 参考答案面板（默认折叠，点击按钮展开）
+   -------------------------------------------------------------------------- */
+.answer-panel {
+  display: none;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+  font-size: 14.5px;
+}
+.answer-panel.is-open { display: block; animation: fadeUp .22s ease both; }
+.answer-panel .ans-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand);
+  letter-spacing: .02em;
+}
+.answer-panel .ans-value {
+  font-weight: 700;
+  color: var(--ok);
+}
+.answer-panel .ans-analysis {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--brand-border);
+  color: var(--text-2);
+  font-size: 14px;
+}
+.answer-panel .ans-analysis > :last-child { margin-bottom: 0; }
+
+/* 题目底部工具条 */
+.q-tools {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+/* 判定结果标记 */
+.judge-mark {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.judge-mark.ok  { color: var(--ok);  background: var(--ok-soft);  border: 1px solid var(--ok-border); }
+.judge-mark.err { color: var(--err); background: var(--err-soft); border: 1px solid var(--err-border); }
+
+/* --------------------------------------------------------------------------
+   8. 空状态（某章节还没录题时显示）
+   -------------------------------------------------------------------------- */
+.empty-state {
+  padding: 54px 20px;
+  text-align: center;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  color: var(--text-3);
+}
+.empty-state h3 { color: var(--text-2); }
+
+/* --------------------------------------------------------------------------
+   9. 专项强化板块侧栏（板块 -> 分组）
+   -------------------------------------------------------------------------- */
+.side-special-board { margin-bottom: 14px; }
+.side-board-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text-2);
+}
+.side-board-count {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.side-chunk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px 7px 14px;
+  margin: 2px 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+.side-chunk:hover { background: var(--bg-hover); color: var(--text); }
+.side-chunk.is-open {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+  color: var(--brand);
+  font-weight: 600;
+}
+.side-chunk-count {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.side-chunk.is-open .side-chunk-count { color: var(--brand); }
+
+/* 章节/试卷侧栏当前选中项高亮（与专项一致） */
+.side-chapter-head.is-open {
+  background: var(--brand-soft);
+  border-radius: var(--radius-sm);
+  color: var(--brand);
+}
+
+/* --------------------------------------------------------------------------
+   10. 图片卷（扫描原图）页面
+   -------------------------------------------------------------------------- */
+.paper-page {
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  box-shadow: var(--shadow-sm);
+}
+.paper-page-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 2px solid var(--border);
+}
+.paper-page-head h3 { margin: 0; font-size: 17px; }
+.paper-page-head .btn { margin-left: auto; }
+
+.paper-page-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 20px;
+  align-items: start;
+}
+.paper-figure { text-align: center; }
+.paper-img {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+  cursor: zoom-in;
+  transition: max-width .2s ease;
+}
+/* 点击卡片图片会打开全屏查看器，这里只做悬停提示 */
+.paper-img:hover {
+  border-color: var(--brand);
+  box-shadow: var(--shadow);
+}
+.paper-figure-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.paper-aside { display: flex; flex-direction: column; gap: 10px; }
+.paper-fill-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+.paper-answer {
+  display: none;
+  padding: 12px 14px;
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+  white-space: normal;
+}
+.paper-answer.is-open { display: block; animation: fadeUp .22s ease both; }
+
+/* 窄屏：原图与作答区上下排列 */
+@media (max-width: 860px) {
+  .paper-page-body { grid-template-columns: 1fr; }
+}
+
+/* --------------------------------------------------------------------------
+   11. 图片全屏查看器（放大细看 + 拖动查看 + 边看边作答）
+   -------------------------------------------------------------------------- */
+.viewer {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  background: rgba(11, 18, 30, .96);
+  animation: fadeUp .18s ease both;
+}
+.viewer[hidden] { display: none; }
+/* 查看器打开时锁定页面滚动 */
+html.viewer-open,
+html.viewer-open body { overflow: hidden; }
+
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, .05);
+  border-bottom: 1px solid rgba(255, 255, 255, .12);
+  color: #eaf0f9;
+}
+.viewer-title { font-size: 15px; font-weight: 700; }
+.viewer-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.viewer-tools .btn {
+  background: rgba(255, 255, 255, .1);
+  border-color: rgba(255, 255, 255, .16);
+  color: #eaf0f9;
+}
+.viewer-tools .btn:hover { background: rgba(255, 255, 255, .22); color: #fff; }
+.viewer-page,
+.viewer-zoom {
+  min-width: 54px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: #dce8f7;
+}
+.viewer-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: rgba(255, 255, 255, .18);
+}
+.viewer-close {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.viewer-close:hover { background: var(--err); border-color: var(--err); }
+
+.viewer-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+}
+.viewer.aside-hidden .viewer-body { grid-template-columns: minmax(0, 1fr); }
+.viewer.aside-hidden .viewer-aside { display: none; }
+
+.viewer-stage {
+  position: relative;
+  overflow: hidden;
+  background: #0b1220;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.viewer-stage.is-pan { cursor: grabbing; }
+.viewer-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  background: #fff;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .5);
+  -webkit-user-drag: none;
+}
+.viewer-stage-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, .55);
+  color: #e6eefb;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.viewer-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  overflow: auto;
+  border-left: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .04);
+}
+.viewer-aside-head { display: flex; align-items: baseline; gap: 8px; }
+.viewer-aside-title { font-size: 14px; font-weight: 700; color: #fff; }
+.viewer-hint { font-size: 11.5px; color: #9fb2cc; }
+.viewer-input { flex: 1; min-height: 220px; background: #fff; }
+.viewer-answer { color: var(--text-2); }
+
+/* 窄屏：查看器主体上下排布，作答区变底部抽屉；工具条紧凑可横滑 */
+@media (max-width: 900px) {
+  .viewer-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .viewer-aside {
+    max-height: 44vh;
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, .12);
+  }
+  .viewer-input { min-height: 84px; }
+
+  .viewer-bar {
+    position: relative;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 46px 8px 10px;
+  }
+  .viewer-title {
+    flex: 1 1 100%;
+    order: 1;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .viewer-tools {
+    order: 2;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    gap: 6px;
+  }
+  .viewer-tools .btn { flex: 0 0 auto; padding: 6px 10px; font-size: 12.5px; }
+  .viewer-page,
+  .viewer-zoom { flex: 0 0 auto; min-width: 44px; font-size: 12px; }
+  .viewer-sep { display: none; }
+  .viewer-close { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; }
+  .viewer-stage-tip {
+    max-width: 92%;
+    font-size: 10.5px;
+    padding: 3px 8px;
+    text-align: center;
+    white-space: normal;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   12. 习题页手机端优化（选项好点、工具按钮铺满、代码块不撑破）
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-btn { flex: 0 0 auto; }
+
+  .qgroup-head h3 { font-size: 15.5px; }
+  .qgroup-tools { width: 100%; margin-left: 0; }
+  .qgroup-tools .btn { flex: 1 1 auto; }
+  .qgroup-tools .btn-primary { flex: 1 1 100%; }
+
+  /* 选项：加大点击热区与行距 */
+  .option { padding: 12px 12px; gap: 9px; font-size: 14.5px; }
+  .options { gap: 8px; }
+
+  /* 代码块：字号略小 + 内边距收紧，长行横向滚动 */
+  .code-block pre { padding: 12px; font-size: 12.5px; }
+  .code-head { font-size: 12px; }
+
+  /* 填空题输入行在窄屏下尽量占满 */
+  .blank-input { min-width: 90px; }
+  .answer-area { min-height: 120px; }
+
+  /* 查看器：手机端顶栏按钮更紧凑 */
+  .viewer-tools .btn { padding: 7px 10px; font-size: 12.5px; }
+  .viewer-aside { max-height: 50vh; }
+}

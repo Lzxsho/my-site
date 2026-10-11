@@ -1,0 +1,1036 @@
+/* ==========================================================================
+   base.css —— 全站公共样式（5 个页面都会加载这一个文件）
+   --------------------------------------------------------------------------
+   目录：
+     0. 设计变量（想换配色，先改这里）
+     1. 基础重置
+     2. 页面背景 & 漂浮光斑
+     3. 顶部导航栏
+     4. 通用容器 / 区块标题
+     5. 按钮
+     6. 卡片 / 标签 / 元信息
+     6.5 公共小组件（面板、搜索框、表单字段…）
+     6.6 弹窗
+     6.7 弹窗里的表单
+     6.8 首屏插画背景
+     7. 页脚
+     8. 轻提示 Toast
+     9. 滚动显现动画
+    10. 响应式
+   ========================================================================== */
+
+/* ---------- 0. 设计变量 ---------- */
+:root {
+  /* 主色：粉 / 紫 / 蓝，梦境感 */
+  --c-pink: #ffb0d8;
+  --c-pink-soft: #ffe6f3;
+  --c-purple: #c3a4ff;
+  --c-purple-soft: #f0e7ff;
+  --c-blue: #9fd4ff;
+  --c-blue-soft: #e4f2ff;
+  --c-mint: #a9efdc;
+
+  /* 文字层级 */
+  --ink: #332f47;
+  --ink-2: #5a5470;
+  --ink-3: #8b85a1;
+  --ink-4: #b6b1c6;
+
+  /* 面 */
+  --bg: #fdf8fe;
+  --bg-2: #f6f1ff;
+  --card: rgba(255, 255, 255, 0.72);
+  --card-hover: rgba(255, 255, 255, 0.92);
+  --card-solid: #ffffff;
+  --line: rgba(170, 150, 205, 0.22);
+
+  /* 圆角 */
+  --r-sm: 10px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --r-full: 999px;
+
+  /* 阴影 */
+  --sh-1: 0 4px 18px rgba(150, 120, 190, 0.10);
+  --sh-2: 0 14px 40px rgba(150, 120, 190, 0.18);
+  --sh-3: 0 22px 64px rgba(140, 110, 190, 0.26);
+
+  /* 布局 */
+  --page: 1180px;
+  --nav-h: 66px;
+  --adminbar-h: 34px;   /* 最顶上那条身份条的高度 */
+
+  /* 字体 */
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+
+  --ease: cubic-bezier(0.22, 0.68, 0.32, 1);
+}
+
+/* 深色主题：给 <body> 加 .theme-dark 就能整体换色 */
+body.theme-dark {
+  --ink: #f0edf8;
+  --ink-2: #cdc7de;
+  --ink-3: #a49dba;
+  --ink-4: #7d7693;
+  --bg: #171425;
+  --bg-2: #1e1a2e;
+  --card: rgba(46, 40, 66, 0.66);
+  --card-hover: rgba(58, 50, 82, 0.88);
+  --card-solid: #241f36;
+  --line: rgba(255, 255, 255, 0.10);
+  --sh-1: 0 4px 18px rgba(0, 0, 0, 0.30);
+  --sh-2: 0 14px 40px rgba(0, 0, 0, 0.42);
+  --sh-3: 0 22px 64px rgba(0, 0, 0, 0.52);
+}
+
+/* ---------- 1. 基础重置 ---------- */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.75;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+ul, ol { list-style: none; }
+
+/* 加了 hidden 属性的元素必须真的藏起来。
+   坑：浏览器默认的 [hidden] { display: none } 优先级很低，
+   会被 .btn { display: inline-flex } 这类规则盖掉 ——
+   结果是「明明设了 hidden，元素还在页面上」，很难查。
+   这里用 !important 压住，以后 hidden 就一定有效。 */
+[hidden] { display: none !important; }
+
+::selection { background: var(--c-pink); color: #fff; }
+
+/* 自定义滚动条 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--c-pink), var(--c-purple));
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+/* ---------- 2. 页面背景 & 漂浮光斑 ---------- */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  width: 46vw;
+  height: 46vw;
+  border-radius: 50%;
+  filter: blur(90px);
+  z-index: -2;
+  opacity: 0.55;
+  pointer-events: none;
+  animation: blobFloat 22s ease-in-out infinite alternate;
+}
+body::before { top: -14vw; left: -10vw; background: var(--c-pink); }
+body::after { bottom: -16vw; right: -12vw; background: var(--c-blue); animation-delay: -8s; }
+
+@keyframes blobFloat {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6vw, 5vh, 0) scale(1.15); }
+}
+
+/* 页面底色的柔和渐变 */
+.page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background: linear-gradient(160deg, #fff6fb 0%, #f7f1ff 45%, #eef7ff 100%);
+}
+body.theme-dark .page-bg {
+  background: linear-gradient(160deg, #16131f 0%, #1b1729 45%, #131a26 100%);
+}
+
+/* ---------- 2.5 最顶上的身份条 ----------
+   由 js/auth.js 生成，固定在浏览器窗口最顶上：
+   页面怎么滚它都不动，管理员 / 游客 / 登录入口随时都在。 */
+.adminbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--adminbar-h);
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  box-shadow: var(--sh-1);
+}
+body.theme-dark .adminbar {
+  background: rgba(30, 26, 44, 0.92);
+}
+.adminbar__inner {
+  width: 100%;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.adminbar__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  transition: background 0.3s var(--ease);
+}
+body.is-admin .adminbar__dot {
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: 0 0 0 3px rgba(195, 164, 255, 0.28);
+}
+.adminbar__who { color: var(--ink); font-weight: 600; }
+.adminbar__sep { color: var(--ink-4); }
+.adminbar__tip {
+  color: var(--ink-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adminbar__acts { margin-left: auto; display: inline-flex; gap: 6px; flex: none; }
+.adminbar__btn {
+  padding: 3px 11px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  transition: all 0.2s var(--ease);
+}
+.adminbar__btn:hover { color: var(--ink); border-color: rgba(170, 150, 205, 0.55); }
+.adminbar__btn--main {
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  color: #fff;
+}
+/* 已经是管理员时，那颗主按钮变成「退出」 */
+body.is-admin .adminbar__btn--main {
+  background: var(--card);
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+
+/* 身份条是 fixed 的，页面整体往下让出它的高度，导航栏再往下挪一格 */
+body.has-adminbar { padding-top: var(--adminbar-h); }
+body.has-adminbar .topbar { top: var(--adminbar-h); }
+
+@media (max-width: 720px) {
+  .adminbar__tip { display: none; }
+  .adminbar__inner { padding: 0 14px; }
+}
+
+/* ---------- 3. 顶部导航栏 ---------- */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-h);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  transition: background 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+.topbar.is-scrolled {
+  background: var(--card);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--sh-1);
+}
+
+.topbar__inner {
+  width: 100%;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.brand span {
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 悬浮胶囊导航 */
+.nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--r-full);
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--sh-1);
+}
+.nav a {
+  position: relative;
+  padding: 8px 18px;
+  border-radius: var(--r-full);
+  font-size: 14px;
+  color: var(--ink-2);
+  transition: color 0.25s var(--ease), background 0.25s var(--ease);
+  white-space: nowrap;
+}
+.nav a:hover { color: var(--ink); background: rgba(195, 164, 255, 0.16); }
+.nav a.is-active {
+  color: #fff;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: 0 6px 18px rgba(195, 164, 255, 0.45);
+}
+
+.topbar__actions { display: flex; align-items: center; gap: 8px; }
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  color: var(--ink-2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px);
+  transition: transform 0.25s var(--ease), color 0.25s var(--ease);
+}
+.icon-btn:hover { transform: translateY(-2px); color: var(--ink); }
+
+.menu-btn { display: none; }
+
+/* ---------- 4. 通用容器 / 区块标题 ---------- */
+.container {
+  width: 100%;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section { padding: 46px 0; }
+
+.section__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.section__eyebrow {
+  font-size: 11px;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+  color: var(--ink-4);
+  margin-bottom: 4px;
+}
+.section__title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.section__more {
+  font-size: 13px;
+  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: gap 0.25s var(--ease), color 0.25s var(--ease);
+}
+.section__more:hover { gap: 12px; color: var(--c-purple); }
+
+/* ---------- 5. 按钮 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--r-full);
+  font-size: 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-2);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.btn:hover { transform: translateY(-2px); box-shadow: var(--sh-1); }
+.btn--primary {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: 0 10px 26px rgba(195, 164, 255, 0.4);
+}
+.btn--ghost { background: transparent; }
+.btn--sm { padding: 7px 16px; font-size: 13px; }
+/* 危险操作（删除之类），平时低调，移上去才变红 */
+.btn--danger {
+  background: transparent;
+  color: var(--ink-3);
+}
+.btn--danger:hover {
+  color: #e0568f;
+  border-color: rgba(224, 86, 143, 0.5);
+  box-shadow: 0 6px 18px rgba(224, 86, 143, 0.18);
+}
+
+/* ---------- 6. 卡片 / 标签 / 元信息 ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease), background 0.35s var(--ease);
+}
+.card:hover {
+  transform: translateY(-6px);
+  background: var(--card-hover);
+  box-shadow: var(--sh-2);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: var(--c-purple-soft);
+  color: #7b5fc4;
+  border: 1px solid rgba(195, 164, 255, 0.35);
+}
+.tag--pink { background: var(--c-pink-soft); color: #d1599b; border-color: rgba(255, 176, 216, 0.5); }
+.tag--blue { background: var(--c-blue-soft); color: #3d86c4; border-color: rgba(159, 212, 255, 0.5); }
+.tag--mint { background: #e2fbf4; color: #2e9e83; border-color: rgba(169, 239, 220, 0.6); }
+.tag--gray { background: rgba(150, 140, 175, 0.14); color: var(--ink-3); border-color: rgba(150, 140, 175, 0.28); }
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-4);
+}
+.meta__dot { width: 3px; height: 3px; border-radius: 50%; background: var(--ink-4); }
+
+/* 封面：文章卡片的顶部、文章详情弹窗的顶部都是它。
+   两条路（由 js/main.js 的 App.coverHtml 决定走哪条）：
+     · 文章没放照片 → 显示一块粉紫渐变（下面的默认 style）
+     · 文章放了照片 → 加 .cover--photo，照片铺满裁切，见下面 */
+.cover {
+  position: relative;
+  height: 160px;
+  background: linear-gradient(135deg, var(--c-pink-soft), var(--c-purple-soft) 55%, var(--c-blue-soft));
+  overflow: hidden;
+}
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255, 255, 255, 0.75), transparent 42%),
+    radial-gradient(circle at 78% 72%, rgba(255, 255, 255, 0.55), transparent 46%);
+}
+
+/* ---- 封面放照片 ----
+   照片铺满整块并居中裁切（object-fit: cover），所以不管什么尺寸都不会变形。
+   上面那层柔光罩换成很淡的一条渐变，只用来让照片和卡片圆角过渡得自然一点；
+   如果还用原来那两层白斑，照片会被洗得发白。 */
+.cover--photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.cover--photo::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0) 42%,
+    rgba(110, 80, 150, 0.18) 100%
+  );
+}
+body.theme-dark .cover--photo::after {
+  background: linear-gradient(
+    180deg,
+    rgba(18, 14, 30, 0.16) 0%,
+    rgba(18, 14, 30, 0) 42%,
+    rgba(18, 14, 30, 0.34) 100%
+  );
+}
+
+/* ---------- 6.5 公共小组件（多个页面都会用到） ---------- */
+
+/* 面板：关于页的「正在学的东西」、文章页的「归档 / 标签」都是它 */
+.panel { padding: 24px 26px; }
+.panel__title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 工具栏右侧那一小块：放搜索框、按钮 */
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 6px;
+}
+
+/* 搜索框：文章页、小诗页都在用 */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-radius: var(--r-full);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--line);
+  transition: box-shadow 0.25s var(--ease);
+}
+body.theme-dark .search-box { background: rgba(255, 255, 255, 0.06); }
+.search-box:focus-within { box-shadow: 0 0 0 3px rgba(195, 164, 255, 0.22); }
+.search-box input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 150px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.search-box input::placeholder { color: var(--ink-4); }
+
+/* 表单字段：小诗页的「写一条」和文章页的「写文章 / 编辑」都用它。
+   （这两个页面加载的 css 不一样，所以必须放在公共文件里，
+     否则文章页会拿不到样式 —— 这类「样式静默失效」很难肉眼发现。） */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field--full { grid-column: 1 / -1; }   /* 让某个字段独占一整行 */
+.field label {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.5px;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink);
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+body.theme-dark .field input,
+body.theme-dark .field select,
+body.theme-dark .field textarea { background: rgba(255, 255, 255, 0.06); }
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: rgba(195, 164, 255, 0.7);
+  box-shadow: 0 0 0 3px rgba(195, 164, 255, 0.2);
+}
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.9;
+  font-family: var(--font-serif);
+}
+/* 字段下面那行小灰字：告诉你怎么填、或者有什么限制 */
+.field__tip { font-size: 11.5px; color: var(--ink-4); line-height: 1.7; }
+.field__tip b { color: #8a5cd8; font-weight: 600; }
+.field__tip code {
+  font-family: Consolas, Monaco, monospace;
+  font-size: 11.5px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(195, 164, 255, 0.16);
+}
+
+/* ---------- 6.6 弹窗（文章页、关于页、音乐页都用） ----------
+   这几个块原本写在 articles.css 里，但 about.html / music.html 也要弹窗，
+   它们又不加载 articles.css —— 所以挪到公共文件里。
+   （和上面 .field 是同一类坑：样式静默失效，肉眼很难发现。） */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(60, 44, 88, 0.36);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease);
+}
+.modal.is-open { opacity: 1; pointer-events: auto; }
+.modal__box {
+  position: relative;   /* 右上角的 ✕ 以它为定位参照，阅读态和编辑态位置一致 */
+  width: min(760px, 100%);
+  max-height: 84vh;
+  overflow-y: auto;
+  border-radius: var(--r-lg);
+  background: var(--card-solid);
+  box-shadow: var(--sh-3);
+  transform: translateY(24px) scale(0.98);
+  transition: transform 0.35s var(--ease);
+}
+.modal.is-open .modal__box { transform: translateY(0) scale(1); }
+/* JS 打开弹窗时会把焦点移到这个容器上（tabindex="-1"），
+   容器不需要焦点光圈，里面的按钮有自己的 :focus-visible */
+.modal__box:focus { outline: none; }
+.modal__cover { height: 190px; position: relative; }
+/* 放了照片就把封面加高一点，照片才看得清 */
+.modal__cover.cover--photo { height: 250px; }
+/* 关闭按钮
+   注意 z-index：.cover::after 那层柔光罩是 position:absolute + inset:0，
+   而且排在按钮后面，会把整个按钮盖住（点上去只碰到柔光罩，按钮收不到点击）。
+   所以这里必须抬高层级，否则✕看着在那儿、按下去没反应。 */
+.modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 5;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(120, 90, 160, 0.22);
+  transition: transform 0.24s var(--ease), background 0.24s var(--ease), color 0.24s var(--ease);
+}
+.modal__close:hover {
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  color: #fff;
+  transform: rotate(90deg) scale(1.08);
+}
+.modal__close:active { transform: rotate(90deg) scale(0.92); }
+.modal__close:focus-visible {
+  outline: 3px solid rgba(195, 164, 255, 0.6);
+  outline-offset: 2px;
+}
+body.theme-dark .modal__close { background: rgba(48, 42, 66, 0.92); color: #efeaf7; }
+
+/* 弹窗底部也放一个「关闭」，右上角那个不好瞄的时候用 */
+.modal__foot {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.modal__content { padding: 26px 32px 34px; }
+.modal__title {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 12px 0 10px;
+}
+.modal__body { margin-top: 18px; font-size: 14.5px; line-height: 2; color: var(--ink-2); }
+/* pre-line：正文里手动换的行会保留。写对话或者分行的小句子时很方便 */
+.modal__body p { margin-bottom: 14px; white-space: pre-line; }
+
+/* ---------- 6.7 弹窗里的表单（写文章 / 编辑资料 / 管理唱片共用） ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.editor-head {
+  margin-bottom: 20px;
+  padding-right: 50px;   /* 给右上角的 ✕ 让个位 */
+}
+.editor-head__eyebrow {
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  color: var(--ink-4);
+  text-transform: uppercase;
+}
+.editor-head__title {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+/* 表单底部的一排按钮。
+   用 position: sticky 让它常驻在弹窗底部 —— 编辑表单比较长，
+   不然「保存」会被挤到滚动区最下面，得滚到底才点得到。
+   负的左右/下外边距是为了抵消 .modal__content 的内边距，让它铺满整条。 */
+.form-foot {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin: 22px -32px -34px;
+  padding: 16px 32px;
+  background: var(--card-solid);
+  border-top: 1px dashed var(--line);
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.form-foot__left,
+.form-foot__right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* 「可重复的一行」——技能表、唱片管理都用它：
+   一行 = 几个输入框 + 右侧一个删除按钮 */
+.row-item {
+  display: grid;
+  gap: 10px;
+  align-items: start;
+  padding: 14px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.42);
+  margin-bottom: 12px;
+}
+body.theme-dark .row-item { background: rgba(255, 255, 255, 0.05); }
+.row-item__del {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 14px;
+  transition: all 0.22s var(--ease);
+}
+.row-item__del:hover {
+  background: #ffe1ea;
+  color: #d1437a;
+  border-color: rgba(255, 160, 195, 0.6);
+}
+body.theme-dark .row-item__del { background: rgba(255, 255, 255, 0.08); }
+/* 每行最上面那条「第 1 条」的小标题 */
+.row-item__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.row-item__no { font-size: 12px; color: var(--ink-4); letter-spacing: 1px; }
+
+/* ---------- 6.8 首屏插画背景（五个页面共用） ----------
+   用法：
+     <section class="xxx-hero">
+       <img class="hero-bg" src="assets/hero-xxx.jpg" alt="二次元插画背景">
+       <span class="hero-scrim hero-scrim--xxx"></span>
+       ...首屏文字...
+     </section>
+
+   · .hero-bg    —— 插画铺满整块（object-fit: cover 不会变形）
+   · .hero-scrim —— 柔光罩，负责「让图和页面配色融合 + 保证文字看得清」
+                    具体浓度写在各页自己的 css 里（.hero-scrim--xxx）
+   · 首屏文字要盖在柔光罩上面，所以都设了 z-index: 2              */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;   /* 柔光罩只是装饰，不要挡住点击 */
+}
+/* 深色模式下把插画压暗一点点，免得晚上看太刺眼。
+   柔光罩仍然保持浅色，所以首屏文字在两种模式下都看得清 */
+body.theme-dark .hero-bg { filter: brightness(0.88) saturate(0.95); }
+
+/* ---------- 7. 页脚 ---------- */
+.footer {
+  margin-top: 60px;
+  padding: 40px 0 34px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.footer__nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.footer__nav a:hover { color: var(--c-purple); }
+.footer__sign { font-family: var(--font-serif); letter-spacing: 1px; }
+
+/* 页脚那个小小的「数据库 / 本地」标记，由 main.js 的 DataMode 加上去。
+   鼠标放上去有一句话解释现在数据存在哪。 */
+.mode-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 9px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-family: var(--font-sans, inherit);
+  letter-spacing: 0;
+  vertical-align: 1px;
+  cursor: help;
+  border: 1px solid transparent;
+}
+.mode-badge.is-db {
+  background: #e2fbf4;
+  color: #2e9e83;
+  border-color: rgba(169, 239, 220, 0.6);
+}
+.mode-badge.is-local {
+  background: rgba(150, 140, 175, 0.14);
+  color: var(--ink-3);
+  border-color: rgba(150, 140, 175, 0.28);
+}
+body.theme-dark .mode-badge.is-db {
+  background: rgba(46, 158, 131, 0.18);
+  color: #7fe0c6;
+}
+body.theme-dark .mode-badge.is-local {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink-3);
+}
+
+/* ---------- 8. 轻提示 Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 36px;
+  transform: translate(-50%, 120%);
+  padding: 11px 22px;
+  border-radius: var(--r-full);
+  background: var(--card-solid);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-2);
+  font-size: 13.5px;
+  z-index: 999;
+  opacity: 0;
+  transition: transform 0.4s var(--ease), opacity 0.4s var(--ease);
+}
+.toast.is-show { transform: translate(-50%, 0); opacity: 1; }
+
+/* ---------- 9. 滚动显现动画 ---------- */
+/* 用 animation 而不是 transition，避免覆盖卡片自己的 hover 过渡 */
+.reveal { opacity: 0; }
+.reveal.is-in { animation: revealIn 0.7s var(--ease) both; }
+
+@keyframes revealIn {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 回到顶部按钮 */
+.backtop {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: #fff;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: var(--sh-2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(14px);
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  z-index: 300;
+}
+.backtop.is-show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.backtop:hover { transform: translateY(-4px); }
+
+/* ---------- 10. 响应式 ---------- */
+@media (max-width: 900px) {
+  .nav {
+    position: fixed;
+    top: calc(var(--nav-h) + var(--adminbar-h));
+    left: 16px;
+    right: 16px;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    border-radius: var(--r-md);
+    padding: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  }
+  .nav.is-open { opacity: 1; pointer-events: auto; }
+  .nav a { text-align: center; }
+  .menu-btn { display: grid; }
+  .section__title { font-size: 22px; }
+  .section { padding: 34px 0; }
+  /* 弹窗里的两列表单，窄屏堆成一列 */
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .container { padding: 0 16px; }
+  body { font-size: 14.5px; }
+  /* 弹窗在手机上留白小一点，内容才够用 */
+  .modal { padding: 12px; }
+  .modal__content { padding: 22px 20px 28px; }
+  .modal__cover { height: 150px; }
+  .modal__cover.cover--photo { height: 180px; }
+  .form-foot {
+    justify-content: stretch;
+    margin: 20px -20px -28px;   /* 手机端 .modal__content 的内边距是 20 / 28 */
+    padding: 14px 20px;
+  }
+  .form-foot__left,
+  .form-foot__right { width: 100%; }
+  .form-foot__right { justify-content: flex-end; }
+}
+
+/* ==========================================================================
+   7. 登录身份：管理员 / 游客
+   --------------------------------------------------------------------------
+   规则只有一条：**不是管理员，就看不到任何带 data-admin-only 的东西。**
+   默认（还没登录、或 auth.js 还没跑完）也不是管理员 ——
+   所以编辑器、删除、新增这类按钮一开始就是收起来的，不会有「先闪一下」的情况。
+   ========================================================================== */
+body:not(.is-admin) [data-admin-only] {
+  display: none !important;
+}
+
+/* 右上角那颗「未登录 / 游客 / 管理员」小徽章 */
+.role-btn {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--ink-3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease);
+}
+.role-btn:hover { border-color: rgba(170, 150, 205, 0.5); color: var(--ink); }
+.role-btn.is-admin {
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  border-color: transparent;
+  color: #fff;
+}
+body.theme-dark .role-btn { background: rgba(255, 255, 255, 0.08); }
+body.theme-dark .role-btn.is-admin { background: linear-gradient(120deg, var(--c-pink), var(--c-purple)); }
+
+/* 登录弹窗 */
+.auth-box {
+  position: relative;
+  width: min(420px, 100%);
+  padding: 28px 26px 22px;
+}
+.auth-box__close {
+  position: absolute;
+  top: 14px; right: 16px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  color: var(--ink-4);
+  cursor: pointer;
+}
+.auth-box__close:hover { color: var(--ink); }
+.auth-box__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--ink-4);
+}
+.auth-box__title { margin: 0 0 8px; font-size: 22px; }
+.auth-box__desc {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-3);
+}
+.auth-box .field { margin-bottom: 12px; }
+.auth-box__err {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: #d9534f;
+}
+.auth-box__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.auth-box__actions .btn { flex: 1; justify-content: center; }
+.auth-box__note {
+  margin: 16px 0 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--ink-4);
+}
+
+/* 关于页头像：鼠标移上去给点提示，说明这里可以点 */
+.is-login-trigger { cursor: pointer; }

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>知识点 · 湖北专升本 C语言程序设计</title>
+<meta name="description" content="按谭浩强《C程序设计》十章整理的C语言知识点，含代码示例与易错点提示。">
+
+<!-- 浏览器标签页上的小图标（在子目录里，路径要往上一级） -->
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+
+<!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="朔的小窝 · Shuoscape">
+<meta property="og:title" content="知识点 · C 语言备考站">
+<meta property="og:description" content="按谭浩强《C程序设计》十章整理的C语言知识点，含代码示例与易错点提示。">
+<meta property="og:image" content="../assets/hero-home.jpg">
+<meta property="og:url" content="c/knowledge.html">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/bridge.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<script>
+  (function () {
+    try {
+      var d = document.documentElement;
+      if (localStorage.getItem('c-site-theme') === 'dark') {
+        d.setAttribute('data-theme', 'dark');
+      }
+      var p = localStorage.getItem('c-site-palette');
+      if (p && p !== 'default') {
+        d.setAttribute('data-palette', p);
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<!-- ===== 主站统一的导航条（样式在 css/bridge.css，不碰本页原有样式）===== -->
+<div class="site-top">
+  <a class="site-top__brand" href="../index.html">Shuo<span>scape</span></a>
+  <span class="site-top__crumb">主站 · 学习 · C 语言</span>
+  <nav class="site-top__nav">
+    <a href="../index.html">首页</a>
+    <a href="../articles.html">文章</a>
+    <a href="../poems.html">诗札</a>
+    <a href="../study.html" class="is-here">学习</a>
+    <a href="../about.html">关于</a>
+    <a href="../study.html#c">· C 语言</a>
+    <a href="../study.html#en">· 英语</a>
+  </nav>
+</div>
+
+
+<!-- ============================ 顶部固定导航 ============================ -->
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">C</span>
+      <span>湖北专升本 · C语言</span>
+      <span class="brand-sub">谭浩强《C程序设计》知识体系</span>
+    </a>
+
+    <button class="menu-btn" type="button" data-menu-toggle aria-label="展开导航菜单">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 6h18M3 12h18M3 18h18"/>
+      </svg>
+    </button>
+
+    <ul class="nav-links">
+      <li><a href="index.html">首页</a></li>
+      <li><a href="knowledge.html">知识点</a></li>
+      <li><a href="practice.html">习题训练</a></li>
+      <li><a href="papers-image.html">图片卷</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button class="theme-btn" type="button" data-appearance-toggle aria-expanded="false" aria-haspopup="true" title="外观设置（明暗模式与配色）">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round">
+          <path d="M12 3a9 9 0 100 18h.6a2 2 0 001.7-3.1 1.8 1.8 0 011.5-2.8H17a4 4 0 004-4c0-4.5-4-8.1-9-8.1z"/>
+          <circle cx="7.6" cy="11.2" r="1.05" fill="currentColor" stroke="none"/>
+          <circle cx="10.4" cy="7.4" r="1.05" fill="currentColor" stroke="none"/>
+          <circle cx="14.8" cy="7.8" r="1.05" fill="currentColor" stroke="none"/>
+        </svg>
+        <span>外观</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- =========================== 左侧章节目录 =========================== -->
+  <aside class="sidebar" data-sidebar>
+    <div class="side-title">章节目录</div>
+
+    <!-- 目录搜索 -->
+    <div class="side-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+      </svg>
+      <input type="search" placeholder="搜索小节，如：指针" data-side-search aria-label="搜索知识点小节">
+    </div>
+
+    <!-- 目录由 js/knowledge.js 根据数据自动生成 -->
+    <nav data-side-list></nav>
+    <div class="side-empty" data-side-empty style="display:none">没有找到匹配的小节</div>
+  </aside>
+
+  <!-- ============================== 正文内容 ============================== -->
+  <main class="main">
+    <div class="main-inner">
+      <div class="page-head">
+        <div class="eyebrow">Knowledge</div>
+        <h1>C语言知识点</h1>
+        <p>共 10 章，按谭浩强《C程序设计》章节体系编排。左侧目录可快速跳转，代码块支持高亮与一键复制。</p>
+        <p style="margin-top:10px">
+          <button class="btn btn-sm" type="button" data-sidebar-toggle hidden>目录</button>
+          <a class="btn btn-sm btn-soft" href="practice.html">去做本章习题 →</a>
+        </p>
+      </div>
+
+      <!-- 章节正文由 js/knowledge.js 渲染 -->
+      <div data-knowledge-content></div>
+    </div>
+  </main>
+</div>
+
+<div class="scrim" data-scrim></div>
+
+<!-- ================================= 页脚 ================================= -->
+<footer class="site-footer">
+  <div class="container">
+    <span>知识点内容参考谭浩强《C程序设计》教材体系整理，仅供个人备考学习使用。</span>
+    <span>© <span data-year>2026</span> 湖北专升本 C语言备考学习站</span>
+  </div>
+</footer>
+
+<button class="to-top" type="button" data-to-top aria-label="回到顶部">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+</button>
+
+<!-- ================================= 脚本 ================================= -->
+<!-- 顺序要求：先加载数据文件，再加载逻辑文件 -->
+<script src="js/data/knowledge-data.js"></script>
+<script src="js/data/knowledge-data-2.js"></script>
+
+<script src="js/highlight-c.js"></script>
+<script src="js/common.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/knowledge.js"></script>
+</body>
+</html>

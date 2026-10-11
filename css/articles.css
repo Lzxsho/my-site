@@ -1,0 +1,358 @@
+/* ==========================================================================
+   articles.css —— 文章页专属样式
+   --------------------------------------------------------------------------
+   目录：
+     1. 页面小封面
+     2. 分类筛选工具栏
+     3. 搜索框
+     4. 文章卡片网格
+     5. 归档 / 标签云
+     6. 文章详情弹窗
+     7. 写文章 / 编辑文章（都在弹窗里）
+     8. 响应式
+   ========================================================================== */
+
+/* ---------- 1. 页面小封面 ---------- */
+.page-hero {
+  position: relative;
+  margin-top: calc(var(--nav-h) + 18px);
+  height: 300px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--sh-2);
+  background:
+    radial-gradient(circle at 22% 30%, rgba(255, 232, 246, 0.95), transparent 55%),
+    radial-gradient(circle at 76% 66%, rgba(200, 232, 255, 0.9), transparent 58%),
+    linear-gradient(130deg, #ffeaf6 0%, #e7f4ff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+}
+/* 柔光罩：中间亮、上下压一点，文字就不会被插画吃掉 */
+.hero-scrim--articles {
+  background:
+    radial-gradient(ellipse 58% 52% at 50% 50%, rgba(255, 252, 255, 0.66), transparent 72%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 247, 252, 0.40) 46%,
+      rgba(255, 255, 255, 0.76) 100%
+    );
+}
+.page-hero__icon {
+  position: relative;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--sh-1);
+  margin-bottom: 16px;
+}
+.page-hero__title {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-serif);
+  font-size: clamp(30px, 4.6vw, 46px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #3a3352;
+  text-shadow: 0 4px 24px rgba(255, 255, 255, 0.9);
+}
+.page-hero__desc {
+  position: relative;
+  z-index: 2;
+  margin-top: 12px;
+  font-size: 13.5px;
+  color: rgba(80, 62, 110, 0.78);
+  max-width: 620px;
+  text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95);
+}
+
+/* ---------- 2. 分类筛选工具栏 ---------- */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 8px;
+  margin: 26px 0 24px;
+  border-radius: var(--r-full);
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--sh-1);
+}
+.filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.filter-tab {
+  padding: 8px 18px;
+  border-radius: var(--r-full);
+  font-size: 13.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.filter-tab:hover { background: rgba(195, 164, 255, 0.14); }
+.filter-tab.is-active {
+  color: #fff;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: 0 6px 16px rgba(195, 164, 255, 0.42);
+}
+.filter-tab__count {
+  font-size: 11px;
+  opacity: 0.7;
+  margin-left: 5px;
+}
+
+/* ---------- 3. 搜索框 ---------- */
+/* 搜索框和 .filter-actions 的样式已经挪到 base.css，
+   因为「小诗页」也在用它们。
+   这里只留文章页自己特有的部分。 */
+
+/* ---------- 4. 文章卡片网格 ---------- */
+.article-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.article-card {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+.article-card__media { position: relative; }
+.article-card__cat {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+}
+.article-card__body { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.article-card__title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.article-card:hover .article-card__title { color: #8a5cd8; }
+.article-card__desc {
+  font-size: 13px;
+  color: var(--ink-3);
+  line-height: 1.75;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.article-card__tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.article-card__foot {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+/* 空状态 */
+.empty {
+  grid-column: 1 / -1;
+  padding: 70px 20px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.empty__icon { font-size: 40px; margin-bottom: 12px; opacity: 0.6; }
+
+/* ---------- 5. 归档 / 标签云 ---------- */
+.archive-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 22px;
+  margin-top: 44px;
+}
+
+/* 说明：.panel / .panel__title / .search-box / .filter-actions
+   这几个是「多个页面都会用」的公共组件，
+   已经挪到 base.css 里了，这里不要再重复写一遍。 */
+
+.archive-list { display: flex; flex-direction: column; gap: 8px; }
+.archive-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.5);
+  transition: transform 0.25s var(--ease), color 0.25s var(--ease);
+  cursor: pointer;
+}
+body.theme-dark .archive-item { background: rgba(255, 255, 255, 0.05); }
+.archive-item:hover { transform: translateX(6px); color: #8a5cd8; }
+.archive-item__num { font-size: 12px; color: var(--ink-4); }
+
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+.tag-cloud__item {
+  padding: 6px 16px;
+  border-radius: var(--r-full);
+  font-size: 12.5px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  transition: transform 0.25s var(--ease), background 0.25s var(--ease);
+  cursor: pointer;
+}
+body.theme-dark .tag-cloud__item { background: rgba(255, 255, 255, 0.06); }
+.tag-cloud__item:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(120deg, var(--c-pink-soft), var(--c-purple-soft));
+}
+
+/* ---------- 6. 封面照片选择区（文章页专用） ----------
+   （弹窗、.form-grid、.editor-head、.form-foot 这些公共样式已经挪到 base.css 的 6.6 / 6.7，
+     因为关于页和音乐页也要用弹窗，它们不加载这个文件。） */
+.cover-picker {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.cover-picker__preview {
+  height: 116px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line);
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(135deg, var(--c-pink-soft), var(--c-purple-soft) 55%, var(--c-blue-soft));
+  display: grid;
+  place-items: center;
+}
+.cover-picker__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cover-picker__empty {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: 0 12px;
+  line-height: 1.8;
+}
+.cover-picker__inputs { display: flex; flex-direction: column; gap: 10px; }
+.cover-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 7. 响应式 ---------- */
+@media (max-width: 900px) {
+  .article-grid { grid-template-columns: 1fr; }
+  .archive-row { grid-template-columns: 1fr; }
+  .page-hero { height: 240px; }
+  .filter-bar { border-radius: var(--r-md); }
+  .filter-actions { width: 100%; justify-content: flex-end; }
+  .cover-picker { grid-template-columns: 1fr; }
+  .cover-picker__preview { height: 150px; }
+}
+
+@media (max-width: 560px) {
+  .search-box input { width: 100px; }
+  .filter-tab { padding: 7px 14px; font-size: 13px; }
+}
+
+/* ---------- 8. 栏目总览 ----------
+   一张卡片 = data.js columns 里的一个栏目。
+   左边一条渐变竖条标出「有内容」，没内容的那条是虚的、整张卡也淡一点 ——
+   一眼能分清哪些栏目已经开张。 */
+.column-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.column-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 16px 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.68);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.column-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--c-pink), var(--c-purple));
+}
+.column-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(170, 150, 205, 0.45);
+  box-shadow: 0 10px 22px rgba(120, 100, 160, 0.14);
+}
+body.theme-dark .column-card { background: rgba(255, 255, 255, 0.05); }
+
+/* 名字是雅称（诗札、短句手记…），后面那行灰的是它装什么 */
+.column-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.3px;
+}
+.column-card__tag {
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+.column-card__count {
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--c-purple);
+}
+.column-card__desc {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+  opacity: 0.9;
+}
+
+/* 还没动笔的栏目：竖条变虚、整卡变淡，但照样占位 */
+.column-card.is-empty { opacity: 0.62; }
+.column-card.is-empty::before {
+  background: none;
+  border-left: 2px dashed var(--line);
+  width: 0;
+}
+.column-card.is-empty .column-card__count { color: var(--ink-4); font-weight: 400; }
+.column-card.is-empty:hover { opacity: 0.9; }
+
+@media (max-width: 900px) { .column-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .column-grid { grid-template-columns: 1fr; } }

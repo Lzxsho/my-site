@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文章 · Shuoscape</title>
+  <meta name="description" content="写作或灵感、突发奇想的小说、时不时不太正式的生活记录。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="文章 · Shuoscape">
+  <meta property="og:description" content="写作或灵感、突发奇想的小说、时不时不太正式的生活记录。">
+  <meta property="og:image" content="assets/hero-articles.jpg">
+  <meta property="og:url" content="articles.html">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <link rel="stylesheet" href="css/articles.css">
+  <link rel="stylesheet" href="css/comments.css">
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ===================== 页面小封面 ===================== -->
+      <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
+      <section class="page-hero">
+        <img class="hero-bg" src="assets/hero-articles.jpg" alt="二次元插画背景">
+        <span class="hero-scrim hero-scrim--articles"></span>
+        <div class="page-hero__icon">✎</div>
+        <h1 class="page-hero__title">文章</h1>
+        <p class="page-hero__desc">
+          写作或灵感、突发奇想的小说、时不时不太正式的生活记录。
+        </p>
+      </section>
+
+      <!-- ===================== 栏目总览 =====================
+           这一整块是 js/articles.js 按 data.js 里的 columns 渲染的：
+           有内容的显示篇数，点了就筛；还没写的显示「暂未开笔」。
+           栏目名字在 js/data.js 的 columns 里改。 -->
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">COLUMNS</p>
+            <h2 class="section__title">栏目</h2>
+          </div>
+          <div class="section__actions">
+            <span class="section__more">点一个栏目，就只看它</span>
+          </div>
+        </div>
+        <div class="column-grid" data-columns></div>
+      </section>
+
+      <!-- ===================== 分类筛选 + 搜索 ===================== -->
+      <div class="filter-bar">
+        <!-- 分类标签由 js/articles.js 渲染 -->
+        <div class="filter-tabs" data-filter-tabs></div>
+
+        <div class="filter-actions">
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="articleSearch" placeholder="搜索标题 / 标签…">
+          </div>
+          <button class="btn btn--sm" id="randomBtn" data-admin-only title="随机拼一篇草稿">✦ 随机生成</button>
+          <!-- 只有你在界面里改过 / 删过文章时才会出现，用来一键还原 -->
+          <button class="btn btn--sm btn--ghost" id="resetArticlesBtn" data-admin-only hidden title="清掉本地的修改和隐藏，回到 data.js 里的原始内容">↺ 恢复默认</button>
+          <button class="btn btn--sm btn--primary" id="newArticleBtn" data-admin-only title="写一篇新文章">✎ 写文章</button>
+        </div>
+      </div>
+
+      <!-- ===================== 文章卡片网格 ===================== -->
+      <section class="article-grid" data-article-grid></section>
+
+      <!-- ===================== 归档 + 标签云 ===================== -->
+      <section class="archive-row">
+        <div class="card panel">
+          <h3 class="panel__title">🗂 归档</h3>
+          <div class="archive-list" data-archive></div>
+        </div>
+
+        <div class="card panel">
+          <h3 class="panel__title">🏷 标签</h3>
+          <div class="tag-cloud" data-tag-cloud></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================== 文章详情 / 编辑弹窗 ===================== -->
+  <!-- tabindex="-1" 是为了让 JS 能把焦点移进来（键盘用户按 Esc、Tab 都方便） -->
+  <div class="modal" id="articleModal">
+    <div class="modal__box" data-modal-body tabindex="-1"></div>
+  </div>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">小诗</a>
+        <a href="index.html#music">曲音拾集</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/config.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/comments.js" defer></script>
+  <script src="js/articles.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>

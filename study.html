@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学习 · Shuoscape</title>
+  <meta name="description" content="C 语言知识点清单与英语单词本，记下每天往前挪的一点点。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- 分享到微信 / QQ / 微博时显示的预览卡片（og:url 发布后可换成真实域名） -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="学习 · Shuoscape">
+  <meta property="og:description" content="C 语言知识点清单与英语单词本，记下每天往前挪的一点点。">
+  <meta property="og:image" content="assets/hero-home.jpg">
+  <meta property="og:url" content="study.html">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <link rel="stylesheet" href="css/study.css">
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ===================== 页面小封面 ===================== -->
+      <section class="page-hero">
+        <img class="hero-bg" src="assets/hero-articles.jpg" alt="二次元插画背景">
+        <span class="hero-scrim hero-scrim--articles"></span>
+        <div class="page-hero__icon">✦</div>
+        <h1 class="page-hero__title">学习</h1>
+        <p class="page-hero__desc">
+          两门课，各记一份进度。会一条就勾一条，记住一个词就标一个。
+        </p>
+      </section>
+
+      <!-- ===================== 两块进度概览 ===================== -->
+      <section class="section">
+        <div class="study-overview" data-study-overview></div>
+      </section>
+
+      <!-- ==================================================
+           这一页分成三段，从上到下：
+           ① C 语言·入口（练习站的四个门 + 进度）
+           ② 英语（词汇复习 / 错题本 / 资料 / 知识点 四个门）
+           ③ C 语言·知识点清单（一组一组勾「会了没」）
+           每段顶上有一条自己的色带，段落之间留白分开 —— 不再左右对半分。
+           ================================================== -->
+
+      <!-- ===================== ① C 语言 · 入口 ===================== -->
+      <section class="section study-block study-block--c" id="c">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">C LANGUAGE · ①</p>
+            <h2 class="section__title">C 语言</h2>
+          </div>
+          <div class="section__actions">
+            <span class="section__more" data-c-progress>0 / 0</span>
+            <!-- 已经做好的那套题库与练习，就放在本站 c/ 目录下 -->
+            <a class="btn btn--primary btn--sm" href="c/index.html">打开练习站 →</a>
+          </div>
+        </div>
+
+        <p class="study-intro" data-c-intro></p>
+
+        <!-- 已经做好并搬进来的那套 C 语言站（c/ 目录）：四个入口 + 题库统计 -->
+        <div class="study-entries" data-c-entries></div>
+      </section>
+
+      <!-- ===================== ② 英语 ===================== -->
+      <section class="section study-block study-block--en" id="en">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">ENGLISH · ②</p>
+            <h2 class="section__title">英语</h2>
+          </div>
+          <div class="section__actions">
+            <span class="section__more" data-en-progress></span>
+            <a class="btn btn--primary btn--sm" href="english.html">进入词汇复习 →</a>
+          </div>
+        </div>
+
+        <p class="study-intro" data-en-intro></p>
+
+        <!-- 词汇复习模块的四个板块入口（english.html） -->
+        <div class="study-entries" data-en-entries></div>
+
+        <p class="study-note">
+          资料和练习记录都保存在当前浏览器里 —— 换设备前，先去「学习资料」里导出一份备份。
+          导入 / 编辑 / 删除资料要管理员登录；练习、标掌握不用，谁来都能练。
+        </p>
+      </section>
+
+      <!-- ===================== ③ C 语言 · 知识点清单 =====================
+           一组一张卡，一条一个小目标，会一条勾一条；
+           内容还是 data.js 里那套 C 知识点，由 js/study.js 渲染。 -->
+      <section class="section study-block study-block--c" id="c-list">
+        <div class="section__head">
+          <div>
+            <p class="section__eyebrow">CHECKLIST · ③</p>
+            <h2 class="section__title">C 语言 · 知识点清单</h2>
+          </div>
+          <div class="section__actions">
+            <span class="section__more" data-c-progress2>0 / 0</span>
+          </div>
+        </div>
+
+        <p class="study-intro">从数据类型、运算符一路到文件操作 —— 会一条勾一条，进度在 ① 里也能看到。</p>
+
+        <div class="study-groups" data-c-groups></div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+        <a href="index.html#music">曲音拾集</a>
+      </nav>
+      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <script src="js/data.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/study.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>
