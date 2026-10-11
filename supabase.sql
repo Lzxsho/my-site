@@ -277,22 +277,26 @@ create policy "comments_insert" on public.comments for insert with check (true);
 -- ==========================================================================
 --  10. 访客个人记录表 —— 登录用户的练习进度 / 错题本 / C 语言打卡
 --  --------------------------------------------------------------------
---  一个人一行，userId 就是 Supabase 登录账号的 id。
+--  一个人一行，主键就是登录邮箱（前端会话里现成就有，不用再查用户 id）。
 --  data 里直接存整份 JSON（错题本、每日练习、没练完的一轮、C 语言打卡…），
 --  前端读写一次搞定，不用为每种记录各开一张表。
 --
---  ★ 权限：只有本人能看、能改自己那一行（auth.uid() = userId）。
+--  ★ 权限：只有本人能看、能改自己那一行（JWT 里的邮箱 = 行的邮箱）。
 --    管理员也读不到别人的进度 —— 这是隐私，故意的。
 --  ★ 没登录的时候前端照旧存 localStorage，不影响使用；
 --    登录后才会同步到这张表，换设备登录就能接着练。
+--
+--  ⚠️ 这一节是**故意重建**的：最早一版用 uuid 当主键，前端拿不到
+--     （要多调一次 /auth/v1/user），改成邮箱主键。表刚上线没有数据，
+--     drop 重建零成本 —— 以后**别**再整段重跑（会清掉大家的练习记录！），
+--     改结构时改成 alter table 加列。
 -- ==========================================================================
-create table if not exists public.user_progress (
-  userId     uuid primary key references auth.users (id) on delete cascade,
-  email      text,
+drop table if exists public.user_progress;
+create table public.user_progress (
+  email      text primary key,
   data       jsonb      not null default '{}',
   updatedAt  timestamptz not null default now()
 );
-create index if not exists user_progress_email_idx on public.user_progress (email);
 
 alter table public.user_progress enable row level security;
 
@@ -301,13 +305,13 @@ drop policy if exists "user_progress_ins"  on public.user_progress;
 drop policy if exists "user_progress_upd"  on public.user_progress;
 
 create policy "user_progress_read" on public.user_progress
-  for select using (auth.uid() = userId);
+  for select using (auth.jwt() ->> 'email' = email);
 create policy "user_progress_ins" on public.user_progress
-  for insert with check (auth.uid() = userId);
+  for insert with check (auth.jwt() ->> 'email' = email);
 create policy "user_progress_upd" on public.user_progress
-  for update using (auth.uid() = userId) with check (auth.uid() = userId);
+  for update using (auth.jwt() ->> 'email' = email) with check (auth.jwt() ->> 'email' = email);
 
--- ⚠️ 故意没有 delete 策略：网页端删不掉（删号走 auth.users 的 cascade）
+-- ⚠️ 故意没有 delete 策略：网页端删不掉
 
 -- ==========================================================================
 --  11. 登记管理员（已经按你 js/config.js 的 adminEmails 填好了，直接跑即可）
