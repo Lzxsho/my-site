@@ -383,16 +383,44 @@ const DataMode = {
       const sign = App.qs('.footer__sign');
       if (!sign) { return; }
 
-      const isDb = mode === 'db';
-      const label = isDb ? '数据库' : '本地';
-      const tip = isDb
-        ? '数据来自 db/site.db，由 server.js 读写。改完刷新页面就能看到。'
-        : '没有检测到后端（直接双击打开的网页），数据写在 js/data.js 里，你自己改的记在浏览器中。想用数据库请双击 start.bat。';
+      /* ▍三种模式各自的一句话（2026-10-11 修过的坑：
+         以前只有「数据库 / 本地」两档，双击打开走云端模式也被错标成「本地」，
+         让人误以为云端没连上。现在云端单独一档，并如实报告副本状态。） */
+      let label, tip, cls;
+      if (mode === 'db') {
+        label = '数据库';
+        cls = 'is-db';
+        tip = '数据来自 db/site.db，由 server.js 读写。改完刷新页面就能看到。';
+      } else if (mode === 'cloud') {
+        const off = typeof CloudStore !== 'undefined' && !!CloudStore._offline;
+        cls = 'is-cloud';
+        if (off) {
+          label = '云端·副本';
+          tip = 'Supabase 云端暂时连不上（断网 / 项目暂停 / 网络被拦），现在显示的是仓库里的静态副本，文章照常能看，留言会先存在本机。';
+        } else {
+          label = '云端';
+          tip = '数据来自 Supabase 云端数据库，登录后就能留言、同步练习记录。';
+        }
+      } else {
+        label = '本地';
+        cls = 'is-local';
+        tip = '没有检测到后端（直接双击打开的网页），数据写在 js/data.js 里，你自己改的记在浏览器中。想用数据库请双击 start.bat。';
+      }
 
-      const badge = App.el('span', 'mode-badge is-' + mode, label);
+      const badge = App.el('span', 'mode-badge ' + cls, label);
       badge.title = tip;
       sign.appendChild(document.createTextNode(' · '));
       sign.appendChild(badge);
+
+      /* 徽章画完之后云端才超时的（探测请求要挂满 8 秒）——
+         收到广播就把「云端」改成「云端·副本」 */
+      document.addEventListener('cloud:offline', function () {
+        const b = App.qs('.mode-badge.is-cloud');
+        if (b && b.textContent === '云端') {
+          b.textContent = '云端·副本';
+          b.title = 'Supabase 云端暂时连不上（断网 / 项目暂停 / 网络被拦），现在显示的是仓库里的静态副本，文章照常能看，留言会先存在本机。';
+        }
+      });
     });
   }
 };

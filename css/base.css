@@ -956,6 +956,11 @@ body.theme-dark .hero-scrim--about::after { background: none; }
   color: #2e9e83;
   border-color: rgba(169, 239, 220, 0.6);
 }
+.mode-badge.is-cloud {
+  background: #e4f2ff;
+  color: #3a7fc2;
+  border-color: rgba(159, 212, 255, 0.65);
+}
 .mode-badge.is-local {
   background: rgba(150, 140, 175, 0.14);
   color: var(--ink-3);
@@ -964,6 +969,10 @@ body.theme-dark .hero-scrim--about::after { background: none; }
 body.theme-dark .mode-badge.is-db {
   background: rgba(46, 158, 131, 0.18);
   color: #7fe0c6;
+}
+body.theme-dark .mode-badge.is-cloud {
+  background: rgba(159, 212, 255, 0.14);
+  color: #9fd4ff;
 }
 body.theme-dark .mode-badge.is-local {
   background: rgba(255, 255, 255, 0.08);

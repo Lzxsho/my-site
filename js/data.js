@@ -1743,6 +1743,10 @@ const CloudStore = {
          记下来，好让页脚提示说实话，而不是含糊地写「云端数据库」 */
       if (e && (e.name === 'AbortError' || e.name === 'TypeError')) {
         CloudStore._offline = true;
+        /* 页脚徽章（js/main.js 的 DataMode）多半已经按「云端」渲染好了
+           —— 探测请求挂满 8 秒超时的时候，徽章早就画完了。
+           广播一声，让徽章当场改成「云端·副本」，别骗人 */
+        document.dispatchEvent(new CustomEvent('cloud:offline'));
       }
       throw e;
     }).then(function (v) {
