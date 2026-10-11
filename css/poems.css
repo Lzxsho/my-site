@@ -223,6 +223,37 @@
   padding-left: 14px;
   border-left: 2px solid rgba(195, 164, 255, 0.45);
 }
+
+/* ---------- 代码编辑器风：展开的小诗带行号 ----------
+   左边一条「行号槽」（gutter），1、2、3… 排下来，
+   仿的是编辑器左侧那条竖栏。诗句本身还是原来的衬线字体，
+   只有行号用等宽 —— 全用等宽的话诗就失了味道。 */
+.poem-code {
+  padding-left: 0;
+  border-left: none;
+}
+.poem-code__row {
+  display: grid;
+  grid-template-columns: 34px 1fr;   /* 行号列宽固定，诗句跟着铺开 */
+  align-items: baseline;
+  gap: 10px;
+}
+.poem-code__no {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-style: normal;
+  text-align: right;
+  color: var(--ink-4);
+  user-select: none;                 /* 复制诗句时别把行号也带上 */
+  -webkit-user-select: none;
+}
+.poem-code__line { display: block; }
+
+/* 窄屏：行号那 34px 会把诗句挤得很难看，直接收起来 */
+@media (max-width: 560px) {
+  .poem-code__row { grid-template-columns: 1fr; }
+  .poem-code__no { display: none; }
+}
 .poem-card__foot {
   margin-top: 16px;
   display: flex;

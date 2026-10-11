@@ -1,46 +1,239 @@
 -- ==========================================================================
---  Shuoscape 留言表 —— 让「任何人打开网站都能看到同一批留言」
--- --------------------------------------------------------------------------
+--  Shuoscape 内容上云 —— 建表 + 访问策略
+--  --------------------------------------------------------------------
 --  怎么用：Supabase 后台 → 左边 SQL Editor → 把这一段整段粘进去 → Run
---          跑完不用改代码，刷新网页就能看到留言框下面写着「留言存在云端」
+--          执行一次即可；表已存在时不会重复创建（if not exists）
+--
+--  ★ 列名一律用 camelCase，和 js/data.js 里的字段名一字不差，
+--    这样前端 CloudStore 可以直接读写，不用做任何字段映射。
+--
+--  ★ 权限的两条铁律（改之前先想清楚）：
+--      1. 内容表（文章/小诗/唱片/资料/技能/学习资料）：谁都能读，
+--         **只有 admins 表里登记过的管理员能写**（is_shuo_admin() 函数把关）
+--      2. 留言表：谁都能看、谁都能写（游客留言是核心功能），但**不开放删除**
+--         想删留言去后台 Table Editor 手动删，更安全
 -- ==========================================================================
 
--- 1. 表：一条留言一行
+-- 1. 文章表
+create table if not exists public.articles (
+  id          bigserial primary key,
+  title       text not null,
+  category    text,
+  date        text,
+  tags        text,
+  series      text,
+  cover       text,
+  excerpt     text,
+  content     text,
+  createdAt   timestamptz not null default now()
+);
+create index if not exists articles_date_idx on public.articles (date desc);
+create index if not exists articles_category_idx on public.articles (category);
+
+-- 2. 小诗表
+create table if not exists public.poems (
+  id          bigserial primary key,
+  title       text,
+  date        text,
+  text        text,
+  createdAt   timestamptz not null default now()
+);
+create index if not exists poems_date_idx on public.poems (date desc);
+
+-- 3. 唱片表
+create table if not exists public.music (
+  id          bigserial primary key,
+  name        text not null,
+  artist      text,
+  note        text,
+  duration    text,
+  genre       text,
+  src         text,
+  url         text,
+  sort        integer default 0
+);
+
+-- 4. 自我介绍表（全站只一行，id 固定 = 1）
+create table if not exists public.profile (
+  id               bigint primary key check (id = 1),
+  siteName         text,
+  siteEn           text,
+  brandFirst       text,
+  brandSecond      text,
+  owner            text,
+  slogan           text,
+  city             text,
+  email            text,
+  github           text,
+  blog             text,
+  heroEyebrow      text,
+  heroDesc         text,
+  heroTags         text,
+  intro            text,
+  aboutParagraphs  text,
+  keywords         text
+);
+
+-- 5. 技能表
+create table if not exists public.skills (
+  id      bigserial primary key,
+  name    text not null,
+  value   integer default 0,
+  level   text default '在学',
+  note    text,
+  sort    integer default 0
+);
+
+-- 6. 留言表（游客可看可写，不可删）
 create table if not exists public.comments (
   id          bigserial primary key,
   target      text        not null,              -- 留言挂在谁下面：article-3 / poem-7
   name        text        not null default '匿名',
   content     text        not null,
-  created_at  timestamptz not null default now()
+  createdAt   timestamptz not null default now(),
+  parentId    bigint,                            -- 楼中楼：回复谁；空 = 顶层留言
+  userEmail   text                               -- 留言人的登录邮箱（游客留言为空）
+);
+-- 老库补列：表已经建过的话，把新列补上（已有的话什么也不做）
+alter table public.comments add column if not exists userEmail text;
+create index if not exists comments_target_idx on public.comments (target);
+create index if not exists comments_parent_idx on public.comments (parentId);
+-- 两道小闸：名字别太长、内容别太长（server.js 端也有同样的限制）
+--   外面包一层 do ... 是为了「再跑一次也不报错」——
+--   PostgreSQL 没有 add constraint if not exists，重复添加会直接报 duplicate_object
+do $$
+begin
+  alter table public.comments add constraint comments_name_len check (char_length(name) <= 24);
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter table public.comments add constraint comments_content_len check (char_length(content) <= 1000);
+exception when duplicate_object then null;
+end $$;
+
+-- 7.（可选）学习打卡进度表：全站一行，存整份进度 JSON
+create table if not exists public.study_progress (
+  id   bigint primary key check (id = 1),
+  key  text not null default 'owner',
+  data text not null default '{}'
 );
 
--- 按 target 查得快一点
-create index if not exists comments_target_idx on public.comments (target);
+-- 8. 管理员名单：一张只有邮箱的表，**写策略全靠它把关**
+--    ★ 谁是管理员在这里登记（一行一个邮箱）：
+--        insert into public.admins (email) values ('你的邮箱@qq.com');
+--    前端 js/config.js 的 adminEmails 只管「按钮显不显示」，
+--    这张表才管「数据库让不让写」—— 两边填同一批邮箱。
+create table if not exists public.admins (
+  email      text primary key,
+  createdAt  timestamptz not null default now()
+);
+alter table public.admins enable row level security;
+-- admins 表本身不给任何策略：网页上谁也读不到、改不了，
+-- 只有 Supabase 后台（service_role）能维护它 —— 名单不能泄露给前端。
 
--- 2. 打开行级安全（不开的话下面几条规则不生效）
-alter table public.comments enable row level security;
+-- 9. 英语学习资料表（管理员导入，所有人共享练习）
+--    words 直接存 JSON 数组 [{en,zh}, …]，前端拿来就用，不用拆表
+create table if not exists public.en_materials (
+  id         text primary key,                    -- 前端生成的 'm' + 时间戳
+  name       text not null,
+  date       text,
+  words      jsonb   not null default '[]',
+  createdAt  timestamptz not null default now(),
+  updatedAt  timestamptz not null default now()
+);
 
--- 3. 访问规则
---    · 谁都能看留言
-drop policy if exists "comments_read" on public.comments;
-create policy "comments_read" on public.comments
-  for select using (true);
+-- ==========================================================================
+--  行级安全（RLS）：这一节是「上云能不能安全用」的关键，顺序不能乱
+-- ==========================================================================
 
---    · 谁都能写（游客不用登录就能留言）
---      想防刷的话，给 content 加个长度限制就够了，见文件最后
+alter table public.articles       enable row level security;
+alter table public.poems          enable row level security;
+alter table public.music          enable row level security;
+alter table public.profile        enable row level security;
+alter table public.skills         enable row level security;
+alter table public.comments       enable row level security;
+alter table public.study_progress enable row level security;
+alter table public.en_materials   enable row level security;
+
+-- 「他是管理员吗」：当前登录邮箱在不在 admins 表里。
+--   security definer：函数用建表者的权限读 admins，
+--   这样即使 admins 表对网页完全封闭，函数照样能查 —— 名单不泄露，判断照做。
+create or replace function public.is_shuo_admin() returns boolean
+language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from public.admins
+    where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
+
+-- 内容表：任何人都能读（访客浏览）
+drop policy if exists "articles_read"  on public.articles;
+drop policy if exists "poems_read"     on public.poems;
+drop policy if exists "music_read"     on public.music;
+drop policy if exists "profile_read"   on public.profile;
+drop policy if exists "skills_read"    on public.skills;
+drop policy if exists "study_progress_read" on public.study_progress;
+drop policy if exists "en_materials_read"   on public.en_materials;
+create policy "articles_read" on public.articles  for select using (true);
+create policy "poems_read"    on public.poems     for select using (true);
+create policy "music_read"    on public.music     for select using (true);
+create policy "profile_read"  on public.profile   for select using (true);
+create policy "skills_read"   on public.skills    for select using (true);
+create policy "study_progress_read" on public.study_progress for select using (true);
+create policy "en_materials_read"   on public.en_materials   for select using (true);
+
+-- 内容表：**只有管理员**能增删改（admins 表 + is_shuo_admin() 把关）
+--   ★ 为什么不用 auth.role() = 'authenticated'：
+--     那等于「所有注册用户都能改全站内容」。现在注册是开放的，
+--     写权限必须收窄到 admins 名单里的人 —— 普通注册用户只能留言。
+--   ★ 一张表的 policy 名字不能重复，所以 insert/update/delete 各起一个名；
+--     先 drop if exists 再 create，整段可以重复执行。
+drop policy if exists "articles_write" on public.articles;
+drop policy if exists "poems_write"    on public.poems;
+drop policy if exists "music_write"    on public.music;
+drop policy if exists "profile_write"  on public.profile;
+drop policy if exists "skills_write"   on public.skills;
+drop policy if exists "study_progress_write" on public.study_progress;
+drop policy if exists "en_materials_write"   on public.en_materials;
+
+create policy "articles_ins" on public.articles for insert with check (public.is_shuo_admin());
+create policy "articles_upd" on public.articles for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "articles_del" on public.articles for delete using (public.is_shuo_admin());
+
+create policy "poems_ins" on public.poems for insert with check (public.is_shuo_admin());
+create policy "poems_upd" on public.poems for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "poems_del" on public.poems for delete using (public.is_shuo_admin());
+
+create policy "music_ins" on public.music for insert with check (public.is_shuo_admin());
+create policy "music_upd" on public.music for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "music_del" on public.music for delete using (public.is_shuo_admin());
+
+create policy "profile_ins" on public.profile for insert with check (public.is_shuo_admin());
+create policy "profile_upd" on public.profile for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "profile_del" on public.profile for delete using (public.is_shuo_admin());
+
+create policy "skills_ins" on public.skills for insert with check (public.is_shuo_admin());
+create policy "skills_upd" on public.skills for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "skills_del" on public.skills for delete using (public.is_shuo_admin());
+
+create policy "study_progress_ins" on public.study_progress for insert with check (public.is_shuo_admin());
+create policy "study_progress_upd" on public.study_progress for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+
+create policy "en_materials_ins" on public.en_materials for insert with check (public.is_shuo_admin());
+create policy "en_materials_upd" on public.en_materials for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+create policy "en_materials_del" on public.en_materials for delete using (public.is_shuo_admin());
+
+-- 留言表：谁都能看、谁都能写（游客留言），但不开放删除
+--   （网页上云端留言的 ✕ 按钮走 js/comments.js：提示去后台删，不直接调接口）
+drop policy if exists "comments_read"   on public.comments;
 drop policy if exists "comments_insert" on public.comments;
-create policy "comments_insert" on public.comments
-  for insert with check (true);
-
---    · 删除：**不在这里开**。
---      开了就等于把 anon key 发给每个访客、同时允许他删任意一条留言 ——
---      绕过网页调一次 REST 接口，留言就全没了。
---      网页上那个 ✕ 现在只是提示你去后台删（见 js/comments.js 的 remove()）。
---      要去哪删：Supabase 后台 → Table Editor → comments 表 → 勾上那条 → Delete row。
-
--- 4. 两道小闸：名字别太长、内容别太长（Server 端也有同样的限制）
-alter table public.comments add constraint comments_name_len check (char_length(name) <= 24);
-alter table public.comments add constraint comments_content_len check (char_length(content) <= 1000);
-
--- 5.（可选）如果你确实想在网页上直接删，用服务角色密钥自己搭一层后端，
---    让删除请求先过你的服务器 —— 千万别把 service_role key 放进前端。
+create policy "comments_read"   on public.comments for select using (true);
+create policy "comments_insert" on public.comments for insert with check (true);
+--
+-- ⚠️ 下面这两行**故意没有**：一旦放开，任何拿到 anon key 的人都能删光留言
+-- create policy "comments_delete" on public.comments for delete using (true);
+-- 要去哪删：Supabase 后台 → Table Editor → comments 表 → 勾上那条 → Delete row
+-- 确实想在网页上删，就自己搭一层后端，让删除请求先过你的服务器 ——
+-- 千万**不要**把 service_role key 放进前端。

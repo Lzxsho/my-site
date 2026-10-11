@@ -16,7 +16,9 @@
   <meta property="og:description" content="朔的个人小站：文字、记录、音乐与开发。">
   <meta property="og:image" content="assets/hero-home.jpg">
   <meta property="og:url" content="index.html">
-  <link rel="stylesheet" href="css/base.css">
+    <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+<link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/codefx.css">
   <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/music.css">
@@ -57,7 +59,7 @@
       <!-- ===================== 首屏大封面 ===================== -->
       <section class="hero">
         <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
-        <img class="hero-bg" src="assets/hero-home.jpg" alt="二次元插画背景">
+        <picture class="hero-bg"><source srcset="assets/hero-home.webp" type="image/webp"><img class="hero-bg__img" src="assets/hero-home.jpg" alt="二次元插画背景" decoding="async" fetchpriority="high"></picture>
         <!-- 柔光罩：让插画和页面配色融合，同时保证文字看得清 -->
         <span class="hero-scrim hero-scrim--home"></span>
 
@@ -189,20 +191,20 @@
                不用改任何代码、也不用改配置。两种放法都认：
 
                  · 平铺（最省事）
-                     assets/audio/日落大道.mp3
+                     assets/audio/Echoes.mp3
                  · 按分类建文件夹（歌多了以后好找）
-                     assets/audio/摇滚/日落大道.mp3
-                     assets/audio/民谣/归去来兮.mp3
+                     assets/audio/氛围/Echoes.mp3
+                     assets/audio/民谣/Far From Home.mp3
 
                后缀也不挑：mp3 / m4a / ogg / wav / flac 都能认出来。
                想用完全不同的文件名/路径，就点那张碟右上角的 ✎ 自己填。
 
-               注意：这六首都是正版商业歌曲，本站不提供下载；
+               碟架这六首都来自免版权曲库，文件已经放进 assets/audio/ 了；
                QQ音乐 / 网易云的加密格式（.mgg / .ncm 等）浏览器放不了。
               ============================================================
             -->
 
-            <!-- 播放进度条：有音频时点一下就跳到那个位置 -->
+            <!-- 播放进度条：点一下跳到那个位置，按住拖动可以来回找那一秒 -->
             <div class="player__progress" id="progressBar" role="slider"
                  aria-label="播放进度" tabindex="0" aria-valuemin="0" aria-valuemax="100">
               <span class="player__progress-fill" data-progress-fill></span>
@@ -268,7 +270,7 @@
         <a href="about.html">关于</a>
         <a href="index.html#music">曲音拾集</a>
       </nav>
-      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
       <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
     </div>
   </footer>
@@ -294,5 +296,7 @@
   <script src="js/home.js" defer></script>
   <script src="js/music.js" defer></script>
   <script src="js/codefx.js" defer></script>
+  <!-- 启动动画 + 控制台彩蛋（只在首页，锦上添花，删掉也不影响任何功能） -->
+  <script src="js/boot.js" defer></script>
 </body>
 </html>

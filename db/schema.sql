@@ -135,8 +135,8 @@ CREATE INDEX IF NOT EXISTS idx_poems_date ON poems (date DESC);
 /* ----------------------------------------------------------------------------
    ⑤ music —— 唱片
    ----------------------------------------------------------------------------
-   genre —— 分类，比如「民谣」「摇滚」「影视原声」；音乐页的碟架按它分组
-   src   —— 本地音频的路径，例如 assets/audio/日落大道.mp3
+   genre —— 分类，比如「氛围」「民谣」「钢琴」「轻音乐」；音乐页的碟架按它分组
+   src   —— 本地音频的路径，例如 assets/audio/Echoes.mp3
             留空 = 只转唱片不出声
    url   —— 历史字段，界面已不再使用（保留是为了不破坏老库里的数据）
    -------------------------------------------------------------------------- */
@@ -151,3 +151,23 @@ CREATE TABLE IF NOT EXISTS music (
   url      TEXT,                 -- 外部链接（历史字段，界面已不使用）
   sort     INTEGER DEFAULT 0
 );
+
+/* ----------------------------------------------------------------------------
+   ⑥ comments —— 留言（含「楼中楼」回复）
+   ----------------------------------------------------------------------------
+   这张表平时由 server.js 的 ensureCommentsTable() 自动创建
+   （因为你的老数据库里可能根本没有它，seed.js 只在第一次建库时跑）。
+   这里写一份，是为了「表到底长什么样」有一处能查；字段名和结构保持一致。
+   ----------------------------------------------------------------------------
+   target     —— 这条留言挂在谁下面：'article-3' / 'poem-7'
+   parent_id  —— 回复谁：空 = 顶层留言；有值 = 挂在那一条下面（只做两级）
+   -------------------------------------------------------------------------- */
+CREATE TABLE IF NOT EXISTS comments (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  target     TEXT NOT NULL,
+  name       TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  parent_id  INTEGER                      -- 回复的父留言 id，可空
+);
+CREATE INDEX IF NOT EXISTS idx_comments_target ON comments(target);

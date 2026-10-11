@@ -27,7 +27,8 @@
 
 /* 背景插画 —— 用的是 base.css 里的公共 .hero-bg，
    这里只把「取景中心」往上提一点，人像不容易被切到脸 */
-.about-hero .hero-bg { object-position: center 42%; }
+.about-hero .hero-bg,
+.about-hero .hero-bg__img { object-position: center 42%; }
 
 /* 柔光罩：让图片和页面的粉紫调子合在一起，也保证文字看得清。
    类名统一成公共的 .hero-scrim--about，和其他四个页面保持一致 */
@@ -48,7 +49,8 @@ body.theme-dark .hero-scrim--about {
   );
 }
 /* 深色模式下这层罩子本身就够暗了，不用再叠 base.css 里的压暗滤镜 */
-body.theme-dark .about-hero .hero-bg { filter: none; }
+body.theme-dark .about-hero .hero-bg,
+body.theme-dark .about-hero .hero-bg__img { filter: none; }
 
 .about-hero__inner {
   position: relative;

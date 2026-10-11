@@ -16,7 +16,9 @@
   <meta property="og:description" content="写作或灵感、突发奇想的小说、时不时不太正式的生活记录。">
   <meta property="og:image" content="assets/hero-articles.jpg">
   <meta property="og:url" content="articles.html">
-  <link rel="stylesheet" href="css/base.css">
+    <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+<link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/codefx.css">
   <link rel="stylesheet" href="css/articles.css">
   <link rel="stylesheet" href="css/comments.css">
@@ -45,18 +47,35 @@
   </header>
 
   <main>
+    <!-- 阅读进度条：只有文章弹窗打开时才跟着走，平时不显示。
+         宽度由 js/articles.js 按弹窗滚动位置算出来。 -->
+    <div class="read-progress" id="readProgress" aria-hidden="true"><i></i></div>
+
     <div class="container">
 
       <!-- ===================== 页面小封面 ===================== -->
       <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
       <section class="page-hero">
-        <img class="hero-bg" src="assets/hero-articles.jpg" alt="二次元插画背景">
+        <picture class="hero-bg"><source srcset="assets/hero-articles.webp" type="image/webp"><img class="hero-bg__img" src="assets/hero-articles.jpg" alt="二次元插画背景" decoding="async" fetchpriority="high"></picture>
         <span class="hero-scrim hero-scrim--articles"></span>
         <div class="page-hero__icon">✎</div>
         <h1 class="page-hero__title">文章</h1>
         <p class="page-hero__desc">
           写作或灵感、突发奇想的小说、时不时不太正式的生活记录。
         </p>
+      </section>
+
+      <!-- ===================== 站内搜索（文章 / 小诗 / 知识点 一起搜） =====================
+           由 js/search.js 驱动：数据一律走 SiteAPI，db / local 两种模式都能用。
+           知识点那一组是「第一次搜索时才把笔记文件拉进来」，平时不占流量。 -->
+      <section class="section search-zone">
+        <div class="search-box search-box--wide">
+          <span aria-hidden="true">🔍</span>
+          <input type="text" id="siteSearch"
+                 placeholder="搜索文章、小诗、知识点…（回车立刻找，Esc 清空）"
+                 autocomplete="off">
+        </div>
+        <div class="search-results" data-search-results hidden></div>
       </section>
 
       <!-- ===================== 栏目总览 =====================
@@ -70,7 +89,11 @@
             <h2 class="section__title">栏目</h2>
           </div>
           <div class="section__actions">
-            <span class="section__more">点一个栏目，就只看它</span>
+            <div class="view-switch" data-view-switch>
+              <button class="view-switch__btn is-active" type="button" data-view="column">栏目</button>
+              <button class="view-switch__btn" type="button" data-view="month">按月份</button>
+            </div>
+            <span class="section__more" data-view-hint>点一个栏目，就只看它</span>
           </div>
         </div>
         <div class="column-grid" data-columns></div>
@@ -128,7 +151,7 @@
         <a href="index.html#music">曲音拾集</a>
         <a href="about.html">关于</a>
       </nav>
-      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
       <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
     </div>
   </footer>
@@ -141,6 +164,7 @@
   <script src="js/auth.js" defer></script>
   <script src="js/comments.js" defer></script>
   <script src="js/articles.js" defer></script>
+  <script src="js/search.js" defer></script>
   <script src="js/codefx.js" defer></script>
 </body>
 </html>

@@ -3,9 +3,14 @@
    --------------------------------------------------------------------------
    【这个文件很重要，先看这里】
 
-   ▍现在有两套「仓库」，页面自己不用管用的是哪套
+   ▍现在有三套「仓库」，页面自己不用管用的是哪套
 
-     ┌ 数据库模式 ── 你运行了 server.js（双击 start.bat）
+     ┌ 云端模式 ── js/config.js 里填了 Supabase 配置（优先级最高）
+     │    数据存在 Supabase 云端数据库，走原生 fetch + REST，不装任何库。
+     │    好处：传到 GitHub Pages 上也能读写；你用邮箱密码登录后改内容，
+     │          所有人刷新看到的都是同一版。
+     │
+     ├ 数据库模式 ── 你运行了 server.js（双击 start.bat）
      │    数据存在 db/site.db 这个数据库文件里。
      │    网页通过 server.js 提供的 /api/... 接口读写它。
      │    好处：换浏览器、换电脑都还在；能在 VS Code 里直接打开看。
@@ -14,14 +19,15 @@
           数据还是写在下面的 SITE_DATA 里，你自己改的内容存在浏览器里。
           好处：不用启动任何东西，改完刷新就能看。
 
-   启动时它会自动问一句「有后端吗」，然后挑一套用。
+   启动时它会自动挑一套（云端优先 → 其次探后端 → 都没有就本地）。
    下面这个对象就是「转发员」：
 
-        SiteAPI.getArticles()  →  数据库模式？ → 问服务器
+        SiteAPI.getArticles()  →  云端模式？  → 问云端
+                               →  数据库模式？ → 问服务器
                                →  本地模式？  → 读本地数据
 
    页面里只调用 SiteAPI，从来不直接碰数据来源 ——
-   所以两套模式切换，页面代码一行都不用改。这就是「预留接口」的价值。
+   所以三套模式切换，页面代码一行都不用改。这就是「预留接口」的价值。
 
    ▍想改内容，有三种办法，随便挑
        ① 跑起网站，在界面上改（写入数据库，推荐）
@@ -29,11 +35,12 @@
        ③ 不想跑服务器：改下面的 SITE_DATA，刷新浏览器就行
           （注意：这条只影响「没连上后端」的时候）
 
-   ▍文件的五个部分
+   ▍文件的六个部分
        一、初始内容 SITE_DATA
-       二、纯工具 Pure          正文分段、数字数、标签归一化
+       二、纯工具 Pure              正文分段、数字数、标签归一化
        三、本地模式 LocalStore
        四、数据库模式 DbStore
+       四·五、云端模式 CloudStore    js/config.js 填了 Supabase 才用得上
        五、转发员 SiteAPI
 
    加载顺序必须是：data.js → main.js → 各页面自己的 js
@@ -300,75 +307,81 @@ const SITE_DATA = {
                  点「播放」立刻就有声音，不用再回来改这里。
                  留空 = 只转唱片不出声。
 
-     ▍mp3 放哪儿？两种放法都认
-       ① 平铺（最省事）
-            assets/audio/日落大道.mp3
-       ② 按分类分文件夹（歌多了以后好找）
-            assets/audio/摇滚/日落大道.mp3
-            assets/audio/民谣/归去来兮.mp3
-         程序会两种都找一遍，先找到哪个用哪个 —— 你不用改 src，
-         文件夹叫什么也随意（按歌手分：assets/audio/梁博/… 一样能找到）。
-         后缀也一样宽松：mp3 换成 m4a / ogg / wav / flac 都能认出来。
+    ▍mp3 放哪儿？两种放法都认
+      ① 平铺（最省事）
+           assets/audio/Echoes.mp3
+      ② 按分类分文件夹（歌多了以后好找）
+           assets/audio/氛围/Echoes.mp3
+           assets/audio/民谣/Far From Home.mp3
+        程序会两种都找一遍，先找到哪个用哪个 —— 你不用改 src，
+        文件夹叫什么也随意（按歌手分：assets/audio/梁博/… 一样能找到）。
+        后缀也一样宽松：mp3 换成 m4a / ogg / wav / flac 都能认出来。
 
-     ▍关于 mp3 文件和版权
-       这六首都是有版权的商业歌曲，本站不提供下载、也不解密任何加密格式
-       （.mgg / .mflac / .ncm / .kgm / .kwm 这些加密文件放进来不会响）。
-       想离线听，请用自己合法拿到的普通音频文件。
-     -------------------------------------------------------------------------- */
+    ▍关于版权
+       碟架登记的这六首（Echoes / Far From Home / Fifth of February /
+       Forest Walk / Old Old Love / The Long Road）来自免版权曲库，
+       可自由用于个人网站，文件已经放在本文件夹里，刷新就能听。
+       想换成自己喜欢的歌：把文件按上面的方式放进来，
+       再到首页碟架每张碟的「✎」里改歌名 / 歌手 / 本地音频路径。
+
+       注意别放从音乐软件下载的加密文件（.mgg / .ncm / .kgm / .kwm 等，
+       浏览器读不懂，放进来也不会响），也别把有版权的商业歌曲
+       放进公开仓库 —— 网站部署到 GitHub Pages 后文件是公开的。
+    -------------------------------------------------------------------------- */
   music: [
     {
       id: 'm1',
-      name: '日落大道',
-      artist: '梁博',
-      genre: '摇滚',
-      note: '《迷藏》的最后压轴曲。黄昏、公路，和一点点孤独。',
-      duration: '04:35',
-      src: 'assets/audio/日落大道.mp3'
+      name: 'Echoes',
+      artist: '免版权曲库',
+      genre: '氛围',
+      note: '一声声荡开去的回响，适合发呆。',
+      duration: '03:46',
+      src: 'assets/audio/Echoes.mp3'
     },
     {
       id: 'm2',
-      name: '归去来兮',
-      artist: '花粥',
+      name: 'Far From Home',
+      artist: '免版权曲库',
       genre: '民谣',
-      note: '出自《一碗》。中间那段戏腔，是整首歌的分水岭。',
-      duration: '03:26',
-      src: 'assets/audio/归去来兮.mp3'
+      note: '离家很远的时候听，会有点想家。',
+      duration: '01:37',
+      src: 'assets/audio/Far From Home.mp3'
     },
     {
       id: 'm3',
-      name: '余香',
-      artist: '张小九',
-      genre: '民谣',
-      note: '民谣。适合一个人待着的时候单曲循环。',
-      duration: '04:06',
-      src: 'assets/audio/余香.mp3'
+      name: 'Fifth of February',
+      artist: '免版权曲库',
+      genre: '钢琴',
+      note: '二月五日，一个普通的日子。',
+      duration: '03:08',
+      src: 'assets/audio/Fifth of February.mp3'
     },
     {
       id: 'm4',
-      name: '去有风的地方',
-      artist: '郁可唯',
-      genre: '影视原声',
-      note: '同名剧的主题曲。尤克里里和曼陀铃，听完整个人会松下来。',
-      duration: '03:51',
-      src: 'assets/audio/去有风的地方.mp3'
+      name: 'Forest Walk',
+      artist: '免版权曲库',
+      genre: '轻音乐',
+      note: '像是午后走在有树的路上。',
+      duration: '02:54',
+      src: 'assets/audio/Forest Walk.mp3'
     },
     {
       id: 'm5',
-      name: '一程山路',
-      artist: '毛不易',
+      name: 'Old Old Love',
+      artist: '免版权曲库',
       genre: '民谣',
-      note: '出自《小王》。竖琴和琵琶对着说话，走四季，访人家。',
-      duration: '03:36',
-      src: 'assets/audio/一程山路.mp3'
+      note: '一首很旧很旧的歌，唱很旧很旧的爱。',
+      duration: '01:47',
+      src: 'assets/audio/Old Old Love.mp3'
     },
     {
       id: 'm6',
-      name: '路过人间',
-      artist: '郁可唯',
-      genre: '影视原声',
-      note: '《我们与恶的距离》的插曲。"路过人间，也才几十年"。',
-      duration: '04:05',
-      src: 'assets/audio/路过人间.mp3'
+      name: 'The Long Road',
+      artist: '免版权曲库',
+      genre: '轻音乐',
+      note: '路还长，慢慢走。',
+      duration: '01:37',
+      src: 'assets/audio/The Long Road.mp3'
     }
   ],
 
@@ -1070,7 +1083,12 @@ const LocalStore = {
     delete store.musicEdits[key];
     this.write(store);
     return this.delay(true, 40);
-  }
+  },
+
+  /* ---------------- 学习资料 / 错题本（本地模式：存浏览器） ----------------
+     本地模式没有服务器也没有云端，资料就住 IndexedDB（容量比 localStorage
+     大得多，整本讲义也装得下），由 js/english.js 的 EnStore 直接读写，
+     不经过 SiteAPI —— 所以这里没有对应方法。 */
 };
 
 
@@ -1239,9 +1257,12 @@ const DbStore = {
     });
   },
 
+  /* 没有这篇时服务端回 404（接口语义是对的），但前端要的是「没有」而不是报错，
+     所以这里收一下 —— 交给调用方的 if (!a) 处理，别抛到控制台去。 */
   getArticle(id) {
     return this.get('/api/articles/' + encodeURIComponent(id))
-      .then(function (row) { return DbStore.article(row); });
+      .then(function (row) { return DbStore.article(row); })
+      .catch(function () { return null; });
   },
 
   addArticle(article) {
@@ -1307,6 +1328,412 @@ const DbStore = {
 
   removeMusic(id) {
     return this.del('/api/music/' + encodeURIComponent(id)).then(function () { return true; });
+  },
+
+  /* ---------------- 英语学习资料（管理员导入，存进 site.db） ---------------- */
+  enRow(r) {
+    let words = r.words;
+    if (typeof words === 'string') {
+      try { words = JSON.parse(words); } catch (e) { words = []; }
+    }
+    return {
+      id: String(r.id),
+      name: DataTools.str(r.name),
+      date: DataTools.str(r.date),
+      words: Array.isArray(words) ? words : [],
+      store: 'cloud'   /* 相对「本地 IndexedDB」而言的远端共享资料 */
+    };
+  },
+
+  getEnMaterials() {
+    return this.get('/api/en-materials').then(function (rows) {
+      return (rows || []).map(DbStore.enRow);
+    });
+  },
+
+  saveEnMaterial(mat) {
+    return this.post('/api/en-materials', {
+      id: mat.id, name: mat.name, date: mat.date || '', words: mat.words || []
+    }).then(function () { return true; });
+  },
+
+  deleteEnMaterial(id) {
+    return this.del('/api/en-materials/' + encodeURIComponent(String(id)))
+      .then(function () { return true; });
+  }
+};
+
+
+/* ==========================================================================
+   四·五、云端模式 CloudStore
+   --------------------------------------------------------------------------
+   js/config.js 里填了 Supabase 配置时用这套：所有内容都存云端数据库。
+   实现方式与 DbStore 平行，方法签名完全一致 —— 页面代码一行都不用改。
+
+   读写规则（和 supabase.sql 的 RLS 一一对应）：
+     · 读：带 apikey 即可（公开读）
+     · 写：必须带 Authorization: Bearer <access_token>（登录后由 auth.js 存着）
+
+   ⚠️ 全部走原生 fetch + Supabase REST，不引任何 SDK。
+   ========================================================================== */
+const CloudStore = {
+
+  /* ---------------- 配置读取 ---------------- */
+  cfg() {
+    const c = (window.SHUOSCAPE_CONFIG && window.SHUOSCAPE_CONFIG.content) || {};
+    return {
+      url: String(c.supabaseUrl || '').replace(/\/+$/, ''),
+      key: String(c.supabaseKey || ''),
+      tables: {
+        articles: String(c.tableArticles || 'articles'),
+        poems: String(c.tablePoems || 'poems'),
+        music: String(c.tableMusic || 'music'),
+        profile: String(c.tableProfile || 'profile'),
+        skills: String(c.tableSkills || 'skills'),
+        studyProgress: String(c.tableStudyProgress || 'study_progress'),
+        enMaterials: String(c.tableEnMaterials || 'en_materials')
+      }
+    };
+  },
+
+  hasCloud() {
+    const c = this.cfg();
+    return !!(c.url && c.key);
+  },
+
+  /* 一次 REST 请求：table 是上面的键名，path 是表名后的部分（含查询串）
+     ⚠️ 写操作（非 GET）在这里统一设一道软闸：
+       云端内容只有管理员能改 —— 普通注册用户 / 未登录直接在这里被人话拦下。
+       真正的硬闸在 supabase.sql 的 RLS（is_shuo_admin 查 admins 表），
+       这道闸只是让普通用户不用等到 403 才知道结果。 */
+  req(table, path, opts) {
+    const c = this.cfg();
+    const o = opts || {};
+
+    if ((o.method || 'GET') !== 'GET') {
+      const ok = (typeof Auth !== 'undefined' && Auth.isAdmin && Auth.isAdmin());
+      if (!ok) {
+        return Promise.reject(new Error('云端内容只有管理员能改 —— 注册用户可以留言、本地练习'));
+      }
+    }
+
+    const headers = {
+      apikey: c.key,
+      Authorization: 'Bearer ' + c.key,
+      'Content-Type': 'application/json'
+    };
+    /* 登录后换真实用户 token —— 云端靠它认出「是不是 admins 名单里的人」 */
+    if (typeof Auth !== 'undefined' && Auth.token) {
+      const t = Auth.token();
+      if (t) { headers.Authorization = 'Bearer ' + t; }
+    }
+    if (o.headers) {
+      Object.keys(o.headers).forEach(function (k) { headers[k] = o.headers[k]; });
+    }
+    return fetch(c.url + '/rest/v1/' + c.tables[table] + path, {
+      method: o.method || 'GET',
+      headers: headers,
+      body: o.body !== undefined ? JSON.stringify(o.body) : undefined
+    }).then(function (res) {
+      return res.text().then(function (raw) {
+        let data = null;
+        try { data = raw ? JSON.parse(raw) : null; } catch (e) { data = null; }
+        if (!res.ok) {
+          const msg = (data && data.error && data.error.message) ? data.error.message
+                    : (data && data.message) ? data.message
+                    : ('云端 ' + res.status);
+          throw new Error(msg);
+        }
+        return data;
+      });
+    });
+  },
+
+  /* ---------------- 归一化：与 DbStore 完全一致 ---------------- */
+  article(row) { return DbStore.article(row); },
+  poems(rows) { return DbStore.poems(rows || []); },
+  track(m) { return DbStore.track(m); },
+
+  /* 页面字段里有几个是算出来的（words / fromDb / draft），
+     云端表没有这几列，写之前先剔掉，否则 PostgREST 会报「找不到列」。 */
+  only(row, keys) {
+    const out = {};
+    keys.forEach(function (k) {
+      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] !== undefined) {
+        out[k] = row[k];
+      }
+    });
+    return out;
+  },
+
+  profile(row, skills) {
+    const r = row || {};
+    return {
+      siteName: DataTools.str(r.siteName),
+      siteEn: DataTools.str(r.siteEn),
+      brandFirst: DataTools.str(r.brandFirst),
+      brandSecond: DataTools.str(r.brandSecond),
+      owner: DataTools.str(r.owner),
+      slogan: DataTools.str(r.slogan),
+      city: DataTools.str(r.city),
+      email: DataTools.str(r.email),
+      github: DataTools.str(r.github),
+      blog: DataTools.str(r.blog),
+      heroEyebrow: DataTools.str(r.heroEyebrow),
+      heroDesc: DataTools.str(r.heroDesc),
+      heroTags: DataTools.toTags(r.heroTags),
+      intro: DataTools.str(r.intro),
+      aboutParagraphs: DataTools.toParagraphs(r.aboutParagraphs),
+      keywords: DataTools.toTags(r.keywords),
+      skills: (skills || []).map(function (s) {
+        return {
+          name: DataTools.str(s.name),
+          value: DataTools.num(s.value),
+          level: DataTools.str(s.level) || '在学',
+          note: DataTools.str(s.note)
+        };
+      })
+    };
+  },
+
+  /* ---------------- 自我介绍 / 技能 ---------------- */
+  getProfile() {
+    const self = this;
+    return this.req('profile', '?select=*&id=eq.1').then(function (rows) {
+      const row = (Array.isArray(rows) && rows[0]) ? rows[0] : {};
+      return self.req('skills', '?select=*&order=sort.asc').then(function (skillRows) {
+        return self.profile(row, Array.isArray(skillRows) ? skillRows : []);
+      });
+    });
+  },
+
+  updateProfile(patch) {
+    const body = this.only(patch, [
+      'siteName', 'siteEn', 'brandFirst', 'brandSecond', 'owner', 'slogan',
+      'city', 'email', 'github', 'blog', 'heroEyebrow', 'heroDesc', 'heroTags',
+      'intro', 'aboutParagraphs', 'keywords'
+    ]);
+    if ('aboutParagraphs' in body) { body.aboutParagraphs = DataTools.joinParagraphs(body.aboutParagraphs); }
+    if ('heroTags' in body) { body.heroTags = DataTools.toTags(body.heroTags); }
+    if ('keywords' in body) { body.keywords = DataTools.toTags(body.keywords); }
+    if (!Object.keys(body).length) { return Promise.resolve(true); }
+    return this.req('profile', '?id=eq.1', { method: 'PATCH', body: body }).then(function () { return true; });
+  },
+
+  updateSkills(list) {
+    const self = this;
+    const rows = (list || []).map(function (s, i) {
+      return {
+        name: DataTools.str(s.name),
+        value: DataTools.num(s.value),
+        level: DataTools.str(s.level) || '在学',
+        note: DataTools.str(s.note),
+        sort: i
+      };
+    });
+    /* 云端没有「覆盖整表」的接口：先清空再整批插入（数据量很小，可接受） */
+    return this.req('skills', '?id=gt.0', { method: 'DELETE' }).then(function () {
+      if (!rows.length) { return true; }
+      return self.req('skills', '', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: rows
+      }).then(function () { return true; });
+    });
+  },
+
+  /* ---------------- 文章 ---------------- */
+  getArticles(options) {
+    const opt = options || {};
+    return this.req('articles', '?select=*&order=date.desc')
+      .then(function (rows) { return (rows || []).map(DbStore.article); })
+      .then(function (list) {
+        let out = list;
+        if (opt.category && opt.category !== '全部') {
+          out = out.filter(function (a) { return a.category === opt.category; });
+        }
+        if (opt.keyword) {
+          const kw = String(opt.keyword).toLowerCase();
+          out = out.filter(function (a) {
+            const text = [a.title, a.excerpt, (a.tags || []).join(''), a.series || ''].join(' ');
+            return text.toLowerCase().indexOf(kw) > -1;
+          });
+        }
+        if (opt.limit) { out = out.slice(0, opt.limit); }
+        return out;
+      });
+  },
+
+  getArticle(id) {
+    return this.req('articles', '?select=*&id=eq.' + encodeURIComponent(String(id)))
+      .then(function (rows) {
+        return (Array.isArray(rows) && rows[0]) ? DbStore.article(rows[0]) : null;
+      });
+  },
+
+  addArticle(article) {
+    const body = this.only(article, [
+      'title', 'category', 'date', 'tags', 'series', 'cover', 'excerpt', 'content'
+    ]);
+    body.content = DataTools.joinParagraphs(body.content);
+    body.tags = DataTools.toTags(body.tags);
+    if (!body.excerpt) {
+      const ps = DataTools.toParagraphs(article.content);
+      body.excerpt = ps.length ? ps[0].slice(0, 60) : '';
+    }
+    if (!body.date) { body.date = DataTools.today(); }
+    return this.req('articles', '', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: body
+    }).then(function (rows) { return DbStore.article((Array.isArray(rows) && rows[0]) || rows); });
+  },
+
+  updateArticle(id, patch) {
+    const body = this.only(patch, [
+      'title', 'category', 'date', 'tags', 'series', 'cover', 'excerpt', 'content'
+    ]);
+    if ('content' in body) { body.content = DataTools.joinParagraphs(body.content); }
+    if ('tags' in body) { body.tags = DataTools.toTags(body.tags); }
+    if (!Object.keys(body).length) { return Promise.resolve(true); }
+    return this.req('articles', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
+      .then(function () { return true; });
+  },
+
+  removeArticle(id) {
+    return this.req('articles', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
+  },
+
+  /* ---------------- 小诗 ---------------- */
+  getPoems() {
+    return this.req('poems', '?select=*&order=date.desc')
+      .then(function (rows) { return DbStore.poems(rows || []); });
+  },
+
+  addPoem(poem) {
+    return this.req('poems', '', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: {
+        title: DataTools.str(poem.title) || '无题',
+        date: DataTools.str(poem.date) || DataTools.today(),
+        text: DataTools.str(poem.text)
+      }
+    }).then(function (rows) {
+      return DbStore.poems([(Array.isArray(rows) && rows[0]) || rows])[0];
+    });
+  },
+
+  updatePoem(id, patch) {
+    const body = this.only(patch, ['title', 'date', 'text']);
+    if (!Object.keys(body).length) { return Promise.resolve(true); }
+    return this.req('poems', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
+      .then(function () { return true; });
+  },
+
+  removePoem(id) {
+    return this.req('poems', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
+  },
+
+  /* ---------------- 音乐 ---------------- */
+  getMusic() {
+    return this.req('music', '?select=*&order=sort.asc').then(function (rows) {
+      return (rows || []).map(DbStore.track);
+    });
+  },
+
+  addMusic(track) {
+    const body = this.only(track, ['name', 'artist', 'note', 'duration', 'genre', 'src', 'url']);
+    /* 云端 music 表按 sort 排序；没传就排到最后 */
+    const self = this;
+    return this.req('music', '?select=sort&order=sort.desc&limit=1').then(function (rows) {
+      const last = (Array.isArray(rows) && rows[0] && Number(rows[0].sort)) || 0;
+      body.sort = last + 1;
+      return self.req('music', '', {
+        method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: body
+      }).then(function (saved) { return DbStore.track((Array.isArray(saved) && saved[0]) || saved); });
+    });
+  },
+
+  updateMusic(id, patch) {
+    const body = this.only(patch, ['name', 'artist', 'note', 'duration', 'genre', 'src', 'url', 'sort']);
+    if (!Object.keys(body).length) { return Promise.resolve(true); }
+    return this.req('music', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
+      .then(function () { return true; });
+  },
+
+  removeMusic(id) {
+    return this.req('music', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
+  },
+
+  /* ---------------- 学习打卡进度（云端，指令 07） ----------------
+     整份进度当一个 JSON 字符串存一行，读出来原样还给页面。 */
+  getStudyProgress() {
+    return this.req('studyProgress', '?select=data&id=eq.1').then(function (rows) {
+      const row = (Array.isArray(rows) && rows[0]) ? rows[0] : null;
+      let saved = { c: {}, en: {} };
+      try { saved = JSON.parse(row && row.data) || saved; } catch (e) { /* 坏数据当没有 */ }
+      if (!saved || typeof saved !== 'object') { saved = { c: {}, en: {} }; }
+      if (!saved.c) { saved.c = {}; }
+      if (!saved.en) { saved.en = {}; }
+      return saved;
+    }).catch(function () { return { c: {}, en: {} }; });
+  },
+
+  setStudyProgress(next) {
+    const self = this;
+    const data = JSON.stringify(next || { c: {}, en: {} });
+    return this.req('studyProgress', '?select=id&id=eq.1').then(function (rows) {
+      if (Array.isArray(rows) && rows.length) {
+        return self.req('studyProgress', '?id=eq.1', { method: 'PATCH', body: { data: data } });
+      }
+      return self.req('studyProgress', '', {
+        method: 'POST',
+        headers: { Prefer: 'return=minimal' },
+        body: { id: 1, key: 'owner', data: data }
+      });
+    }).then(function () { return true; });
+  },
+
+  /* ---------------- 英语学习资料（管理员导入，全站共享） ----------------
+     words 直接存 jsonb，读出来就是数组，不用再 parse。
+     写权限走 req() 里那道管理员软闸 + RLS 的 is_shuo_admin()。 */
+  getEnMaterials() {
+    return this.req('enMaterials', '?select=*&order=date.desc').then(function (rows) {
+      return (rows || []).map(function (r) {
+        return {
+          id: String(r.id),
+          name: DataTools.str(r.name),
+          date: DataTools.str(r.date),
+          words: Array.isArray(r.words) ? r.words : [],
+          store: 'cloud'
+        };
+      });
+    });
+  },
+
+  saveEnMaterial(mat) {
+    return this.req('enMaterials', '?on_conflict=id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: {
+        id: mat.id,
+        name: mat.name,
+        date: mat.date || '',
+        words: mat.words || [],
+        updatedAt: new Date().toISOString()
+      }
+    }).then(function () { return true; });
+  },
+
+  deleteEnMaterial(id) {
+    return this.req('enMaterials', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
   }
 };
 
@@ -1321,17 +1748,31 @@ const DbStore = {
    ========================================================================== */
 const SiteAPI = {
 
-  /* 'local' 或 'db'，检测完之后才准。想读它请用 whenReady() */
+  /* 'cloud' / 'db' / 'local'，检测完之后才准。想读它请用 whenReady() */
   mode: 'local',
 
   _ready: null,
 
   /* 检测一次，之后所有调用共用同一个结果。
-     判断依据：① 现在是 http/https 打开的 ② 后端有回应 /api/health */
+     判断依据（按优先级）：
+       ① js/config.js 填了 Supabase 配置 → 'cloud'
+       ② 现在是 http/https 打开、且后端有回应 /api/health → 'db'
+       ③ 都不满足 → 'local' */
   whenReady() {
     if (this._ready) { return this._ready; }
 
     const self = this;
+
+    /* ① 云端优先：填了配置就直接走云端，不再探测本机后端。
+       （这样发到 GitHub Pages 上也能读到数据，Pages 是没有 server.js 的） */
+    const cloudCfg = (typeof window !== 'undefined' && window.SHUOSCAPE_CONFIG)
+      ? (window.SHUOSCAPE_CONFIG.content || {}) : {};
+    if (cloudCfg.supabaseUrl && cloudCfg.supabaseKey && typeof fetch === 'function') {
+      this.mode = 'cloud';
+      this._ready = Promise.resolve('cloud');
+      console.log('[SiteAPI] 已连接云端数据库', cloudCfg.supabaseUrl);
+      return this._ready;
+    }
 
     /* ⚠️ 这里不要直接写 location.protocol ——
        db/seed.js 会在 Node 里把整个 data.js 跑一遍（为了读 SITE_DATA），
@@ -1373,8 +1814,26 @@ const SiteAPI = {
   /* 现在是数据库模式吗？（要在 whenReady 之后才是准的） */
   isDb() { return this.mode === 'db'; },
 
-  /* 挑一套实现 */
-  _impl() { return this.mode === 'db' ? DbStore : LocalStore; },
+  /* 现在是云端模式吗？（js/config.js 里填了 Supabase 配置） */
+  isCloud() { return this.mode === 'cloud'; },
+
+  /* 内容存在「远端」吗？—— 云端和数据库都算。
+     页面上有几处文案要区分「删掉是真的没了」还是「本地只是隐藏」，
+     判断的其实是这个，不是「是不是数据库」。 */
+  isRemote() { return this.mode === 'cloud' || this.mode === 'db'; },
+
+  /* 给页面提示语用的一句中文：现在改动会写到哪 */
+  storeLabel() {
+    if (this.mode === 'cloud') { return '云端数据库'; }
+    if (this.mode === 'db') { return '数据库 <code>db/site.db</code>'; }
+    return '浏览器';
+  },
+
+  /* 挑一套实现：云端 → CloudStore，数据库 → DbStore，都没有 → LocalStore */
+  _impl() {
+    if (this.mode === 'cloud') { return CloudStore; }
+    return this.mode === 'db' ? DbStore : LocalStore;
+  },
 
   /* 页面调用统一走这里：先等检测完成，再转给对应实现 */
   _run(method, args) {
@@ -1397,7 +1856,7 @@ const SiteAPI = {
   removeArticle(id) { return this._run('removeArticle', [id]); },
 
   /* 「恢复默认」只在本地模式有意义：
-     数据库里的每一条都是真实数据，没有「恢复成代码里那份」这回事。
+     数据库 / 云端里的每一条都是真实数据，没有「恢复成代码里那份」这回事。
 
      ⚠ 注意判断时机：必须等 whenReady() 之后（模式探测完成）才能看 mode。
      这里吃过亏 —— 早期版本在探测完成前就判断 `this.mode !== 'db'`，
@@ -1407,7 +1866,7 @@ const SiteAPI = {
   restoreArticles() {
     const self = this;
     return this.whenReady().then(function () {
-      if (self.isDb()) { return Promise.resolve(true); }
+      if (self.isCloud() || self.isDb()) { return Promise.resolve(true); }
       return self._run('restoreArticles', []);
     });
   },
@@ -1415,7 +1874,7 @@ const SiteAPI = {
   getArticleMarks() {
     const self = this;
     return this.whenReady().then(function () {
-      if (self.isDb()) { return { hidden: 0, edited: 0 }; }
+      if (self.isCloud() || self.isDb()) { return { hidden: 0, edited: 0 }; }
       return self._run('articleMarks', []);
     });
   },
@@ -1454,7 +1913,7 @@ const SiteAPI = {
   restorePoems() {
     const self = this;
     return this.whenReady().then(function () {
-      if (self.isDb()) { return Promise.resolve(true); }
+      if (self.isCloud() || self.isDb()) { return Promise.resolve(true); }
       return self._run('restorePoems', []);
     });
   },
@@ -1462,7 +1921,7 @@ const SiteAPI = {
   getPoemMarks() {
     const self = this;
     return this.whenReady().then(function () {
-      if (self.isDb()) { return { hidden: 0, edited: 0 }; }
+      if (self.isCloud() || self.isDb()) { return { hidden: 0, edited: 0 }; }
       return self._run('poemMarks', []);
     });
   },
@@ -1494,8 +1953,10 @@ const SiteAPI = {
      所以两种模式共用一份，也不进数据库。
 
      「这条我学会了 / 这个词我记住了」这种打卡记录不一样：
-     它属于你个人的进度，存在浏览器里（localStorage），不占数据库。
-     换台电脑会从零开始 —— 这是有意的：题库和课程是共享的，进度是你自己的。 */
+     它属于你个人的进度：
+       · 云端模式 → 存云端 study_progress 表，换设备/换浏览器都在
+       · db / local 模式 → 存在浏览器里（localStorage），不占数据库，
+         换台电脑会从零开始（题库和课程是共享的，进度是你自己的） */
   getStudy() {
     const s = SITE_DATA.study || { c: { groups: [] }, en: { words: [], sentences: [] } };
     const groups = (s.c && s.c.groups) || [];
@@ -1524,22 +1985,75 @@ const SiteAPI = {
     });
   },
 
-  /* 打卡记录：{ c: { 'c1-1': true, … }, en: { 'e3': true, … } } */
+  /* 打卡记录：{ c: { 'c1-1': true, … }, en: { 'e3': true, … } }
+     ------------------------------------------------------------------------
+     两种存法：
+       · 云端模式 → 存云端 study_progress 表（换设备/换浏览器都在）
+       · db / local 模式 → 存浏览器 localStorage（和改造前完全一致）
+     页面只认这两个方法，模式切换对页面透明。 */
   getStudyProgress() {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.isCloud()) { return self._run('getStudyProgress', []); }
+      return SiteAPI.localProgress('read', null);
+    });
+  },
+
+  setStudyProgress(next) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.isCloud()) { return self._run('setStudyProgress', [next]); }
+      return SiteAPI.localProgress('write', next);
+    });
+  },
+
+  /* localStorage 版的打卡进度（db / local 模式共用） */
+  localProgress(action, next) {
+    if (action === 'write') {
+      try {
+        localStorage.setItem('shuoscape_study_progress', JSON.stringify(next || { c: {}, en: {} }));
+      } catch (e) { /* 存不了就算了，不影响看 */ }
+      return Promise.resolve(true);
+    }
     let saved = { c: {}, en: {} };
     try {
       saved = JSON.parse(localStorage.getItem('shuoscape_study_progress') || '') || saved;
     } catch (e) { /* 存的是坏数据就当没有 */ }
+    if (!saved || typeof saved !== 'object') { saved = { c: {}, en: {} }; }
     if (!saved.c) { saved.c = {}; }
     if (!saved.en) { saved.en = {}; }
     return Promise.resolve(saved);
   },
 
-  setStudyProgress(next) {
-    try {
-      localStorage.setItem('shuoscape_study_progress', JSON.stringify(next || { c: {}, en: {} }));
-    } catch (e) { /* 存不了就算了，不影响看 */ }
-    return Promise.resolve(true);
+  /* ------------------------------------------------------------------
+     英语学习资料（管理员导入的共享资料）
+     ------------------------------------------------------------------
+     · 云端 / db 模式 → 存 en_materials 表（换设备也在，人人可练）
+     · 本地模式 → 没有共享这回事，返回空（资料只在自己浏览器里）
+     页面（js/english.js）拿到的统一是 [{id,name,date,words,store}]，
+     本地资料由 EnStore 自己管理（IndexedDB），两边在页面上合并展示。 */
+  getEnMaterials() {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return []; }
+      return self._run('getEnMaterials', []);
+    }).catch(function () { return []; });
+  },
+
+  saveEnMaterial(mat) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('saveEnMaterial', [mat]);
+    });
+  },
+
+  deleteEnMaterial(id) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('deleteEnMaterial', [id]);
+    });
   }
 };
 

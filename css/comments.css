@@ -72,14 +72,70 @@
   color: var(--ink-3);
 }
 
-/* 删除按钮：平时淡淡的，鼠标移上去才明显 —— 免得抢了留言本身的注意力 */
-.comment__del {
+/* 「回复」按钮平时藏起来（.comment__del 已有同样规则），
+   管理员专属的删除按钮由 base.css 的 data-admin-only 规则负责收着 */
+.comment__reply {
+  /* 让这组按钮整体靠右：游客看不见删除按钮时，回复还能自己顶过去 */
   margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
+}
+.comment:hover .comment__reply { opacity: 0.55; }
+.comment__reply:hover { opacity: 1; color: var(--c-purple); }
+.comment__del {
+  margin-left: 6px;
   opacity: 0.35;
   transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
 }
 .comment:hover .comment__del { opacity: 1; }
 .comment__del:hover { color: #e8708a; }
+
+/* ---------- 楼中楼：回复区 ----------
+   回复整体往右挪一点，左边一条竖线，像代码里的缩进 ——
+   一眼就看出「这几条是挂在上面那条下面的」。 */
+.comment__kids {
+  margin: 0 0 6px 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+.comment__kids:empty { display: none; }
+.comment--reply {
+  position: relative;
+  background: transparent;
+  border-radius: var(--r-sm);
+}
+.comment--reply .comment__name { font-size: 0.82rem; }
+.comment__arrow {
+  font-size: 0.75rem;
+  color: var(--ink-4);
+}
+
+/* 回复用的小输入框 */
+.comment-reply {
+  margin: 6px 0 10px;
+  padding: 10px 12px 8px;
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--line);
+  background: rgba(195, 164, 255, 0.06);
+}
+.comment-reply__text {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.7;
+}
+.comment-reply__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+body.theme-dark .comment__kids { border-left-color: rgba(255, 255, 255, 0.14); }
 
 .comment__text {
   margin: 0;

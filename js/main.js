@@ -72,13 +72,19 @@ const App = {
        cover 填渐变或留空 → 显示原来的渐变色块
        cls：卡片用 'cover'，详情弹窗用 'cover modal__cover'
      想换某篇文章的封面，只改 js/data.js 里那一条的 cover 就行。 */
-  coverHtml(cover, cls, alt) {
+  coverHtml(cover, cls, alt, opts) {
     const klass = cls || 'cover';
     const value = String(cover === undefined || cover === null ? '' : cover).trim();
+    /* 第四个参数 { eager: true } —— 弹窗里的封面是「点了马上要看」的，
+       偷懒才奇怪；其余列表里的封面一律懒加载 */
+    const lazyAttr = (opts && opts.eager)
+      ? ''
+      : ' loading="lazy" decoding="async"';
 
     if (App.isImageUrl(value)) {
       return '<div class="' + klass + ' cover--photo">' +
-               '<img src="' + App.escape(value) + '" alt="' + App.escape(alt || '封面照片') + '">' +
+               '<img src="' + App.escape(value) + '" alt="' + App.escape(alt || '封面照片') + '"' +
+                 lazyAttr + '>' +
              '</div>';
     }
     return '<div class="' + klass + '"' +
@@ -86,13 +92,45 @@ const App = {
            '></div>';
   },
 
+  /* 正文一个段落 → HTML。
+     段落写的是图片标记（整段就一行 ![说明](地址)）→ 渲染成一张图；
+     普通文字 → 渲染成 <p>。
+     图片标记是编辑器「插入图片」按钮和粘贴图片写进去的，想手写也行：
+       ![朔的照片](assets/covers/shuo.jpg)
+       ![](data:image/jpeg;base64,...)   ← 从电脑选的图存成这样 */
+  paragraphHtml(p) {
+    const s = String(p == null ? '' : p).trim();
+    /* 两种写法都认：
+       ① 标准写法  ![说明](地址)   ← 编辑器「插入照片」按钮写进去的
+       ② 整段就是一个图片地址（data:image/... 或以 .jpg/.png 结尾的网址）
+          ← 之前手动把图片地址粘进正文的，也能直接显示，不用重贴 */
+    let src = null, alt = '';
+    const m = s.match(/^!\[([^\]]*)\]\((.+)\)$/);
+    if (m && App.isImageUrl(m[2])) {
+      src = m[2];
+      alt = m[1] || '';
+    } else if (/^data:image\//i.test(s) ||
+               (/^https?:\/\//i.test(s) && /\.(jpe?g|png|webp|gif|avif|bmp|svg)(\?\S*)?$/i.test(s))) {
+      /* 整段是图片地址才当图渲染；普通网址仍按文字显示，免得误伤 */
+      src = s;
+    }
+    if (src) {
+      return '<figure class="article-figure">' +
+               '<img src="' + App.escape(src) + '" alt="' + App.escape(alt || '文章插图') + '" loading="lazy">' +
+               (alt ? '<figcaption>' + App.escape(alt) + '</figcaption>' : '') +
+             '</figure>';
+    }
+    return '<p>' + App.escape(s) + '</p>';
+  },
+
   /* 读一张本地图片，压小之后返回 dataURL（一段以 data:image/ 开头的字符串）
      为什么要压：手机拍的原图动辄好几 MB，直接塞进浏览器会超容量、也会卡。
      这里用 <canvas> 把长边缩到 maxWidth，再输出成 JPEG，一般只剩一两百 KB。
      返回 Promise：
        App.readImageFile(file, 1400).then(function (dataUrl) { ... }) */
-  readImageFile(file, maxWidth) {
+  readImageFile(file, maxWidth, quality) {
     const limit = maxWidth || 1400;
+    const q = (typeof quality === 'number' && quality > 0 && quality < 1) ? quality : 0.82;
     return new Promise(function (resolve, reject) {
       if (!file || !/^image\//.test(file.type)) {
         reject(new Error('这个文件不是图片'));
@@ -117,7 +155,9 @@ const App = {
           ctx.drawImage(img, 0, 0, w, h);
 
           try {
-            resolve(canvas.toDataURL('image/jpeg', 0.82));
+            /* 一律转成 JPEG 再压：同样清晰度下体积只有 PNG 的一半左右，
+               而 PNG 透明 / 无损在这里用不上，白赚的体积才是存不下的元凶 */
+            resolve(canvas.toDataURL('image/jpeg', q));
           } catch (e) {
             reject(new Error('图片处理失败'));
           }
@@ -364,13 +404,26 @@ function initBackTop() {
   const btn = App.qs('#backTop');
   if (!btn) { return; }
 
+  /* 进度环：把「页面读了多少」写成 CSS 变量，按钮外圈那道弧就自己长。
+     用变量而不是直接改 style.width，是为了让样式都留在 css 里。 */
+  const updateProgress = function () {
+    const doc = document.documentElement;
+    const room = Math.max(1, doc.scrollHeight - window.innerHeight); /* 兜住「页面不够长」除以 0 */
+    const pct = Math.min(100, Math.max(0, (window.scrollY / room) * 100));
+    btn.style.setProperty('--bt-progress', pct.toFixed(1) + '%');
+  };
+
   window.addEventListener('scroll', function () {
     if (window.scrollY > 480) {
       btn.classList.add('is-show');
     } else {
       btn.classList.remove('is-show');
     }
+    updateProgress();
   }, { passive: true });
+
+  /* 打开页面时可能是带着滚动位置进来的（刷新、后退），先算一次 */
+  updateProgress();
 
   btn.addEventListener('click', function () {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -378,9 +431,37 @@ function initBackTop() {
 }
 
 /* --------------------------------------------------------------------------
-   8. 初始化：DOM 解析完就执行
+   8. 页面淡入
+   --------------------------------------------------------------------------
+   body 在 HTML 里默认带着 .is-loading（opacity 0），这里一解析完就换成
+   .is-loaded，让它 300ms 淡进来。
+
+   ⚠️ 为什么要在 <head> 里就加 is-loading，而不是等 JS 来加？
+      因为 JS 是 defer 的，跑到这里页面早就画出来一帧了 ——
+      那时才把 opacity 设成 0，会看到「先亮一下再暗再淡入」的闪屏。
+
+   ⚠️ 为什么还要兜一层 setTimeout？
+      万一 CSS 没加载（比如缓存出问题），body 会一直透明，看起来像白屏。
+      所以这里再保一次底：无论如何都会把 .is-loaded 加上。 */
+function initFadeIn() {
+  const reduced = window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.body.classList.remove('is-loading');
+  document.body.classList.add('is-loaded');
+  if (reduced) { return; }
+  /* 双保险：下一帧再确认一次 */
+  requestAnimationFrame(function () {
+    document.body.classList.remove('is-loading');
+    document.body.classList.add('is-loaded');
+  });
+}
+
+/* --------------------------------------------------------------------------
+   9. 初始化：DOM 解析完就执行
    -------------------------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', function () {
+  initFadeIn();
   Nav.init();
   Theme.init();
   Reveal.init();
@@ -389,8 +470,17 @@ document.addEventListener('DOMContentLoaded', function () {
   initBackTop();
 });
 
-/* 方便在控制台调试 */
-window.App = App;
+/* 方便在控制台调试。
+   ⚠️ 这里是「合并」而不是「替换」—— 有讲究：
+      c/ 那个 C 语言子站自己也定义了一个 window.App（里面有 $ / debounce /
+      Store / UI 这几个它做题要用的方法）。以前这里是直接 `window.App = App`，
+      等于把它的那份整个顶掉，它页面上搜索框一打字就报
+      「App.debounce is not a function」—— 真踩过。
+      所以碰上同名对象时，把主站这套方法**补**进去，它原有的一个都不少。 */
+window.App = (typeof window.App === 'object' && window.App)
+  ? Object.assign(window.App, App)
+  : App;
+
 window.Nav = Nav;
 window.Theme = Theme;
 window.Reveal = Reveal;

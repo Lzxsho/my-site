@@ -30,6 +30,11 @@
   --c-blue-soft: #e4f2ff;
   --c-mint: #a9efdc;
 
+  /* 压在主色块上的文字颜色。
+     默认是白的（粉紫底上很清楚）；换成 Java 的橙、Python 的黄之后
+     白字会糊成一片，所以那两套皮肤里会把它改成深色。 */
+  --on-accent: #fff;
+
   /* 文字层级 */
   --ink: #332f47;
   --ink-2: #5a5470;
@@ -63,6 +68,8 @@
   /* 字体 */
   --font-sans: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-serif: "Noto Serif SC", "Songti SC", "STSong", Georgia, serif;
+  /* 等宽字体：代码风的那几处（元信息、行号、页脚注释）用它 */
+  --font-mono: Consolas, "Courier New", "SFMono-Regular", Menlo, monospace;
 
   --ease: cubic-bezier(0.22, 0.68, 0.32, 1);
 }
@@ -82,6 +89,83 @@ body.theme-dark {
   --sh-1: 0 4px 18px rgba(0, 0, 0, 0.30);
   --sh-2: 0 14px 40px rgba(0, 0, 0, 0.42);
   --sh-3: 0 22px 64px rgba(0, 0, 0, 0.52);
+}
+
+/* ---------- 0.4 代码注释风元信息 ----------
+   文章卡片底部、详情弹窗顶部那些「日期 · 字数」换成等宽字体，
+   前面加两个斜杠 —— 像代码里的一行注释。
+   只改外观，不动任何数据结构。 */
+.meta-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.2px;
+  color: var(--ink-4);
+}
+.meta-mono .tag { font-family: var(--font-sans); }   /* 标签还是用正文字体，别跟着变窄 */
+
+/* ---------- 0.3 编程语言皮肤（C / Java / Python 全站换肤） ----------
+   默认**不开**：切语言只换代码雨的字符和颜色，整站还是原来的粉紫。
+   想要「连整个站一起换」就在代码雨按钮旁边点一下「全站换肤」——
+   之后 body[data-lang] 会带着下面的覆盖规则生效。
+
+   ★ 写法要点：这里**只覆盖变量**，不去改 :root 里原本的值。
+     所以皮肤一关（去掉 data-lang），所有颜色立刻回到默认，
+     不会出现「关掉了但某个角落还是黄的」这种残留。
+
+   ★ 为什么 Java / Python 要顺手把 --on-accent 改成深色：
+     橙底、黄底上放白字基本看不清，换深色字才读得出来。 */
+body[data-lang="c"] {
+  --c-pink: #9db0ff;
+  --c-pink-soft: #eef2ff;
+  --c-purple: #7b8cff;          /* 蓝紫 */
+  --c-purple-soft: #e9edff;
+  --c-blue: #6ea8ff;
+  --c-blue-soft: #e6f0ff;
+  --on-accent: #fff;
+}
+body[data-lang="java"] {
+  --c-pink: #f7b955;
+  --c-pink-soft: #fff3e0;
+  --c-purple: #f5a623;          /* 橙 */
+  --c-purple-soft: #ffeed6;
+  --c-blue: #f2c879;
+  --c-blue-soft: #fdf3e2;
+  --on-accent: #4a3208;         /* 深棕，橙底上比白字清楚得多 */
+}
+body[data-lang="python"] {
+  --c-pink: #ffd873;
+  --c-pink-soft: #fff8e0;
+  --c-purple: #f7c948;          /* 黄 */
+  --c-purple-soft: #fff4d6;
+  --c-blue: #f3d98c;
+  --c-blue-soft: #fdf6e3;
+  --on-accent: #3a3208;         /* 同上，黄底配深字 */
+}
+/* 深色模式下把三套皮肤压深一点，免得晚上晃眼 */
+body.theme-dark[data-lang="c"]      { --c-purple: #6d7ef0; --c-pink: #8b9bff; }
+body.theme-dark[data-lang="java"]   { --c-purple: #e09616; --c-pink: #eda844; }
+body.theme-dark[data-lang="python"] { --c-purple: #e0b52e; --c-pink: #ecc95a; }
+
+/* ---------- 0.5 进页面的淡入 ----------
+   做法：<head> 里那小段脚本给 <html> 加上 .js-fade（有 JS 才加），
+   于是 body 一开始是透明的；DOM 解析完换成 .is-loaded，300ms 淡进来。
+
+   只做「进来」，不做「离开」—— 离场动画会和浏览器前进/后退打架，
+   容易出现「点了链接但页面卡着不动一下」。
+
+   ★ 为什么要靠 .js-fade 而不是直接写 body{opacity:0}：
+     万一 JS 被禁用 / 脚本报错，页面会永远是一片空白。
+     有 JS 才淡入，没 JS 就原样显示 —— 宁可不漂亮，也不能打不开。
+
+   系统开了「减少动态效果」就直接不淡，尊重人家在系统设置里的选择。 */
+html.js-fade body { opacity: 0; }
+html.js-fade body.is-loaded {
+  opacity: 1;
+  transition: opacity 0.3s var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  html.js-fade body { opacity: 1; }
+  html.js-fade body.is-loaded { transition: none; }
 }
 
 /* ---------- 1. 基础重置 ---------- */
@@ -160,7 +244,7 @@ body.theme-dark .page-bg {
 
 /* ---------- 2.5 最顶上的身份条 ----------
    由 js/auth.js 生成，固定在浏览器窗口最顶上：
-   页面怎么滚它都不动，管理员 / 游客 / 登录入口随时都在。 */
+   页面怎么滚它都不动，管理员 / 未登录 两种身份和登录入口随时都在。 */
 .adminbar {
   position: fixed;
   top: 0;
@@ -224,7 +308,7 @@ body.is-admin .adminbar__dot {
 .adminbar__btn--main {
   border-color: transparent;
   background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
-  color: #fff;
+  color: var(--on-accent);
 }
 /* 已经是管理员时，那颗主按钮变成「退出」 */
 body.is-admin .adminbar__btn--main {
@@ -393,7 +477,7 @@ body.has-adminbar .topbar { top: var(--adminbar-h); }
 }
 .btn:hover { transform: translateY(-2px); box-shadow: var(--sh-1); }
 .btn--primary {
-  color: #fff;
+  color: var(--on-accent);
   border-color: transparent;
   background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
   box-shadow: 0 10px 26px rgba(195, 164, 255, 0.4);
@@ -792,6 +876,16 @@ body.theme-dark .row-item__del { background: rgba(255, 255, 255, 0.08); }
   object-position: center;
   z-index: 0;
 }
+/* 首屏图现在包了一层 <picture>：webp 给支持它的浏览器，jpg 当回退。
+   picture 本身只是个容器，真正的图要它里面的 img 去铺满 */
+picture.hero-bg { display: block; }
+.hero-bg__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
 .hero-scrim {
   position: absolute;
   inset: 0;
@@ -800,7 +894,23 @@ body.theme-dark .row-item__del { background: rgba(255, 255, 255, 0.08); }
 }
 /* 深色模式下把插画压暗一点点，免得晚上看太刺眼。
    柔光罩仍然保持浅色，所以首屏文字在两种模式下都看得清 */
-body.theme-dark .hero-bg { filter: brightness(0.88) saturate(0.95); }
+body.theme-dark .hero-bg,
+body.theme-dark .hero-bg__img { filter: brightness(0.88) saturate(0.95); }
+
+/* 深色模式下额外加深色罩：
+   hero 插画本身偏亮，光靠上面的 brightness 不够，深色主题下
+   白字压在亮图上对比度会掉。这里在柔光罩上再叠一层深色,
+   只作用于深色模式 —— 浅色模式的观感和以前一模一样。
+   （数值以「深色模式下 hero 文字清晰」为准，想要更淡/更浓改这里的 0.30） */
+body.theme-dark .hero-scrim::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 12, 28, 0.30);
+  pointer-events: none;
+}
+/* 关于页已经有了自己的深色规则（那里用的是渐变），别叠两层 */
+body.theme-dark .hero-scrim--about::after { background: none; }
 
 /* ---------- 7. 页脚 ---------- */
 .footer {
@@ -819,7 +929,13 @@ body.theme-dark .hero-bg { filter: brightness(0.88) saturate(0.95); }
   margin-bottom: 14px;
 }
 .footer__nav a:hover { color: var(--c-purple); }
-.footer__sign { font-family: var(--font-serif); letter-spacing: 1px; }
+/* 页脚署名写成一行代码注释：// Shuoscape · 用 HTML/CSS/JavaScript 手写 */
+.footer__sign {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.3px;
+  color: var(--ink-3);
+}
 
 /* 页脚那个小小的「数据库 / 本地」标记，由 main.js 的 DataMode 加上去。
    鼠标放上去有一句话解释现在数据存在哪。 */
@@ -883,18 +999,29 @@ body.theme-dark .mode-badge.is-local {
 }
 
 /* 回到顶部按钮 */
+/* 回到顶部 —— 现在带一圈「读到哪了」的进度环
+   --bt-progress 由 js/main.js 按滚动百分比实时写进来（0% ~ 100%）。
+   做法：按钮本身是透明的浅底盘，外面那圈用 conic-gradient 画出扇形进度，
+        中间再挖一个内圆当「按钮面」，↑ 放在圆心。 */
 .backtop {
   position: fixed;
   right: 26px;
   bottom: 26px;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
+  border: none;
+  padding: 0;
   display: grid;
   place-items: center;
   font-size: 17px;
   color: #fff;
-  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  /* 外圈：已读的部分用品牌渐变，没读到的部分是淡淡的底 */
+  background:
+    conic-gradient(
+      var(--c-purple) var(--bt-progress, 0%),
+      rgba(170, 150, 205, 0.22) 0
+    );
   box-shadow: var(--sh-2);
   opacity: 0;
   pointer-events: none;
@@ -902,8 +1029,27 @@ body.theme-dark .mode-badge.is-local {
   transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
   z-index: 300;
 }
+/* 内圆：把中间挖空，进度环才显出来。
+   z-index: -1 是刻意的 —— 定位元素默认会盖在文字上面，
+   设成 -1 它就退到「父元素背景之上、文字之下」，↑ 才看得见。 */
+.backtop::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: 50%;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.12);
+}
 .backtop.is-show { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .backtop:hover { transform: translateY(-4px); }
+body.theme-dark .backtop {
+  background:
+    conic-gradient(
+      var(--c-purple) var(--bt-progress, 0%),
+      rgba(255, 255, 255, 0.16) 0
+    );
+}
 
 /* ---------- 10. 响应式 ---------- */
 @media (max-width: 900px) {
@@ -950,7 +1096,86 @@ body.theme-dark .mode-badge.is-local {
 }
 
 /* ==========================================================================
-   7. 登录身份：管理员 / 游客
+   10.5 移动端「手指友好」尺寸
+   --------------------------------------------------------------------------
+   只在这个断点里生效 —— 桌面端用鼠标点，精度高，样式一律不动。
+
+   为什么是 44px：手指的接触面积比鼠标指针大得多，
+   业界通用的标准是「可点区域不小于 44×44 CSS 像素」（苹果 HIG 也是这个数）。
+   点不中的按钮等于不存在，所以这里给几个常用的小控件把点击区域撑起来。
+
+   注意 .adminbar__btn 不在名单里：那条身份条本身只有 34px 高，
+   强行撑到 44 会把整页往下顶，属于另一件事，先不动。
+   ========================================================================== */
+@media (max-width: 900px) {
+
+  /* 导航：菜单项、右上角的圆按钮、身份徽章 */
+  .nav a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+  .icon-btn,
+  .menu-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+  .role-btn {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+  }
+
+  /* 所有按钮：普通按钮和「小小的那种」都至少一指高 */
+  .btn {
+    min-height: 44px;
+    padding: 10px 20px;
+  }
+  .btn--sm {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+  }
+
+  /* 回到顶部按钮本来就是 44×44，手机上下边距收紧一点别挡内容 */
+  .backtop { right: 16px; bottom: 16px; }
+
+  /* 文章页的栏目筛选标签 */
+  .filter-tab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+  .filter-bar { gap: 8px; }
+
+  /* 搜索框：字号低于 16px 时 iOS Safari 会自动放大页面，这里给到 16 */
+  input[type="text"], input[type="search"], input[type="password"], textarea {
+    font-size: 16px;
+  }
+
+  /* 其它页面里「一行多个小圆片」的组件（英语页的语言片、音乐页的标签）同理 */
+  .en-tab, .en-lang-chip, .chip {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 560px) {
+  /* 正文在 375px 的小屏上不低于 14px —— 再小就开始费眼睛了 */
+  .card p, .article-card__excerpt, .comments__hint, .footer { font-size: 14px; }
+  .btn { font-size: 14px; }
+  /* 窄屏上原本挤在一起的按钮组改成竖排，手指好点一些 */
+  .lost__acts, .form-foot__right { flex-direction: column; align-items: stretch; }
+}
+
+/* ==========================================================================
+   7. 登录身份：管理员 / 未登录（2026-10-11 起只有这两态，「游客」已移除）
    --------------------------------------------------------------------------
    规则只有一条：**不是管理员，就看不到任何带 data-admin-only 的东西。**
    默认（还没登录、或 auth.js 还没跑完）也不是管理员 ——
@@ -960,7 +1185,7 @@ body:not(.is-admin) [data-admin-only] {
   display: none !important;
 }
 
-/* 右上角那颗「未登录 / 游客 / 管理员」小徽章 */
+/* 右上角那颗「未登录 / 管理员」小徽章 */
 .role-btn {
   font-family: inherit;
   font-size: 12px;
@@ -977,16 +1202,22 @@ body:not(.is-admin) [data-admin-only] {
 .role-btn.is-admin {
   background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
 }
 body.theme-dark .role-btn { background: rgba(255, 255, 255, 0.08); }
 body.theme-dark .role-btn.is-admin { background: linear-gradient(120deg, var(--c-pink), var(--c-purple)); }
 
 /* 登录弹窗 */
+/* ---------- 登录弹窗（卡片式登录页） ----------
+   结构：品牌区 → 英文标语 → 主标题 → 说明 → 账号/密码 → 主按钮 → 返回链接 → 底部小字
+   配色一律走站点主题变量，不引入参考图那种蓝色 —— 站是紫的，登录框也得是紫的。 */
 .auth-box {
   position: relative;
   width: min(420px, 100%);
-  padding: 28px 26px 22px;
+  padding: 26px 30px 24px;
+  border-radius: var(--r-lg);
+  background: var(--card-solid);
+  box-shadow: var(--sh-3);
 }
 .auth-box__close {
   position: absolute;
@@ -998,31 +1229,128 @@ body.theme-dark .role-btn.is-admin { background: linear-gradient(120deg, var(--c
   cursor: pointer;
 }
 .auth-box__close:hover { color: var(--ink); }
+
+/* ① 品牌区：一个圆形「字母头像」+ 站名 + 副标题 */
+.auth-box__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px;
+}
+.auth-box__avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+  box-shadow: var(--sh-1);
+}
+.auth-box__brandtext { display: flex; flex-direction: column; min-width: 0; }
+.auth-box__sitename {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.auth-box__sitesub {
+  font-size: 11.5px;
+  color: var(--ink-4);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ② 英文标语 */
 .auth-box__eyebrow {
   margin: 0 0 4px;
   font-size: 11px;
   letter-spacing: 2px;
+  text-transform: uppercase;
   color: var(--ink-4);
 }
-.auth-box__title { margin: 0 0 8px; font-size: 22px; }
+
+/* ③④ 主标题 + 说明 */
+.auth-box__title { margin: 0 0 8px; font-size: 23px; font-weight: 700; }
 .auth-box__desc {
   margin: 0 0 18px;
   font-size: 13px;
   line-height: 1.7;
   color: var(--ink-3);
 }
+
+/* ⑤ 输入框：沿用 .field；placeholder 用浅灰，深色模式用对应变量 */
 .auth-box .field { margin-bottom: 12px; }
+.auth-box .field input::placeholder { color: var(--ink-4); }
+
+/* ④ 页签：登录 / 注册 两颗切换钮
+     两个各占一头（登录靠左、注册靠右），中间留白 ——
+     挨在一起容易看成一个词，点错页签的几率也高。 */
+.auth-tabs {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--bg-2);
+}
+.auth-tab {
+  min-width: 96px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.auth-tab:hover { color: var(--ink); }
+.auth-tab.is-active {
+  background: var(--card-solid);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
 .auth-box__err {
   margin: 0 0 12px;
   font-size: 12.5px;
   color: #d9534f;
 }
+
+/* ⑧ 主按钮：占满整行 */
 .auth-box__actions {
   display: flex;
   gap: 10px;
   margin-top: 4px;
 }
 .auth-box__actions .btn { flex: 1; justify-content: center; }
+
+/* ⑨ 返回链接：小号、主色、居中 */
+.auth-box__back {
+  display: block;
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--c-purple);
+  cursor: pointer;
+}
+.auth-box__back:hover { text-decoration: underline; }
+
+/* ⑩ 底部两行小字 */
 .auth-box__note {
   margin: 16px 0 0;
   padding-top: 14px;
@@ -1030,6 +1358,17 @@ body.theme-dark .role-btn.is-admin { background: linear-gradient(120deg, var(--c
   font-size: 11.5px;
   line-height: 1.7;
   color: var(--ink-4);
+}
+
+/* 深色模式：卡片底色与分隔线跟着变量走；
+   品牌头像在主色渐变上始终是白字，不需要额外覆盖 */
+body.theme-dark .auth-box { background: var(--card-solid); }
+body.theme-dark .auth-box__back { color: var(--c-purple); }
+
+/* 窄屏：卡片别顶到屏幕边 */
+@media (max-width: 560px) {
+  .auth-box { padding: 24px 20px 20px; }
+  .auth-box__title { font-size: 21px; }
 }
 
 /* 关于页头像：鼠标移上去给点提示，说明这里可以点 */

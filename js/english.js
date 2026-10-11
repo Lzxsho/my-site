@@ -1,12 +1,22 @@
 /* ==========================================================================
-   english.js —— 英语词汇复习（三个板块：词汇复习 / 我的错题本 / 学习资料）
+   english.js —— 英语词汇复习（四个板块：知识点 / 词汇复习 / 错题本 / 学习资料）
    --------------------------------------------------------------------------
-   ▍数据都存在哪儿（全部在当前浏览器，localStorage）
-     shuoscape_en_materials  学习资料：[{ id, name, date, words:[{en,zh}] }]
-     shuoscape_en_wrong      错题本：[{ key, en, zh, source, pend, total, last, mastered… }]
-     shuoscape_en_daily      每日练习：{ '2026-10-10': { t: 练了几题, r: 答对几题 } }
-     shuoscape_en_round      没练完的一轮（下次打开能接着练）
+   ▍数据都存在哪儿
+     自己的练习进度（全部在当前浏览器）：
+       IndexedDB 'shuoscape-en' → materials   学习资料（自己导入的，不上传）
+       localStorage：
+         shuoscape_en_wrong      错题本：[{ key, en, zh, source, pend, total, last, mastered… }]
+         shuoscape_en_daily      每日练习：{ '2026-10-10': { t: 练了几题, r: 答对几题 } }
+         shuoscape_en_round      没练完的一轮（下次打开能接着练）
      所以换浏览器 / 换电脑记录不会跟过去 —— 侧栏的「导出学习备份」就是防这个。
+
+     管理员导入的「共享资料」不一样：存进数据库（本机 server.js）或云端
+     （Supabase 的 en_materials 表），走 js/data.js 的 SiteAPI，人人可练。
+
+   ▍为什么要 IndexedDB
+     以前资料存 localStorage，上限约 5MB —— 整本讲义导入经常超限，
+     保存悄悄失败，刷新就「消失了」。IndexedDB 的容量是几百 MB 起步，
+     同样的数据放进去就不存在这个问题。老数据会自动搬过来。
 
    ▍文件怎么变成词条
      .docx  浏览器里直接解压（DecompressionStream），抽出 word/document.xml 的文字
@@ -16,35 +26,127 @@
      等你发来正式模板以后，改 parseLine() 这一个函数就能对上格式。
 
    ▍谁能改什么
-     导入 / 编辑 / 删除资料是「改内容」→ 管理员（data-admin-only + Auth.gate 双保险）
-     练习、标掌握是「自己的进度」→ 不用登录，跟学习页打卡一个道理。
+     导入资料：**所有人都可以** ——
+       · 管理员导入 → 存进数据库 / 云端，所有人共享练习
+       · 普通用户 / 未登录导入 → 只存自己浏览器，不上传
+     编辑 / 删除「共享资料」→ 管理员；编辑 / 删除「自己本地的资料」→ 本人即可
+     练习、标掌握是「自己的进度」→ 不用登录。
    ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   EnIDB —— IndexedDB 的两个小读写（key-value 用法，够用了）
+   -------------------------------------------------------------------------- */
+const EnIDB = {
+  _p: null,
+
+  open() {
+    if (this._p) { return this._p; }
+    this._p = new Promise(function (resolve) {
+      let done = false;
+      try {
+        const req = indexedDB.open('shuoscape-en', 1);
+        req.onupgradeneeded = function () {
+          req.result.createObjectStore('kv');
+        };
+        req.onsuccess = function () { done = true; resolve(req.result); };
+        req.onerror = function () { resolve(null); };       /* 打不开 → 降级 */
+        req.onblocked = function () { resolve(null); };
+        /* 有的环境（隐私模式）既不报错也不响应，3 秒后不再等 */
+        setTimeout(function () { if (!done) { resolve(null); } }, 3000);
+      } catch (e) { resolve(null); }
+    });
+    return this._p;
+  },
+
+  get(key) {
+    return this.open().then(function (db) {
+      if (!db) { return null; }
+      return new Promise(function (resolve) {
+        try {
+          const rq = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+          rq.onsuccess = function () { resolve(rq.value === undefined ? null : rq.value); };
+          rq.onerror = function () { resolve(null); };
+        } catch (e) { resolve(null); }
+      });
+    });
+  },
+
+  set(key, val) {
+    return this.open().then(function (db) {
+      if (!db) { return Promise.reject(new Error('IndexedDB 打不开')); }
+      return new Promise(function (resolve, reject) {
+        try {
+          const tx = db.transaction('kv', 'readwrite');
+          tx.objectStore('kv').put(val, key);
+          tx.oncomplete = function () { resolve(true); };
+          tx.onerror = function () { reject(tx.error || new Error('IndexedDB 写入失败')); };
+          tx.onabort = function () { reject(tx.error || new Error('IndexedDB 写入被中断')); };
+        } catch (e) { reject(e); }
+      });
+    });
+  }
+};
 
 /* ==========================================================================
    一、EnStore —— 存储层
    ========================================================================== */
 
 const EnStore = {
-  KEY_MATS:  'shuoscape_en_materials',
   KEY_WRONG: 'shuoscape_en_wrong',
   KEY_DAILY: 'shuoscape_en_daily',
   KEY_ROUND: 'shuoscape_en_round',
 
-  materials: [],   /* 学习资料 */
+  materials: [],   /* 我导入的资料（本机 IndexedDB，不上传） */
+  remote: [],      /* 管理员共享的资料（数据库 / 云端拉下来的） */
   wrong: [],       /* 错题记录 */
   daily: {},       /* 每日练习量 */
   round: null,     /* 未完成的这一轮 */
 
+  /* 两份资料合在一起的完整列表（练习、统计、列表都用它） */
+  allMats() { return this.remote.concat(this.materials); },
+
   load() {
-    try { this.materials = JSON.parse(localStorage.getItem(this.KEY_MATS)  || '[]'); } catch (e) { this.materials = []; }
     try { this.wrong      = JSON.parse(localStorage.getItem(this.KEY_WRONG) || '[]'); } catch (e) { this.wrong = []; }
     try { this.daily      = JSON.parse(localStorage.getItem(this.KEY_DAILY) || '{}'); } catch (e) { this.daily = {}; }
     try { this.round      = JSON.parse(localStorage.getItem(this.KEY_ROUND) || 'null'); } catch (e) { this.round = null; }
-    if (!Array.isArray(this.materials)) { this.materials = []; }
     if (!Array.isArray(this.wrong))     { this.wrong = []; }
+
+    /* 资料走 IndexedDB，是异步的 —— 读完页面会自己再刷一遍 */
+    this.materials = [];
+    return this.loadMats();
   },
 
-  saveMats()  { try { localStorage.setItem(this.KEY_MATS,  JSON.stringify(this.materials)); } catch (e) { App.toast('浏览器存不下了，先导出一份备份吧'); } },
+  /* 从 IndexedDB 读资料；一份没有时看看 localStorage 里有没有老数据，搬过来 */
+  loadMats() {
+    const self = this;
+    return EnIDB.get('materials').then(function (list) {
+      if (Array.isArray(list) && list.length) {
+        self.materials = list;
+      } else {
+        let old = [];
+        try { old = JSON.parse(localStorage.getItem('shuoscape_en_materials') || '[]') || []; } catch (e) { old = []; }
+        if (Array.isArray(old) && old.length) {
+          self.materials = old;
+          EnIDB.set('materials', old).catch(function () { /* 搬不动就先留在原地 */ });
+        }
+      }
+      if (!Array.isArray(self.materials)) { self.materials = []; }
+    }).catch(function () { self.materials = []; });
+  },
+
+  saveMats() {
+    const self = this;
+    return EnIDB.set('materials', this.materials).catch(function () {
+      /* IndexedDB 也满了 / 被禁了：试一次 localStorage 小兜底，再不行就明说 */
+      try {
+        localStorage.setItem('shuoscape_en_materials', JSON.stringify(self.materials));
+        App.toast('资料太大，浏览器的高级存储放不下 —— 已用备用空间，建议先导出一份备份');
+      } catch (e) {
+        App.toast('浏览器存不下这份资料 —— 先导出一份备份，或拆小一点再导入');
+      }
+    });
+  },
+
   saveWrong() { try { localStorage.setItem(this.KEY_WRONG, JSON.stringify(this.wrong)); } catch (e) { /* 忽略 */ } },
   saveDaily() { try { localStorage.setItem(this.KEY_DAILY, JSON.stringify(this.daily)); } catch (e) { /* 忽略 */ } },
   saveRound() { try { localStorage.setItem(this.KEY_ROUND, JSON.stringify(this.round)); } catch (e) { /* 忽略 */ } },
@@ -65,7 +167,7 @@ const EnStore = {
   totalWords() {
     const seen = {};
     let n = 0;
-    this.materials.forEach(function (m) {
+    this.allMats().forEach(function (m) {
       (m.words || []).forEach(function (w) {
         const k = EnStore.wordKey(w.en);
         if (!k || seen[k]) { return; }
@@ -504,6 +606,7 @@ const EnPage = {
     this.bindMaterials();
     this.bindNotes();
     this.renderAll();
+    this.loadShared();
 
     /* 从学习页 / 其他板块跳过来时，直接打开对应板块：english.html#materials */
     const hash = (window.location.hash || '').replace('#', '');
@@ -512,6 +615,83 @@ const EnPage = {
     }
     /* 没练完的一轮，顶上给条提示 */
     this.renderResume();
+  },
+
+  /* ------------------------------------------------------------------
+     拉管理员共享的资料（数据库 / 云端）。
+     本地模式没有共享这回事 —— 跳过；拉失败不打扰页面，安静跳过。
+     ------------------------------------------------------------------ */
+  loadShared() {
+    if (typeof SiteAPI === 'undefined' || !SiteAPI.whenReady) { return; }
+    const self = this;
+    SiteAPI.whenReady().then(function () {
+      if (SiteAPI.mode === 'local') { return; }
+      return SiteAPI.getEnMaterials().then(function (list) {
+        EnStore.remote = Array.isArray(list) ? list : [];
+        self.renderAll();
+        self.watchShared();      /* 挂上「管理员那边更新了，自动跟上」 */
+      });
+    }).catch(function () { /* 没共享资料 / 没登录管理员，都当没有 */ });
+  },
+
+  /* ------------------------------------------------------------------
+     管理员那边一上传新资料，其他人的页面自动跟上
+     ------------------------------------------------------------------
+     两套补充触发，覆盖常见场景：
+       ① 每 3 分钟看一眼（页面开着、人在刷题时也能收到）
+       ② 切走再切回来（浏览器这时才准许我们联网，检查一下最划算）
+     只有「真的不一样了」才刷新界面 —— 否则每几秒重画一次列表，
+     正在填的东西会被吓跑。 */
+  watchShared() {
+    if (this._watching) { return; }
+    this._watching = true;
+    if (typeof SiteAPI === 'undefined' || SiteAPI.mode === 'local') { return; }
+
+    const self = this;
+    const GAP = 30 * 1000;       /* 两次检查至少隔 30 秒，别把接口打爆 */
+    let last = Date.now();
+
+    const check = function (force) {
+      if (document.visibilityState === 'hidden' && !force) { return; }
+      const now = Date.now();
+      if (!force && now - last < GAP) { return; }
+      last = now;
+
+      SiteAPI.getEnMaterials().then(function (list) {
+        const next = Array.isArray(list) ? list : [];
+        const before = EnStore.remote.map(function (m) { return m.id; }).join(',');
+        const after = next.map(function (m) { return m.id; }).join(',');
+
+        if (before === after) { return; }      /* 没变化就不动界面 */
+
+        const old = EnStore.remote.length;
+        EnStore.remote = next;
+        self.renderAll();
+
+        /* 告诉使用者一句：资料变了，不用他自己盯着 */
+        const delta = next.length - old;
+        if (delta > 0) {
+          App.toast('管理员上传了 ' + delta + ' 份新资料，已经加进来了');
+        } else if (delta < 0) {
+          App.toast('共享资料少了 ' + Math.abs(delta) + ' 份（管理员删掉或改名了）');
+        } else {
+          App.toast('共享资料有更新');
+        }
+      }).catch(function () { /* 断网就等下一轮 */ });
+    };
+
+    /* ① 定时；② 切回前台时补一次 */
+    this._timer = setInterval(function () { check(false); }, 3 * 60 * 1000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') { check(false); }
+    });
+  },
+
+  /* 这台机器上能不能「存共享」（管理员 + 有 db / 云端后端） */
+  canShare() {
+    return typeof Auth !== 'undefined' && Auth.isAdmin() &&
+           typeof SiteAPI !== 'undefined' && SiteAPI.whenReady &&
+           SiteAPI.mode !== 'local';
   },
 
   renderAll() {
@@ -579,7 +759,7 @@ const EnPage = {
     const wc = App.qs('[data-wrong-count]');
     if (wc) { wc.textContent = pending; }
     const mc = App.qs('[data-material-count]');
-    if (mc) { mc.textContent = EnStore.materials.length; }
+    if (mc) { mc.textContent = EnStore.allMats().length; }
   },
 
   /* ------------------------------------------------------------------
@@ -640,7 +820,7 @@ const EnPage = {
 
   filteredMaterials() {
     const kw = ((App.qs('#setupSearch') || {}).value || '').trim().toLowerCase();
-    return EnStore.materials.filter(function (m) {
+    return EnStore.allMats().filter(function (m) {
       if (kw && String(m.name || '').toLowerCase().indexOf(kw) < 0) { return false; }
       return EnPage.dateInRange(m.date, 'setupDateFrom', 'setupDateTo');
     });
@@ -651,7 +831,7 @@ const EnPage = {
     try {
       const saved = JSON.parse(localStorage.getItem('shuoscape_en_pick') || '{}');
       const ids = {};
-      EnStore.materials.forEach(function (m) { ids[m.id] = 1; });
+      EnStore.allMats().forEach(function (m) { ids[m.id] = 1; });
       Object.keys(saved).forEach(function (k) { if (ids[k]) { EnPage.state.picked[k] = true; } });
     } catch (e) { /* 忽略 */ }
   },
@@ -665,7 +845,7 @@ const EnPage = {
     const self = this;
     const mats = this.filteredMaterials();
 
-    if (!EnStore.materials.length) {
+    if (!EnStore.allMats().length) {
       box.innerHTML = '<div class="en-empty">词库还空着 —— 去「学习资料」导入一份，或点上面手动新建。</div>';
     } else if (!mats.length) {
       box.innerHTML = '<div class="en-empty">没有符合筛选的资料，改改关键词或日期。</div>';
@@ -708,7 +888,7 @@ const EnPage = {
     const self = this;
     let words = 0;
     const seen = {};
-    EnStore.materials.forEach(function (m) {
+    EnStore.allMats().forEach(function (m) {
       if (!self.state.picked[m.id]) { return; }
       (m.words || []).forEach(function (w) {
         const k = EnStore.wordKey(w.en);
@@ -742,7 +922,7 @@ const EnPage = {
     const seen = {};
     const out = [];
     const self = this;
-    EnStore.materials.forEach(function (m) {
+    EnStore.allMats().forEach(function (m) {
       if (!self.state.picked[m.id]) { return; }
       (m.words || []).forEach(function (w) {
         const k = EnStore.wordKey(w.en);
@@ -1180,15 +1360,16 @@ const EnPage = {
 
     /* 导入入口：点按钮 → 弹出「导入」对话框（文件选择框就摆在里面，看得见）
        以前是点一下直接唤起系统的文件窗口，有的浏览器反应慢，
-       看上去就像「点了没反应」，所以改成先弹一个明确的框。 */
+       看上去就像「点了没反应」，所以改成先弹一个明确的框。
+       ★ 导入对所有人开放：
+         管理员导入 → 存数据库 / 云端，人人共享；
+         普通用户导入 → 只存自己浏览器（IndexedDB），不上传。 */
     const imp = App.qs('[data-import]');
-    if (imp) { imp.addEventListener('click', function () { if (Auth.gate()) { self.openImportDialog(); } }); }
+    if (imp) { imp.addEventListener('click', function () { self.openImportDialog(); }); }
 
     const newBtn = App.qs('[data-newmat]');
     if (newBtn) {
-      newBtn.addEventListener('click', function () {
-        if (Auth.gate()) { self.openEditor(null); }
-      });
+      newBtn.addEventListener('click', function () { self.openEditor(null); });
     }
 
     const exp = App.qs('[data-export]');
@@ -1201,7 +1382,7 @@ const EnPage = {
   filteredMatList() {
     const kw = ((App.qs('#matSearch') || {}).value || '').trim().toLowerCase();
     const self = this;
-    return EnStore.materials.filter(function (m) {
+    return EnStore.allMats().filter(function (m) {
       if (kw && String(m.name || '').toLowerCase().indexOf(kw) < 0) { return false; }
       return self.dateInRange(m.date, 'matDateFrom', 'matDateTo');
     });
@@ -1220,21 +1401,25 @@ const EnPage = {
 
     if (!rows.length) {
       box.innerHTML = '<div class="en-empty">' +
-        (EnStore.materials.length ? '没有符合筛选的资料。' : '还没有资料 —— 点右上角「导入学习资料」，或先手动新建一份。') +
+        (EnStore.allMats().length ? '没有符合筛选的资料。' : '还没有资料 —— 点右上角「导入学习资料」，或先手动新建一份。') +
         '</div>';
       return;
     }
 
     box.innerHTML = rows.map(function (m) {
+      const isCloud = m.store === 'cloud';
+      /* 共享资料只有管理员能改；本地资料谁导入的谁随便改 */
+      const adminAttr = isCloud ? ' data-admin-only' : '';
       return '' +
         '<div class="en-row en-row--mat">' +
-          '<span class="en-row__file"><i class="en-row__ficon">▤</i>' + App.escape(m.name) + '</span>' +
+          '<span class="en-row__file"><i class="en-row__ficon">▤</i>' + App.escape(m.name) +
+            '<i class="en-row__tag' + (isCloud ? ' en-row__tag--cloud' : '') + '">' + (isCloud ? '共享' : '本地') + '</i></span>' +
           '<span class="en-row__date">' + App.escape(m.date || '—') + '</span>' +
           '<span class="en-row__count">' + (m.words || []).length + '</span>' +
           '<span class="en-row__ops">' +
             '<button class="icon-mini" type="button" title="查看" data-mat-view="' + App.escape(m.id) + '">👁</button>' +
-            '<button class="icon-mini" type="button" title="编辑" data-mat-edit="' + App.escape(m.id) + '" data-admin-only>✎</button>' +
-            '<button class="icon-mini" type="button" title="删除" data-mat-del="' + App.escape(m.id) + '" data-admin-only>🗑</button>' +
+            '<button class="icon-mini" type="button" title="编辑"' + adminAttr + ' data-mat-edit="' + App.escape(m.id) + '">✎</button>' +
+            '<button class="icon-mini" type="button" title="删除"' + adminAttr + ' data-mat-del="' + App.escape(m.id) + '">🗑</button>' +
           '</span>' +
         '</div>';
     }).join('');
@@ -1244,7 +1429,12 @@ const EnPage = {
     });
     App.qsa('[data-mat-edit]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (Auth.gate()) { self.openEditor(btn.getAttribute('data-mat-edit')); }
+        const id = btn.getAttribute('data-mat-edit');
+        /* 自己导入的本地资料：谁都能改，不用登录
+           共享资料（管理员传上去的）：要先过一遍登录门槛 */
+        const m = self.findMat(id);
+        if (m && m.store === 'cloud' && !Auth.gate()) { return; }
+        self.openEditor(id);
       });
     });
     App.qsa('[data-mat-del]', box).forEach(function (btn) {
@@ -1281,47 +1471,13 @@ const EnPage = {
         self.renderNotes();
       });
     }
-    /* 一键展开 / 收起 */
+    /* 一键展开 / 收起（跳转阅读页模式下不再需要，按钮已从页面移除；
+       这里保留空判断，老页面上万一还留着按钮也不会报错） */
     const expand = App.qs('[data-note-expand]');
-    if (expand) {
-      expand.addEventListener('click', function () { self.toggleAllNotes(true); });
-    }
+    if (expand) { expand.hidden = true; }
     const collapse = App.qs('[data-note-collapse]');
-    if (collapse) {
-      collapse.addEventListener('click', function () { self.toggleAllNotes(false); });
-    }
+    if (collapse) { collapse.hidden = true; }
     this.renderNotes();
-  },
-
-  /* 全部展开 / 全部收起：只对当前筛出来的条目生效 */
-  toggleAllNotes(open) {
-    const groups = (window.NOTES_DATA || {}).groups || [];
-    const self = this;
-    const g = this.state.noteGroup || 'all';
-    groups.forEach(function (grp) {
-      if (g !== 'all' && grp.id !== g) { return; }
-      (grp.items || []).forEach(function (it) { self.state.openNotes[it.id] = open; });
-    });
-    this.renderNotes();
-  },
-
-  /* 正文格式化：``` 包起来的段落渲染成终端风代码块，其余按普通笔记排版 */
-  fmtBody(text, kw) {
-    const parts = String(text).split('```');
-    let out = '';
-    for (let i = 0; i < parts.length; i++) {
-      const seg = parts[i];
-      if (!seg.trim()) { continue; }
-      if (i % 2 === 1) {
-        out += '' +
-          '<pre class="en-code"><span class="en-code__dots" aria-hidden="true">' +
-            '<i></i><i></i><i></i>' +
-          '</span><code>' + App.escape(seg.replace(/^\n+/, '').replace(/\n+$/, '')) + '</code></pre>';
-      } else {
-        out += '<div class="en-note__para">' + this.mark(seg.trim(), kw) + '</div>';
-      }
-    }
-    return out || '<div class="en-note__para">（这一条还没写内容）</div>';
   },
 
   /* 把关键词在正文里标出来。先转义再标，免得内容里的尖括号被当成标签 */
@@ -1400,18 +1556,18 @@ const EnPage = {
           '</div>' +
           '<div class="en-ngroup__list">' +
             items.map(function (it) {
-              const open = self.state.openNotes[it.id] ? ' is-open' : '';
+              /* 点一条 → 跳独立阅读页 note.html?id=…：
+                 宽版面 + 大字号，比在列表里挤一行展开读起来舒服得多。
+                 搜索到的关键词高亮照旧。 */
               return '' +
-                '<div class="en-note' + open + '" data-note="' + App.escape(it.id) + '">' +
-                  '<button class="en-note__head" type="button" data-note-toggle="' + App.escape(it.id) + '">' +
+                '<a class="en-note" data-note="' + App.escape(it.id) + '" ' +
+                   'href="note.html?id=' + encodeURIComponent(it.id) + '">' +
+                  '<span class="en-note__head">' +
                     '<span class="en-note__title">' + self.mark(it.title, kw) + '</span>' +
                     '<span class="en-note__meta">' + it.chars + ' 字</span>' +
-                    '<span class="en-note__chev" aria-hidden="true">⌄</span>' +
-                  '</button>' +
-                  '<div class="en-note__body"' + (self.state.openNotes[it.id] ? '' : ' hidden') + '>' +
-                    '<div class="en-note__text">' + self.fmtBody(it.body, kw) + '</div>' +
-                  '</div>' +
-                '</div>';
+                    '<span class="en-note__chev" aria-hidden="true">→</span>' +
+                  '</span>' +
+                '</a>';
             }).join('') +
           '</div>' +
         '</div>';
@@ -1421,22 +1577,8 @@ const EnPage = {
     if (stat) {
       stat.textContent = kw
         ? '找到 ' + total + ' 条含「' + kw + '」的知识点'
-        : '共 ' + total + ' 条知识点，点开就能看全文';
+        : '共 ' + total + ' 条知识点，点一条进入沉浸阅读';
     }
-
-    App.qsa('[data-note-toggle]', box).forEach(function (btn) {
-      btn.addEventListener('click', function () { self.toggleNote(btn.getAttribute('data-note-toggle')); });
-    });
-  },
-
-  toggleNote(id) {
-    const wrap = App.qs('[data-note="' + id + '"]');
-    if (!wrap) { return; }
-    const body = App.qs('.en-note__body', wrap);
-    const open = !wrap.classList.contains('is-open');
-    wrap.classList.toggle('is-open', open);
-    this.state.openNotes[id] = open;
-    if (body) { body.hidden = !open; }
   },
 
   /* ---------- 导入对话框 ----------
@@ -1617,7 +1759,7 @@ const EnPage = {
 
   /* ---------- 导入一个文件（保留给以后别的地方直接调用） ---------- */
   async importFile(file) {
-    if (!Auth.gate()) { return; }
+    /* 谁都能导 —— 管理员存的进云端给所有人练，其他人存在自己这台电脑上 */
     const self = this;
     App.toast('正在读取「' + file.name + '」…');
     try {
@@ -1642,8 +1784,9 @@ const EnPage = {
 
   /* ---------- 查看 / 编辑 / 删除 ---------- */
   findMat(id) {
-    for (let i = 0; i < EnStore.materials.length; i++) {
-      if (EnStore.materials[i].id === id) { return EnStore.materials[i]; }
+    const all = EnStore.allMats();
+    for (let i = 0; i < all.length; i++) {
+      if (all[i].id === id) { return all[i]; }
     }
     return null;
   },
@@ -1696,6 +1839,10 @@ const EnPage = {
         '<div class="editor-head">' +
           '<div class="editor-head__eyebrow">' + (draft ? 'IMPORT' : 'EDIT') + '</div>' +
           '<h3 class="editor-head__title">' + (draft ? '核对导入的词条' : (id ? '编辑学习资料' : '新建学习资料')) + '</h3>' +
+          '<p class="editor-head__sub">' +
+            (this.canShare() ? '你以管理员身份操作 —— 保存后存进' + (SiteAPI.isCloud() ? '云端' : '数据库') + '，所有人都能拿来练。'
+              : '保存后只存在这台电脑的浏览器里（IndexedDB），不会上传；管理员导入的资料才会共享给所有人。') +
+          '</p>' +
         '</div>' +
         '<div class="en-editor__meta">' +
           '<div class="field"><label for="matName">文件名称</label>' +
@@ -1768,16 +1915,44 @@ const EnPage = {
       if (!words.length) { App.toast('至少要有一条完整的词条（英文 + 中文）'); return false; }
 
       const date = (App.qs('#matDate').value || '').trim() || App.today();
+      const share = self.canShare();   /* 管理员 + 有后端：新资料进数据库 / 云端 */
 
       if (self.state.editingId) {
         const m = self.findMat(self.state.editingId);
-        if (m) { m.name = name; m.date = date; m.words = words; }
-        App.toast('已保存修改');
+        if (m) {
+          m.name = name; m.date = date; m.words = words;
+          if (m.store === 'cloud') {
+            /* 共享资料：改完写回数据库 / 云端 */
+            SiteAPI.saveEnMaterial(m).then(function () {
+              App.toast('已保存修改（共享资料，同步到了' + (SiteAPI.isCloud() ? '云端' : '数据库') + '）');
+            }).catch(function (e) { App.toast('保存失败：' + (e && e.message || '未知错误')); });
+          } else {
+            EnStore.saveMats();
+            App.toast('已保存修改');
+          }
+        }
+      } else if (share) {
+        /* 管理员新导入 → 共享资料，进数据库 / 云端，所有人可练 */
+        const mat = { id: 'm' + Date.now(), name: name, date: date, words: words, store: 'cloud' };
+        EnStore.remote.unshift(mat);
+        self.renderAll();
+        SiteAPI.saveEnMaterial(mat).then(function () {
+          App.toast('已上传「' + name + '」（' + words.length + ' 个词条，所有人共享）');
+        }).catch(function (e) {
+          /* 上传失败：退回本地，别让用户白导入 */
+          EnStore.remote = EnStore.remote.filter(function (x) { return x.id !== mat.id; });
+          mat.store = 'local';
+          EnStore.materials.unshift(mat);
+          EnStore.saveMats();
+          self.renderAll();
+          App.toast('上传失败（' + (e && e.message || '未知') + '），已改为只保存在这台电脑');
+        });
       } else {
+        /* 普通用户 / 未登录 → 只存自己浏览器（IndexedDB），不上传 */
         EnStore.materials.unshift({ id: 'm' + Date.now(), name: name, date: date, words: words });
-        App.toast('已保存「' + name + '」，' + words.length + ' 个词条');
+        EnStore.saveMats();
+        App.toast('已保存「' + name + '」（' + words.length + ' 个词条，只存在这台电脑上）');
       }
-      EnStore.saveMats();
       self.renderAll();
       return true;
     });
@@ -1786,9 +1961,10 @@ const EnPage = {
   },
 
   deleteMaterial(id) {
-    if (!Auth.gate()) { return; }
     const m = this.findMat(id);
     if (!m) { return; }
+    /* 共享资料只有管理员能删；本地资料谁都能删（删的是自己的） */
+    if (m.store === 'cloud' && !Auth.gate()) { return; }
     const self = this;
     const modal = App.qs('#enModal');
     const body = App.qs('[data-modal-body]', modal);
@@ -1798,7 +1974,9 @@ const EnPage = {
         '<div class="editor-head">' +
           '<div class="editor-head__eyebrow">DELETE</div>' +
           '<h3 class="editor-head__title">删除「' + App.escape(m.name) + '」？</h3>' +
-          '<p class="editor-head__sub">共 ' + (m.words || []).length + ' 个词条，删除后不可恢复（除非之前导出过备份）。</p>' +
+          '<p class="editor-head__sub">共 ' + (m.words || []).length + ' 个词条，' +
+            (m.store === 'cloud' ? '这是共享资料，删除后所有人都没有了。'
+                                  : '删除后不可恢复（除非之前导出过备份）。') + '</p>' +
         '</div>' +
         '<div class="modal__foot">' +
           '<button class="btn" type="button" data-cancel>取消</button>' +
@@ -1807,16 +1985,27 @@ const EnPage = {
       '</div>';
 
     this.bindModal(modal, function () {
-      EnStore.materials = EnStore.materials.filter(function (x) { return x.id !== id; });
-      EnStore.saveMats();
-      self.renderAll();
-      App.toast('已删除');
+      if (m.store === 'cloud') {
+        /* 共享资料：从数据库 / 云端删 */
+        EnStore.remote = EnStore.remote.filter(function (x) { return x.id !== id; });
+        SiteAPI.deleteEnMaterial(id).then(function () {
+          self.renderAll();
+          App.toast('已从' + (SiteAPI.isCloud() ? '云端' : '数据库') + '删除');
+        }).catch(function (e) { App.toast('删除失败：' + (e && e.message || '未知错误')); });
+      } else {
+        EnStore.materials = EnStore.materials.filter(function (x) { return x.id !== id; });
+        EnStore.saveMats();
+        self.renderAll();
+        App.toast('已删除');
+      }
       return true;
     });
     modal.classList.add('is-open');
   },
 
-  /* ---------- 备份 / 恢复 ---------- */
+  /* ---------- 备份 / 恢复 ----------
+     备份只含「这台电脑自己的」资料和练习记录；管理员共享的资料
+     在数据库 / 云端里，人人都有，不需要跟着备份走。 */
   exportBackup() {
     const payload = {
       kind: 'shuoscape-en-backup',
@@ -1832,7 +2021,7 @@ const EnPage = {
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 800);
-    App.toast('备份已导出，文件在下载里');
+    App.toast('备份已导出（自己导入的资料 + 练习记录），文件在下载里');
   },
 
   restoreBackup() {

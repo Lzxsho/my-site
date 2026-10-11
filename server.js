@@ -79,7 +79,7 @@ const USING_DEFAULT_TOKEN = !process.env.ADMIN_TOKEN;
 const sessionTokens = new Map();
 const SESSION_TTL = 12 * 60 * 60 * 1000;      /* 12 小时 */
 
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_USER = process.env.ADMIN_USER || 'lizhixu';
 const SECRET_FILE = path.join(ROOT, 'db', 'admin.secret');
 
 function sha256(s) {
@@ -184,6 +184,15 @@ function safeDecode(str) {
   catch (e) { return String(str); }
 }
 
+/* 网址里有没有「解不开的百分号转义」？
+   例如 /api/articles/%（% 后面没跟两位十六进制）或 /%e0%a4%a（多字节序列被截断）。
+   decodeURIComponent 遇到这种会抛错 —— 虽然 safeDecode 已经兜住不会崩，
+   但这类请求本身就是畸形的，直接回 400 比「当成一个不存在的 id」更说得清。 */
+function hasBadEscape(str) {
+  try { decodeURIComponent(String(str)); return false; }
+  catch (e) { return true; }
+}
+
 
 /* ============================================================================
    一、数据库连接
@@ -214,7 +223,10 @@ const db = new DatabaseSync(DB_FILE);
    -------------------------------------------------------------------------- */
 const MIGRATIONS = [
   /* [表名, 列名, 类型] */
-  ['music', 'genre', 'TEXT']    /* 分类，碟架按它分组（9-17 新增） */
+  ['music', 'genre', 'TEXT'],   /* 分类，碟架按它分组（9-17 新增） */
+  /* 评论支持「楼中楼」回复：parent_id 指向被回复的那条；顶层留言它是空的。
+     老数据不受影响 —— 加列有默认值 NULL，历史留言自动算顶层。 */
+  ['comments', 'parent_id', 'INTEGER']
 ];
 
 /* 反过来：不再用的列删掉。
@@ -279,12 +291,35 @@ function ensureCommentsTable() {
       target      TEXT NOT NULL,
       name        TEXT NOT NULL,
       content     TEXT NOT NULL,
-      created_at  TEXT NOT NULL
+      created_at  TEXT NOT NULL,
+      parent_id   INTEGER             /* 回复谁：空=顶层留言，有值=挂在那一楼下面 */
     )
   `);
   db.exec('CREATE INDEX IF NOT EXISTS idx_comments_target ON comments(target)');
 }
 ensureCommentsTable();
+
+
+/* ----------------------------------------------------------------------------
+   英语学习资料表（后加的功能）
+   ----------------------------------------------------------------------------
+   管理员导入的共享词库存这里：id 用前端生成的 'm'+时间戳，
+   words 整个存成 JSON 字符串（读出来再 parse 还给前端）。
+   GET 是公开的（人人可练）；增删改走统一的写鉴权闸（需要 X-Admin-Token）。
+   -------------------------------------------------------------------------- */
+function ensureEnMaterialsTable() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS en_materials (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      date       TEXT,
+      words      TEXT NOT NULL DEFAULT '[]',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+}
+ensureEnMaterialsTable();
 
 
 /* ============================================================================
@@ -528,8 +563,12 @@ const api = {
     return allStmt(sql, args).map(camelRow);
   },
 
+  /* 读单篇。没这篇就抛 404 —— 让前端能明确区分「没有」和「接口坏了」，
+     而不是拿到一个 200 的 null 后不知道该显示什么。 */
   'GET /api/articles/:id': function (body, params) {
-    return camelRow(db.prepare('SELECT * FROM articles WHERE id = ?').get(params.id));
+    const row = db.prepare('SELECT * FROM articles WHERE id = ?').get(params.id);
+    if (!row) { throw apiError(404, '没有这篇文章'); }
+    return camelRow(row);
   },
 
   'POST /api/articles': function (body) {
@@ -631,6 +670,45 @@ const api = {
     return { ok: true, deleted: info.changes };
   },
 
+  /* ---------- 英语学习资料（管理员导入的共享词库） ----------
+     GET 公开（人人可练）；POST 是「有则更新、无则新建」——
+     前端每次导入传一个新 id，编辑已有资料时带原 id 过来就变成更新。
+     words 存 JSON 字符串，读出来 parse 成数组再还。 */
+  'GET /api/en-materials': function () {
+    return db.prepare('SELECT * FROM en_materials ORDER BY date DESC, id DESC').all()
+      .map(function (r) {
+        let words = [];
+        try { words = JSON.parse(r.words) || []; } catch (e) { words = []; }
+        return { id: r.id, name: r.name, date: r.date || '', words: Array.isArray(words) ? words : [] };
+      });
+  },
+
+  'POST /api/en-materials': function (body) {
+    const id = text(body.id) || ('m' + Date.now());
+    const name = text(body.name) || '未命名资料';
+    let words = Array.isArray(body.words) ? body.words : [];
+    words = words
+      .map(function (w) {
+        return { en: text(w && w.en).slice(0, 200), zh: text(w && w.zh).slice(0, 500) };
+      })
+      .filter(function (w) { return w.en && w.zh; })
+      .slice(0, 20000);
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO en_materials (id, name, date, words, created_at, updated_at)
+      VALUES (?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name, date = excluded.date,
+        words = excluded.words, updated_at = excluded.updated_at
+    `).run(id, name, text(body.date), JSON.stringify(words), now, now);
+    return { ok: true, id: id, words: words.length };
+  },
+
+  'DELETE /api/en-materials/:id': function (body, params) {
+    const info = db.prepare('DELETE FROM en_materials WHERE id = ?').run(params.id);
+    return { ok: true, deleted: info.changes };
+  },
+
   /* ---------- 评论 ----------
      谁都能发（游客也行），所以这里是整个站唯一一个「不用登录也能写」的接口。
      正因为如此，才要在长度上卡一下：名字 24 字、正文 1000 字，
@@ -654,14 +732,27 @@ const api = {
     if (!target) { return { error: '这条评论不知道该挂在谁身上（缺 target）' }; }
     if (!content) { return { error: '评论内容不能为空' }; }
 
+    /* 「楼中楼」可选参数：要回复哪一条。
+       校验规矩很简单 —— 它必须是同一个 target 下面已经存在的留言，
+       否则就当没传（宁可变成一条普通留言，也不要指向一个不存在的父亲）。 */
+    let parentId = null;
+    if (body.parentId !== undefined && body.parentId !== null && String(body.parentId) !== '') {
+      const row = db.prepare('SELECT id FROM comments WHERE id = ? AND target = ?')
+                    .get(Number(body.parentId), target);
+      if (row) { parentId = row.id; }
+    }
+
     const info = db.prepare(
-      'INSERT INTO comments (target, name, content, created_at) VALUES (?,?,?,?)'
-    ).run(target, name, content, new Date().toISOString());
+      'INSERT INTO comments (target, name, content, created_at, parent_id) VALUES (?,?,?,?,?)'
+    ).run(target, name, content, new Date().toISOString(), parentId);
 
     return camelRow(db.prepare('SELECT * FROM comments WHERE id = ?').get(info.lastInsertRowid));
   },
 
+  /* 删的同时把它下面的回复一起带走。
+     留着一堆「回复某个已经看不见的人」的孤儿回复，比直接删掉更让人糊涂。 */
   'DELETE /api/comments/:id': function (body, params) {
+    db.prepare('DELETE FROM comments WHERE parent_id = ?').run(params.id);
     const info = db.prepare('DELETE FROM comments WHERE id = ?').run(params.id);
     return { ok: true, deleted: info.changes };
   }
@@ -736,6 +827,107 @@ const BLOCKED = [
   /(^|\/)\.env[.\w]*$/i
 ];
 
+/* ----------------------------------------------------------------------------
+   RSS 订阅源 /feed.xml
+   ----------------------------------------------------------------------------
+   有了它，别人用 RSS 阅读器（Feedly、Inoreader、NetNewsWire…）订阅你的站，
+   你一发文他那边就有 —— 不用他天天惦记着来看。
+
+   格式是 RSS 2.0，内容是最近 10 篇文章。
+   「站点名 / 副标题」从 profile 表里取，所以不用在这儿再写一遍。
+
+   两种模式怎么都不掉链子：
+     · 跑着 server.js → 这里实时生成，永远是最新的
+     · GitHub Pages（纯静态）→ 根目录那份手写的 feed.xml 会被同名的旧的覆盖不了？
+       不会 —— Pages 上没有后端，访问 /feed.xml 拿到的是静态那份。
+       所以仓库里也放了一份（内容指向当前文章），见仓库根的 feed.xml。 */
+function xmlEscape(s) {
+  return String(s === undefined || s === null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function serveFeed(res) {
+  let prof = {};
+  try {
+    prof = camelRow(db.prepare('SELECT * FROM profile WHERE id = 1').get()) || {};
+  } catch (e) {
+    prof = {};   /* 连 profile 都读不出来时，下面用人话兜住 */
+  }
+
+  const siteName = text(prof.siteName) || '朔的小窝';
+  const siteEn = text(prof.siteEn) || 'Shuoscape';
+  const slogan = text(prof.slogan);
+  const base = 'http://localhost:' + port + '/';
+
+  let articles = [];
+  try {
+    articles = allStmt('SELECT * FROM articles ORDER BY date DESC, id DESC LIMIT 10')
+      .map(camelRow);
+  } catch (e) {
+    articles = [];
+  }
+
+  const items = articles.map(function (a) {
+    const link = base + 'articles.html?id=' + encodeURIComponent(text(a.id));
+    /* 摘要优先用 excerpt，没有就截正文第一段的前 80 字 */
+    let desc = text(a.excerpt);
+    if (!desc) { desc = text(a.content).replace(/\s+/g, ' ').slice(0, 80); }
+    return '' +
+      '    <item>\n' +
+      '      <title>' + xmlEscape(a.title) + '</title>\n' +
+      '      <link>' + xmlEscape(link) + '</link>\n' +
+      '      <guid isPermaLink="false">' + xmlEscape('shuoscape-article-' + text(a.id)) + '</guid>\n' +
+      '      <pubDate>' + xmlEscape(new Date(text(a.date) + 'T09:00:00').toUTCString()) + '</pubDate>\n' +
+      '      <description>' + xmlEscape(desc) + '</description>\n' +
+      '    </item>\n';
+  }).join('');
+
+  const xml =
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<rss version="2.0">\n' +
+    '  <channel>\n' +
+    '    <title>' + xmlEscape(siteName + ' · ' + siteEn) + '</title>\n' +
+    '    <link>' + xmlEscape(base) + '</link>\n' +
+    '    <description>' + xmlEscape(slogan || '文字、记录、音乐与开发。') + '</description>\n' +
+    '    <language>zh-CN</language>\n' +
+    '    <lastBuildDate>' + xmlEscape(new Date().toUTCString()) + '</lastBuildDate>\n' +
+    items +
+    '  </channel>\n' +
+    '</rss>\n';
+
+  res.writeHead(200, {
+    'Content-Type': 'application/rss+xml; charset=utf-8',
+    'Content-Length': Buffer.byteLength(xml),
+    'Cache-Control': 'no-store'
+  });
+  res.end(xml);
+}
+
+/* ----------------------------------------------------------------------------
+   404 页面
+   ----------------------------------------------------------------------------
+   状态码照旧是 404（这才是对的，搜索引擎和浏览器靠它判断「没有这个地址」），
+   只是返回的正文换成站点风格的那一页。
+   万一 404.html 本身也读不出来，退回原来那行纯文本。 */
+function serve404(res) {
+  fs.readFile(path.join(ROOT, '404.html'), function (e404, buf) {
+    if (e404) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('找不到这个文件。');
+      return;
+    }
+    res.writeHead(404, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': buf.length,
+      'Cache-Control': 'no-store'
+    });
+    res.end(buf);
+  });
+}
+
 function serveStatic(req, res, pathname) {
   let rel = safeDecode(pathname).replace(/^\/+/, '');
   if (!rel) { rel = 'index.html'; }
@@ -756,11 +948,10 @@ function serveStatic(req, res, pathname) {
   }
 
   fs.readFile(filePath, function (err, buf) {
-    if (err) {
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('找不到这个文件：' + rel);
-      return;
-    }
+    /* 找不到就直接千方百计去找 404.html —— 相比一行灰扑扑的纯文本，
+       一个长成站点样子的页面对人友好得多。
+       GitHub Pages 只要仓库根目录有 404.html 就会自动用它，行为也就对齐了。 */
+    if (err) { serve404(res); return; }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
       'Content-Length': buf.length,
@@ -783,6 +974,16 @@ function handleRequest(req, res) {
      拆成 路径 + 查询参数 两部分 */
   const full = new URL(req.url, 'http://localhost');
   const pathname = full.pathname;
+
+  /* 畸形 URL（百分号转义解不开）直接挡掉 —— 见上面 hasBadEscape 的说明。
+     放在最前面，静态和接口两条路都覆盖到。 */
+  if (hasBadEscape(pathname)) {
+    sendJson(res, { error: '请求不合法：网址里的 % 转义解不开' }, 400);
+    return;
+  }
+
+  /* RSS 订阅源不是静态文件 —— 它的内容要从数据库里现取，所以单独在这里生成 */
+  if (pathname === '/feed.xml') { serveFeed(res); return; }
 
   if (pathname.indexOf('/api/') !== 0) {
     serveStatic(req, res, pathname);

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>知识点 · 英语 — 朔的小窝</title>
+  <meta name="description" content="课堂知识点沉浸阅读：宽版面、大字号，一条知识点一页，看完随手翻下一篇。">
+  <meta property="og:title" content="知识点 · 英语 — 朔的小窝">
+  <meta property="og:description" content="课堂知识点沉浸阅读：宽版面、大字号，一条知识点一页。">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="朔的小窝">
+  <meta property="og:locale" content="zh_CN">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/codefx.css">
+  <style>
+    /* --------------------------------------------------------------------------
+       阅读页专属样式（只此一页用，不值得单开一个 css 文件）
+       版心比别的页宽一点：知识点是整段的讲义文字，太窄了显得小家子气。
+       -------------------------------------------------------------------------- */
+    .note-wrap { max-width: 980px; margin: 0 auto; padding: 42px 22px 80px; }
+
+    .note-eyebrow {
+      font-size: 12px; letter-spacing: 0.14em; font-weight: 700;
+      color: var(--c-purple); margin: 0 0 10px;
+    }
+    .note-title {
+      margin: 0 0 8px; font-size: clamp(24px, 3.4vw, 34px);
+      line-height: 1.3; color: var(--ink); font-weight: 700;
+    }
+    .note-meta {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin: 0 0 30px; font-size: 13px; color: var(--ink-3);
+    }
+    .note-meta a { color: var(--c-purple); text-decoration: none; }
+    .note-meta a:hover { text-decoration: underline; }
+
+    /* 正文：这一页的主角，字号和行高都给足 */
+    .note-body {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-1);
+      padding: 40px 46px;
+    }
+    .note-body p {
+      margin: 0 0 0.9em;
+      font-size: 16.5px;
+      line-height: 1.95;
+      color: var(--ink-2);
+    }
+    /* 「一、二、三、」章节行：加粗提级，翻的时候一眼能扫到结构 */
+    .note-body p.h-num {
+      margin: 1.6em 0 0.7em; font-size: 18.5px; font-weight: 700; color: var(--ink);
+    }
+    /* 「（一）（二）」小节行 */
+    .note-body p.h-sub {
+      margin: 1.1em 0 0.5em; font-size: 17px; font-weight: 600; color: var(--ink);
+    }
+    @media (max-width: 640px) {
+      .note-body { padding: 26px 20px; }
+      .note-body p { font-size: 15.5px; }
+      .note-body p.h-num { font-size: 17px; }
+    }
+
+    /* 底部：上一篇 / 返回 / 下一篇 */
+    .note-pager {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; margin-top: 30px; flex-wrap: wrap;
+    }
+    .note-pager .btn { max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .note-pager__back { flex: none; }
+    .note-empty {
+      text-align: center; padding: 90px 20px; color: var(--ink-3);
+    }
+    .note-empty h2 { color: var(--ink); margin: 0 0 10px; }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航：和其它页同一套 -->
+  <header class="site-head">
+    <div class="container site-head__row">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="site-nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="site-head__acts">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 阅读区：js 在下面现写（就几十行，不值得单开文件） -->
+  <main class="note-wrap" id="noteMain">
+    <p class="note-empty">正在打开这条知识点…</p>
+  </main>
+
+  <script src="js/notes-data.js"></script>
+  <script>
+    /* ==========================================================================
+       阅读页逻辑：?id=… 找到那条知识点 → 大字排版 → 上一篇 / 下一篇
+       ------------------------------------------------------------------------ */
+    (function () {
+      const main = document.getElementById('noteMain');
+
+      /* 展平所有条目（按组顺序），顺带记住它属于哪一组 */
+      const flat = [];
+      (window.NOTES_DATA && NOTES_DATA.groups || []).forEach(function (g) {
+        (g.items || []).forEach(function (it) {
+          flat.push({ item: it, group: g });
+        });
+      });
+
+      const id = new URLSearchParams(window.location.search).get('id') || '';
+      const idx = flat.findIndex(function (x) { return String(x.item.id) === String(id); });
+
+      if (idx < 0) {
+        main.innerHTML =
+          '<div class="note-empty">' +
+            '<h2>没有找到这条知识点</h2>' +
+            '<p>它可能被移走了，或者链接里的编号不对。</p>' +
+            '<p style="margin-top:22px"><a class="btn btn--primary" href="english.html#notes">← 回知识点列表</a></p>' +
+          '</div>';
+        return;
+      }
+
+      const cur = flat[idx];
+      const prev = flat[idx - 1];
+      const next = flat[idx + 1];
+
+      /* 正文排版：
+         「一、二、」开头的行 → 章节标题；（一）（二）→ 小节；其余整行一段。
+         PDF 抽出来的文字有硬换行，按行排版最忠实，也最好读。 */
+      const esc = function (s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      };
+      const bodyHtml = String(cur.item.body || '')
+        .split(/\r?\n/)
+        .map(function (line) {
+          const t = line.trim();
+          if (!t) { return ''; }
+          if (/^[一二三四五六七八九十]+、/.test(t)) { return '<p class="h-num">' + esc(t) + '</p>'; }
+          if (/^（[一二三四五六七八九十]+）/.test(t)) { return '<p class="h-sub">' + esc(t) + '</p>'; }
+          return '<p>' + esc(t) + '</p>';
+        })
+        .join('');
+
+      const pagerBtn = function (x, label, cls) {
+        if (!x) { return '<span class="btn ' + cls + '" style="visibility:hidden" aria-hidden="true">' + label + '</span>'; }
+        return '<a class="btn ' + cls + '" href="note.html?id=' + encodeURIComponent(x.item.id) + '" title="' +
+               esc(x.item.title) + '">' + label + ' ' + esc(x.item.title) + '</a>';
+      };
+
+      document.title = cur.item.title + ' · 英语知识点 — 朔的小窝';
+
+      main.innerHTML =
+        '<p class="note-eyebrow">' + esc(cur.group.title) + ' · ENGLISH NOTES</p>' +
+        '<h1 class="note-title">' + esc(cur.item.title) + '</h1>' +
+        '<p class="note-meta">' +
+          '<span>约 ' + (cur.item.chars || 0) + ' 字</span>' +
+          '<span>·</span>' +
+          '<span>来自 ' + esc(cur.group.file || '课堂笔记') + '</span>' +
+          '<span>·</span>' +
+          '<a href="english.html#notes">← 回知识点列表</a>' +
+        '</p>' +
+        '<article class="note-body">' + bodyHtml + '</article>' +
+        '<nav class="note-pager" aria-label="上一篇 / 下一篇">' +
+          pagerBtn(prev, '←', 'note-pager__prev') +
+          '<a class="btn note-pager__back" href="english.html#notes">列表</a>' +
+          pagerBtn(next, '→', 'note-pager__next') +
+        '</nav>';
+    })();
+  </script>
+
+  <!-- 登录身份、主题切换、返回顶部这些全站通用件（顺序与其它页一致） -->
+  <script src="js/config.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/codefx.js" defer></script>
+</body>
+</html>

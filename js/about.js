@@ -604,8 +604,11 @@ const AboutPage = {
 
   /* 底部那行小灰字：说明这次改动会存到哪 */
   saveWhereTip() {
+    if (SiteAPI.isCloud()) {
+      return '会写进' + SiteAPI.storeLabel() + '，换浏览器、换设备也还在。';
+    }
     return SiteAPI.isDb()
-      ? '会写进数据库 <code>db/site.db</code>，换浏览器也还在。'
+      ? '会写进' + SiteAPI.storeLabel() + '，换浏览器也还在。'
       : '现在没连数据库，会存在浏览器里。想存进数据库请双击 <code>start.bat</code>。';
   }
 };

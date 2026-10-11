@@ -77,7 +77,7 @@ my-site/
 │   ├── index.html       学习总览（10 章 / 32 套卷 / 1517 题）
 │   ├── knowledge.html   知识点讲解
 │   ├── practice.html    章节练习
-│   ├── papers-image.html 真题试卷（图片 77MB 未随站打包，见 assets/README.txt）
+│   ├── papers-image.html 真题试卷（559 张卷面图 77MB，已随站打包）
 │   └── css/bridge.css   ← 适配层：品牌色换主站粉紫、统一导航和页脚
 │
 ├── css/
@@ -211,7 +211,7 @@ Node 版本低于 22.5。装新版。
 - 显示**「本地有声」**但还是没声音 → 检查一下浏览器是不是静音了。
 
 **后缀不用和配置一致**：`js/data.js` 里六首统一写的是 `.mp3`，
-你实际放 `日落大道.m4a` / `.ogg` / `.wav` / `.flac` 也能被认出来 ——
+你实际放 `Echoes.m4a` / `.ogg` / `.wav` / `.flac` 也能被认出来 ——
 代码会按 `mp3 → m4a → ogg → wav → flac → aac → opus` 的顺序挨个试。
 后缀和配置不一样时，唱片机下面会直接告诉你实际用的是哪个文件。
 
@@ -233,15 +233,15 @@ Node 版本低于 22.5。装新版。
 
 ```
 ① 平铺（最省事）
-   assets/audio/日落大道.mp3
+   assets/audio/Echoes.mp3
 
 ② 按分类分文件夹（歌多了以后好找）
-   assets/audio/摇滚/日落大道.mp3
-   assets/audio/民谣/归去来兮.mp3
+   assets/audio/氛围/Echoes.mp3
+   assets/audio/民谣/Far From Home.mp3
 ```
 
 程序会先找平铺的、再找分类文件夹里的；按歌手建文件夹
-（`assets/audio/梁博/日落大道.mp3`）也一样认。
+（`assets/audio/梁博/Echoes.mp3`）也一样认。
 文件名对得上就自动生效，**不用改任何配置**。
 
 > **这个功能是怎么实现的？** 探测文件用的是 `<audio>` 元素能不能读出元数据
@@ -269,8 +269,8 @@ Node 版本低于 22.5。装新版。
   知识点讲解、515 道章节练习、32 套真题卷共 1517 题原样都在，
   品牌色换成了主站的粉紫、导航和页脚也换成了主站的
   （适配全在 `c/css/bridge.css`，那套页面自己的代码一行没动）。
-  试卷图片 77MB 没有随站打包，本机看的话把 `assets/papers`
-  拷回 `c/assets/` 下面即可（见 `c/assets/README.txt`）。
+  真题卷是卷面扫描图（559 张 PNG，共 77MB），已经随站一起打包，
+  部署到 GitHub Pages 后线上也能直接翻看。
 
 **英语 · 词汇复习**（`english.html`，从学习页「英语」区进入）三个板块：
 
@@ -284,7 +284,9 @@ Node 版本低于 22.5。装新版。
   每行一个词（`英文 中文`、`英文=中文`、`英文：中文`、表格两列、两格以上空格都认）；
   导入后先核对再保存，能查看、编辑、删除；支持「导出学习备份 / 恢复备份」。
 
-资料和练习记录都保存在**当前浏览器**（localStorage）里，换设备前先导出备份。
+资料和练习记录都保存在**当前浏览器**（IndexedDB）里，换设备前先导出备份。
+管理员在「学习资料」里勾选「共享给所有人」上传的资料会存到云端，
+所有访客都能看到，且每 3 分钟自动检查一次更新。
 导入 / 编辑 / 删除资料要管理员登录；练习、标掌握不用。
 
 > 词库解析格式在 `js/english.js` 的 `EnParse.parseLine()` ——
@@ -321,7 +323,8 @@ Node 版本低于 22.5。装新版。
 GitHub Pages 是纯静态的，本身没有后端，所以要用一个免费的云端数据库（Supabase）：
 
 1. 打开 `supabase.com`，用 GitHub 账号登录 → New project（免费，地区选 Singapore / Tokyo）。
-2. 建好后：**Settings → API**，把 `Project URL` 和 `anon public key` 填进 `js/config.js`。
+2. 建好后：**Settings → API**，把 `Project URL` 和 `anon public key` 填进 `js/config.js`
+   —— 只想让留言上云就填 `comments` 那一块，**想把文章/小诗/唱片/资料也一起搬上云就把 `content` 那块也填了**（见下面「开启内容上云」）。
 3. **SQL Editor** → 把项目里的 `supabase.sql` 整段粘进去 → Run。
 4. 提交到 GitHub。搞定 —— 之后谁打开你的 Pages 网站，留言都是同一批；
    自己在本地跑 server.js 发的留言，也会进同一个云端库。
@@ -347,5 +350,62 @@ GitHub Pages 是纯静态的，本身没有后端，所以要用一个免费的�
 ## 最顶上的身份条
 
 每个页面最顶上有一条**固定不动**的身份条（`js/auth.js` 生成，样式在 `css/base.css`）：
-左边是当前身份（未登录 / 游客 / 管理员），右边是「游客进入 / 管理员登录 / 退出登录」。
+左边是当前身份（未登录 / 管理员），右边是「管理员登录 / 退出登录」。
 页面怎么滚它都在 —— 登录入口永远够得着。
+
+---
+
+## 部署到 GitHub Pages（静态站）
+
+1. 把整个 `my-site` 目录推到 GitHub 仓库（`db/site.db`、`db/admin.secret`、`_bak/` 已写进 `.gitignore`，不会推上去）。
+2. 仓库 **Settings → Pages → Source** 选 `main` 分支根目录 → Save。
+3. 等一两分钟，访问 `https://<你的用户名>.github.io/<仓库名>/`。
+
+Pages 是纯静态托管，**不运行 server.js**，所以：
+
+- 没做下面的「内容上云」时，Pages 上看到的是仓库里那份 `js/data.js` 的初始数据，管理员登录用不了。
+- 做了「内容上云」之后，Pages 上读的是云端数据，用邮箱密码登录后能增删改。
+
+## 开启内容上云（可选，推荐）
+
+做完这七步，你的网站就变成「**访客读云端数据，你登录后改，所有人刷新看到的都是同一版**」：
+
+1. 打开 `supabase.com` → New project（免费，地区选 Singapore / Tokyo）。
+2. **Settings → API**，记下 `Project URL` 和 `anon public key`。
+3. **SQL Editor** → 把项目里的 `supabase.sql` 整段粘进去 → Run（建 7 张表 + 访问策略）。
+4. **Authentication → Users → Add user**，创建你自己的管理员邮箱和密码
+   （这就是以后登录用的账号，前端代码里一个账号密码都没有）。
+5. 修改 `js/config.js`：把 `Project URL` / `anon key` 填进 `content` 和 `comments` 两块
+   （两块都填：一块管内容，一块管留言）。
+6. 迁移本机数据 —— 在 `my-site` 目录执行：
+
+   ```
+   node db/export-to-supabase.js --url <Project URL> --key <service_role key>
+   ```
+
+   `service_role key` 在 **Settings → API → service_role**，是「超级钥匙」，
+   **只在本机跑这个脚本时用，绝不能写进前端代码、也别推到 GitHub**。用完可以在后台 Rotate 换一把。
+   脚本可重复执行（每张表先清空再写入），不会产生重复数据。
+7. 重新 push，刷新线上页面 —— 访客看到云端数据；你用邮箱密码登录后即可增删改。
+
+### 上云后的三种模式怎么自动切换
+
+| 情况 | 模式 | 数据从哪来 | 能改内容吗 |
+|---|---|---|---|
+| `js/config.js` 填了 Supabase | `cloud` | 云端数据库 | 用 Supabase 邮箱密码登录后可增删改 |
+| 没填配置 + 跑着 `server.js` | `db` | `db/site.db` | 用 server.js 打印的账号密码登录后可增删改 |
+| 没填配置 + 双击 html | `local` | `data.js` + 浏览器 localStorage | 不能（没有服务端能核对密码） |
+
+判断逻辑写在 `js/data.js` 的 `SiteAPI.whenReady()` 里：云端优先，其次探 `/api/health`，都没有就退回本地。
+页面代码一行都不用改 —— 三种模式的读写方法签名完全一致。
+
+### 安全说明
+
+- 前端只有 `anon public key`，它本来就会出现在网页源码里，**只能读**；真正拦住乱写的是 `supabase.sql` 里的 RLS 策略（写操作一律要求 `auth.role() = 'authenticated'`）。
+- 留言表是「公开读、公开写、不公开删」—— 想删留言去后台 Table Editor 手动删，网页上的 ✕ 会提示你去后台。
+- 源码里搜不到任何 `service_role key`，它只在 `db/export-to-supabase.js` 被调用时由你在命令行传入。
+
+### 学习打卡进度也会上云
+
+填了云端配置后，C 知识点打卡、英语单词「已掌握」标记会存到云端的 `study_progress` 表，
+换浏览器 / 换设备打开，进度还在。没填配置时仍存浏览器 localStorage，行为和以前一样。

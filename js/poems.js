@@ -137,7 +137,18 @@ const PoemsPage = {
 
           /* 展开后的正文 + 操作按钮 */
           '<div class="poem-card__detail">' +
-            '<div class="poem-card__text">' + App.escape(p.text) + '</div>' +
+            /* 展开后的正文：一行一句，左边带行号 ——
+               仿代码编辑器的 gutter，诗句就是「代码」。
+               收起状态用的是上面那段预览，不显示行号（那边只有一两行）。 */
+            '<div class="poem-card__text poem-code">' +
+              p.text.split(/\r?\n/).filter(function (l) { return l.trim(); })
+                .map(function (line, i) {
+                  return '<span class="poem-code__row">' +
+                           '<i class="poem-code__no">' + (i + 1) + '</i>' +
+                           '<span class="poem-code__line">' + App.escape(line.trim()) + '</span>' +
+                         '</span>';
+                }).join('') +
+            '</div>' +
             '<div class="poem-card__foot">' +
               '<span>' + App.monthDay(p.date) + '</span>' +
               '<span>' + p.text.replace(/\s/g, '').length + ' 字</span>' +
@@ -179,8 +190,8 @@ const PoemsPage = {
         '</div>' +
         '<div class="poem-edit__foot">' +
           '<span class="poem-edit__tip">' +
-            (SiteAPI.isDb()
-              ? '保存后会写进数据库（db/site.db），换浏览器也还在。'
+            (SiteAPI.isRemote()
+              ? '保存后会写进' + SiteAPI.storeLabel() + '，换浏览器也还在。'
               : '保存后会存在这个浏览器里（localStorage）。' +
                 (p.mine ? '' : '内置的小诗不会被改坏，原文还在 data.js 里。')) +
           '</span>' +
@@ -333,9 +344,9 @@ const PoemsPage = {
     const p = this.state.all.find(function (x) { return x.id === id; });
     const title = '《' + (p ? p.title : '') + '》';
     let msg;
-    if (SiteAPI.isDb()) {
-      /* 数据库里的每一条都是真实数据，没有「只是隐藏」这回事 */
-      msg = '确定删掉' + title + '吗？\n数据库里删掉就真的没有了。';
+    if (SiteAPI.isRemote()) {
+      /* 云端 / 数据库里的每一条都是真实数据，没有「只是隐藏」这回事 */
+      msg = '确定删掉' + title + '吗？\n' + SiteAPI.storeLabel() + '里删掉就真的没有了。';
     } else if (p && p.mine) {
       msg = '确定删掉' + title + '吗？自己写的删了就找不回来了。';
     } else {

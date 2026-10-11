@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 静态降级用的 RSS：数据库模式（跑着 server.js）时 /feed.xml 由服务端实时生成，
+     这份文件只给 GitHub Pages 这种纯静态托管兜底 —— 访问 feed.xml 不会 404。
+     内容更新方法：起一次 node server.js 后重新生成本文件即可。 -->
+<rss version="2.0">
+  <channel>
+    <title>朔的小窝 · Shuoscape</title>
+    <link>./</link>
+    <description>Undefined, still becoming.</description>
+    <language>zh-CN</language>
+    <lastBuildDate>Sun, 11 Oct 2026 01:56:50 GMT</lastBuildDate>
+    <item>
+      <title>小李的第一篇笔记</title>
+      <link>articles.html?id=1</link>
+      <guid isPermaLink="false">shuoscape-article-1</guid>
+      <pubDate>Thu, 17 Sep 2026 01:00:00 GMT</pubDate>
+      <description>送给焦虑的你</description>
+    </item>
+    <item>
+      <title>第二次博客正式更新：重新整理小站，也重新认识这里</title>
+      <link>articles.html?id=2</link>
+      <guid isPermaLink="false">shuoscape-article-2</guid>
+      <pubDate>Wed, 22 Jul 2026 01:00:00 GMT</pubDate>
+      <description>文字、小诗、音乐与技术被重新整理，小站有了更清楚的结构。</description>
+    </item>
+    <item>
+      <title>第一次博客正式更新：富文本、内置音乐播放器与阅读细节</title>
+      <link>articles.html?id=3</link>
+      <guid isPermaLink="false">shuoscape-article-3</guid>
+      <pubDate>Thu, 16 Jul 2026 01:00:00 GMT</pubDate>
+      <description>朔的小窝的第一次正式更新，顺手把音乐播放器和阅读体验一起做了。</description>
+    </item>
+    <item>
+      <title>夏夜的便利店与一罐凉掉的咖啡</title>
+      <link>articles.html?id=4</link>
+      <guid isPermaLink="false">shuoscape-article-4</guid>
+      <pubDate>Sun, 28 Jun 2026 01:00:00 GMT</pubDate>
+      <description>凌晨一点的便利店灯很亮，亮到能看清货架上每一件商品的名字。</description>
+    </item>
+    <item>
+      <title>写在凌晨三点的信</title>
+      <link>articles.html?id=5</link>
+      <guid isPermaLink="false">shuoscape-article-5</guid>
+      <pubDate>Thu, 11 Jun 2026 01:00:00 GMT</pubDate>
+      <description>有些话白天说不出来，只有在凌晨三点，才敢一个字一个字地写下来。</description>
+    </item>
+    <item>
+      <title>《在世界的尽头开一家店》第一章</title>
+      <link>articles.html?id=6</link>
+      <guid isPermaLink="false">shuoscape-article-6</guid>
+      <pubDate>Sat, 30 May 2026 01:00:00 GMT</pubDate>
+      <description>世界尽头其实没有尽头，只有一条慢慢变淡的路，和路边那家亮着灯的小店。</description>
+    </item>
+    <item>
+      <title>雨天的第七封信</title>
+      <link>articles.html?id=7</link>
+      <guid isPermaLink="false">shuoscape-article-7</guid>
+      <pubDate>Thu, 14 May 2026 01:00:00 GMT</pubDate>
+      <description>她在雨天写了七封信，前六封都没有寄出，第七封寄给了自己。</description>
+    </item>
+    <item>
+      <title>前端笔记：CSS 变量让换肤变简单</title>
+      <link>articles.html?id=8</link>
+      <guid isPermaLink="false">shuoscape-article-8</guid>
+      <pubDate>Sat, 02 May 2026 01:00:00 GMT</pubDate>
+      <description>把颜色和圆角都写成变量，一个类名就能换掉整站的风格。</description>
+    </item>
+    <item>
+      <title>读书笔记：关于「慢」这件事</title>
+      <link>articles.html?id=9</link>
+      <guid isPermaLink="false">shuoscape-article-9</guid>
+      <pubDate>Sun, 19 Apr 2026 01:00:00 GMT</pubDate>
+      <description>快的东西容易被记住，慢的东西才容易被留下。</description>
+    </item>
+    <item>
+      <title>深夜的歌单</title>
+      <link>articles.html?id=10</link>
+      <guid isPermaLink="false">shuoscape-article-10</guid>
+      <pubDate>Fri, 03 Apr 2026 01:00:00 GMT</pubDate>
+      <description>有些歌只能在深夜听，白天放出来就完全不是那个味道了。</description>
+    </item>
+  </channel>
+</rss>

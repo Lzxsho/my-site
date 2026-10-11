@@ -72,6 +72,90 @@ body.has-codefx .footer {
 }
 .codefx-btn:not(.is-on) .codefx-btn__lang { color: var(--ink-3); }
 
+/* 「仅代码雨 / 全站换肤」开关：跟在上面那个按钮旁边，
+   样式小一号，免得两个按钮抢注意力 */
+.codefx-skin {
+  position: fixed;
+  right: 22px;
+  bottom: 42px;                 /* 排在语言按钮（bottom:76）下面一点点 */
+  z-index: 320;
+  padding: 3px 9px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-3);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.codefx-skin:hover { color: var(--ink); border-color: rgba(170, 150, 205, 0.55); }
+/* 开着的时候点亮一下，让人知道现在是「全站都换了」 */
+.codefx-skin.is-on {
+  color: var(--on-accent, #fff);
+  border-color: transparent;
+  background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+}
+/* 关着代码雨的时候，这个开关也没什么可换的 —— 收起来 */
+body:not(.has-codefx) .codefx-skin { display: none; }
+
+@media (max-width: 900px) {
+  /* 手机上两个小按钮挤在一起容易误触，往上挪开一点 */
+  .codefx-btn { bottom: 84px; }
+  .codefx-skin { bottom: 50px; }
+}
+
+/* ---------- 启动「编译中」小终端（js/boot.js，只有首页有） ----------
+   浮在左下角的一小块，1.4 秒后自己淡出。
+   pointer-events:none 是刻意的：它只是路过的一个动画，不该挡住任何点击。 */
+.boot-compile {
+  position: fixed;
+  left: 22px;
+  bottom: 22px;
+  z-index: 330;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 14px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: rgba(24, 20, 38, 0.90);
+  color: #e8e4f5;
+  font-family: var(--font-mono, Consolas, 'Courier New', monospace);
+  font-size: 12px;
+  box-shadow: var(--sh-2);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+}
+.boot-compile.is-in { opacity: 1; transform: translateY(0); }
+.boot-compile.is-out { opacity: 0; transform: translateY(-6px); }
+
+/* 三个小圆点：像终端窗口左上角那几颗 */
+.boot-compile__dots { display: inline-flex; gap: 4px; }
+.boot-compile__dots i {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.boot-compile__cmd { letter-spacing: 0.3px; }
+.boot-compile__tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(195, 164, 255, 0.24);
+  color: #e6dcff;
+  font-size: 10.5px;
+  margin-right: 4px;
+}
+
+@media (max-width: 900px) {
+  .boot-compile { left: 14px; bottom: 14px; font-size: 11px; }
+}
+
 /* ---------- 终端打字机（首页那块） ---------- */
 .codefx-term {
   display: flex;

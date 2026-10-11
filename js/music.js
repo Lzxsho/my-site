@@ -49,9 +49,9 @@ const AUDIO_EXTS = ['mp3', 'm4a', 'ogg', 'wav', 'flac', 'aac', 'opus'];
    ① 后缀：data.js 里统一写 .mp3，你实际放的是 .m4a / .ogg / .wav 也行。
    ② 放法：平铺和分文件夹都认 ——
 
-        assets/audio/日落大道.mp3          ← 平铺（首选，最省事）
-        assets/audio/摇滚/日落大道.mp3     ← 按分类分文件夹
-        assets/audio/梁博/日落大道.mp3     ← 按歌手分文件夹
+        assets/audio/Echoes.mp3            ← 平铺（首选，最省事）
+        assets/audio/氛围/Echoes.mp3       ← 按分类分文件夹
+        assets/audio/梁博/Echoes.mp3       ← 按歌手分文件夹
 
      分类文件夹的名字从哪来？由调用方把「分类」「歌手」当候选目录传进来
      （folders 参数）。不递归扫盘 —— `file://` 下脚本读不了目录，
@@ -75,9 +75,9 @@ function audioCandidates(src, folders) {
     return AUDIO_EXTS.map(function (ext) { return src + '.' + ext; });
   }
 
-  const base = src.slice(0, dot);          /* assets/audio/日落大道 */
+  const base = src.slice(0, dot);          /* assets/audio/Echoes */
   const own = src.slice(dot + 1).toLowerCase();
-  const file = base.slice(slash + 1);      /* 日落大道 */
+  const file = base.slice(slash + 1);      /* Echoes */
   const dir = base.slice(0, slash + 1);    /* assets/audio/ */
 
   /* 候选目录：先平铺，再分类、歌手。同一个名字只留一次 */
@@ -116,6 +116,7 @@ const MusicPage = {
                               那时不算用户想听 —— 别弹提示，
                               免得一进页面就被糊一句「没找到文件」 */
     editingId: null,/* 弹窗里正在编辑哪张碟；新增时是 null */
+    seeking: false, /* 是不是正拖着进度条（true 时别让 timeupdate 抢方向盘） */
     /* 探过的 src → 真正命中的那个地址（字符串），没探到则是 false。
        同一个地址不重复探第二次。 */
     probe: {},
@@ -223,6 +224,24 @@ const MusicPage = {
       const url = list[i];
       i += 1;
 
+      /* http(s) 打开时先用 HEAD 问一下服务器（快、也最可靠）；
+         404 或 file://（脚本不允许读本地文件，HEAD 必失败）再走下面的
+         临时 <audio> 元素兜底。 */
+      if (/^https?:/i.test(location.protocol)) {
+        fetch(encodeURI(url).replace(/%3A/gi, ':').replace(/%2F/gi, '/'), { method: 'HEAD' })
+          .then(function (r) {
+            if (r.ok) { settle(true, url); } else { tryNext(); }
+          })
+          .catch(function () { probeWithAudio(url); });
+        return;
+      }
+
+      probeWithAudio(url);
+    };
+
+    /* file:// 兜底：造一个临时 <audio> 只读元数据 —— 浏览器不许脚本读
+       本地文件，但允许媒体元素加载，读得到 metadata 就是文件在。 */
+    function probeWithAudio(url) {
       const probe = new Audio();
       let settled = false;
 
@@ -248,7 +267,7 @@ const MusicPage = {
 
       probe.preload = 'metadata';
       probe.src = url;
-    };
+    }
 
     tryNext();
   },
@@ -353,8 +372,8 @@ const MusicPage = {
       } else {
         box.innerHTML = '还没找到 <code>' + App.escape(src) + '</code> —— ' +
           '把文件放进 <code>assets/audio/</code> 就行：' +
-          '平铺（<code>assets/audio/日落大道.mp3</code>）或者' +
-          '按分类建文件夹（<code>assets/audio/民谣/归去来兮.mp3</code>）都认，' +
+          '平铺（<code>assets/audio/Echoes.mp3</code>）或者' +
+          '按分类建文件夹（<code>assets/audio/民谣/Far From Home.mp3</code>）都认，' +
           '名字对得上就自动生效，不用回来改配置。';
       }
     });
@@ -589,7 +608,11 @@ const MusicPage = {
     if (!audio) { return; }
 
     /* 播放过程中不断刷新进度条 */
-    audio.addEventListener('timeupdate', function () { MusicPage.syncProgress(); });
+    audio.addEventListener('timeupdate', function () {
+      /* 正拖着进度条就别来插一脚 —— 不然刚拖到 1:20 又被刷回原处 */
+      if (MusicPage.state.seeking) { return; }
+      MusicPage.syncProgress();
+    });
     /* 拿到文件信息就知道总时长了 */
     audio.addEventListener('loadedmetadata', function () { MusicPage.syncProgress(); });
     /* 一首放完，自动下一首 */
@@ -617,17 +640,75 @@ const MusicPage = {
       App.toast('本地没找到 ' + src + ' —— 把 mp3 放进 assets/audio/ 就好');
     });
 
-    /* 点进度条跳到那个位置 */
+    /* 进度条：点一下跳过去、**按住拖着走**也能跟着走
+       ------------------------------------------------
+       以前只绑了 click：必须「点一下定一个位置」，想微调来回点半天。
+       现在用 Pointer 事件，鼠标和手指共用一套：
+         pointerdown  按下 → 开始拖，立刻跳到按的那个位置
+         pointermove  移动 → 跟着手指/鼠标实时走
+         pointerup    松手 → 收尾
+       拖动过程中暂停 timeupdate 对进度条的刷新，
+       否则「我拖到 1:20，它又给我刷回原来的位置」。
+       另外给键盘留了后路：← → 每次 5 秒，Home / End 直接跳到头尾。 */
     const bar = App.qs('#progressBar');
     if (bar) {
-      bar.addEventListener('click', function (e) {
+      const ratioAt = function (clientX) {
+        const rect = bar.getBoundingClientRect();
+        if (!rect.width) { return 0; }
+        return Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+      };
+
+      const seekTo = function (clientX) {
         const a = MusicPage.audio();
         if (!a || !isFinite(a.duration) || !a.duration) { return; }
-        const rect = bar.getBoundingClientRect();
-        /* 算出点在整条上的百分之几 */
-        const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
-        a.currentTime = ratio * a.duration;
+        a.currentTime = ratioAt(clientX) * a.duration;
         MusicPage.syncProgress();
+      };
+
+      bar.addEventListener('pointerdown', function (e) {
+        const a = MusicPage.audio();
+        if (!a || !isFinite(a.duration) || !a.duration) { return; }
+        MusicPage.state.seeking = true;   /* 告诉 timeupdate 先别插手 */
+        bar.classList.add('is-dragging');
+        /* 指针捕获：拖到进度条外面（甚至页面外）也还跟得住 */
+        if (bar.setPointerCapture) {
+          try { bar.setPointerCapture(e.pointerId); } catch (err) { /* 老浏览器没有就算了 */ }
+        }
+        seekTo(e.clientX);
+        e.preventDefault();
+      });
+
+      bar.addEventListener('pointermove', function (e) {
+        if (!MusicPage.state.seeking) { return; }
+        seekTo(e.clientX);
+      });
+
+      const finish = function (e) {
+        if (!MusicPage.state.seeking) { return; }
+        MusicPage.state.seeking = false;
+        bar.classList.remove('is-dragging');
+        if (bar.releasePointerCapture && e && e.pointerId != null) {
+          try { bar.releasePointerCapture(e.pointerId); } catch (err) { /* 同上 */ }
+        }
+        MusicPage.syncProgress();
+      };
+      bar.addEventListener('pointerup', finish);
+      bar.addEventListener('pointercancel', finish);
+
+      /* 键盘：← → 快退快进 5 秒，Home / End 跳到头尾 */
+      bar.addEventListener('keydown', function (e) {
+        const a = MusicPage.audio();
+        if (!a || !isFinite(a.duration) || !a.duration) { return; }
+
+        if (e.key === 'Home') { a.currentTime = 0; MusicPage.syncProgress(); e.preventDefault(); return; }
+        if (e.key === 'End')  { a.currentTime = Math.max(a.duration - 0.5, 0); MusicPage.syncProgress(); e.preventDefault(); return; }
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') { return; }
+
+        const step = e.key === 'ArrowRight' ? 5 : -5;
+        const next = Math.min(Math.max((a.currentTime || 0) + step, 0), a.duration);
+        a.currentTime = next;
+        MusicPage.syncProgress();
+        e.preventDefault();
       });
     }
   },
@@ -645,6 +726,10 @@ const MusicPage = {
 
     if (fill) { fill.style.width = percent + '%'; }
     if (now) { now.textContent = this.clock(cur); }
+
+    /* 顺手告诉读屏软件「现在是百分之几」，前面 ARIA 那三个属性才有意义 */
+    const bar = App.qs('#progressBar');
+    if (bar) { bar.setAttribute('aria-valuenow', String(Math.round(percent))); }
 
     /* 拿不到真实时长时（本地文件还没放进来，就永远不会 loadedmetadata），
        先显示数据里写好的那个时长，总比一直挂着 --:-- 好看。
@@ -831,12 +916,12 @@ const MusicPage = {
 
           '<div class="field field--full">' +
             '<label for="mSrc">本地音频（文件名对得上就有声音）</label>' +
-            '<input id="mSrc" type="text" placeholder="assets/audio/日落大道.mp3" value="' + App.escape(m.src || '') + '">' +
+            '<input id="mSrc" type="text" placeholder="assets/audio/Echoes.mp3" value="' + App.escape(m.src || '') + '">' +
             '<p class="field__tip">' +
               '把文件放进 <code>assets/audio/</code>，文件名和曲名保持一致就行。<br>' +
-              '两种放法都认：平铺 <code>assets/audio/日落大道.mp3</code>，' +
-              '或者按分类建文件夹 <code>assets/audio/摇滚/日落大道.mp3</code>' +
-              '（按歌手建 <code>assets/audio/梁博/日落大道.mp3</code> 也一样）。<br>' +
+              '两种放法都认：平铺 <code>assets/audio/Echoes.mp3</code>，' +
+              '或者按分类建文件夹 <code>assets/audio/氛围/Echoes.mp3</code>' +
+              '（按歌手建 <code>assets/audio/梁博/Echoes.mp3</code> 也一样）。<br>' +
               '后缀也不挑：mp3 / m4a / ogg / wav / flac 都能找出来。' +
               '这六首的路径都已经提前填好了，<b>放进去就能响，不用回来改</b>。<br>' +
               '也可以填 <code>https://</code> 开头的在线音频地址。' +
@@ -918,8 +1003,8 @@ const MusicPage = {
     const track = this.state.all.find(function (m) { return m.id === id; });
     const name = track ? track.name : '';
 
-    const msg = SiteAPI.isDb()
-      ? '确定从碟架上拿走《' + name + '》吗？\n数据库里删掉就真的没有了，mp3 文件不会跟着删。'
+    const msg = SiteAPI.isRemote()
+      ? '确定从碟架上拿走《' + name + '》吗？\n' + SiteAPI.storeLabel() + '里删掉就真的没有了，mp3 文件不会跟着删。'
       : '确定从碟架上拿走《' + name + '》吗？\n（写在 js/data.js 里的只是隐藏，点「恢复默认」能找回来）';
 
     if (!window.confirm(msg)) { return; }

@@ -12,6 +12,171 @@
      8. 响应式
    ========================================================================== */
 
+/* ---------- 0. 阅读进度条 ----------
+   贴在窗口最顶端的一条 3px 细线，只在文章弹窗打开时露出来。
+   平时 opacity 是 0 —— 看不见也点不到（aria-hidden 已经把读屏也排除了），
+   所以放在 <main> 最开头不影响任何布局。 */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 600;          /* 盖在弹窗（500）上面，读长文时不会被挡住 */
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.28s var(--ease);
+  pointer-events: none;
+}
+.read-progress.is-on { opacity: 1; }
+.read-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 0 var(--r-full) var(--r-full) 0;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-purple), var(--c-blue));
+  box-shadow: 0 0 12px rgba(195, 164, 255, 0.75);
+  transition: width 0.12s linear;
+}
+/* 深色模式：这条线本身是亮色渐变，在深色背景上照样看得清，不用另调 */
+
+/* ---------- 0.2 站内搜索 ----------
+   一个宽搜索框 + 一块结果区（js/search.js 负责填）。
+   结果按「文章 / 小诗 / 知识点」分组，命中的关键词用 <mark> 标出来。 */
+/* 归档方式切换（栏目 / 按月份）：一对小胶囊按钮 */
+.view-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-full);
+  background: rgba(195, 164, 255, 0.12);
+  border: 1px solid var(--line);
+}
+.view-switch__btn {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink-3);
+  padding: 6px 16px;
+  border-radius: var(--r-full);
+  cursor: pointer;
+  transition: background 0.22s var(--ease), color 0.22s var(--ease);
+}
+.view-switch__btn:hover { color: var(--ink); }
+.view-switch__btn.is-active {
+  background: var(--card-solid);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+body.theme-dark .view-switch__btn.is-active { background: rgba(255, 255, 255, 0.10); }
+
+.search-zone {
+  padding: 26px 0 6px;
+}
+.search-box--wide {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--sh-1);
+}
+body.theme-dark .search-box--wide { background: rgba(255, 255, 255, 0.07); }
+.search-box--wide input {
+  width: 100%;
+  font-size: 15px;
+}
+.search-box--wide input::placeholder { color: var(--ink-4); }
+
+.search-results {
+  margin-top: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+}
+.search-head {
+  padding: 12px 18px;
+  font-size: 13px;
+  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  background: rgba(195, 164, 255, 0.07);
+}
+.search-head b { color: var(--ink); }
+
+.search-group { padding: 10px 12px 4px; }
+.search-group + .search-group { border-top: 1px dashed var(--line); }
+.search-group__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 0 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: var(--ink-3);
+}
+.search-group__title i {
+  font-style: normal;
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: var(--r-full);
+  background: rgba(195, 164, 255, 0.18);
+  color: var(--ink-2);
+}
+
+.search-list { list-style: none; margin: 0; padding: 0; }
+.search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+.search-item:hover { background: rgba(195, 164, 255, 0.13); transform: translateX(3px); }
+.search-item__title {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.search-item__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+.search-item__text {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 命中的关键词：底色用品牌紫的淡版，深色模式下也一样看得清 */
+.search-item mark {
+  background: rgba(195, 164, 255, 0.34);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+body.theme-dark .search-item mark { background: rgba(195, 164, 255, 0.30); }
+
+.search-empty {
+  padding: 34px 20px 38px;
+  text-align: center;
+  color: var(--ink-3);
+}
+.search-empty__icon { display: block; font-size: 30px; margin-bottom: 8px; }
+.search-empty p { margin: 0; font-size: 13.5px; line-height: 1.9; }
+
 /* ---------- 1. 页面小封面 ---------- */
 .page-hero {
   position: relative;
@@ -356,3 +521,42 @@ body.theme-dark .column-card { background: rgba(255, 255, 255, 0.05); }
 
 @media (max-width: 900px) { .column-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px) { .column-grid { grid-template-columns: 1fr; } }
+
+/* ------------------------------------------------------------------
+   正文插图 —— 编辑器「插入照片」写进去的 ![](...) 会渲染成这个样子
+       <figure class="article-figure"><img …><figcaption>说明</figcaption></figure>
+   figure 是 HTML 里给「图 + 图注」准备的标签，语义上比裸 img 合适。
+   ------------------------------------------------------------------ */
+.article-figure { margin: 24px 0; }
+.article-figure img {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+/* 不写图说明就不出这一行，所以留了大一点的上间距给有说明的情况 */
+.article-figure figcaption {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+/* ------------------------------------------------------------------
+   正文输入框上方的工具条（「插入照片」按钮那一行）
+   ------------------------------------------------------------------ */
+.editor-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.editor-tools__hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+@media (max-width: 560px) { .editor-tools__hint { display: none; } }

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 · 走丢了 · 朔的小窝</title>
+  <meta name="description" content="这个地址什么都没有 —— 回首页看看别的内容吧。">
+
+  <!-- 浏览器标签页上的小图标 -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="404 · 走丢了 · 朔的小窝">
+  <meta property="og:description" content="这个地址什么都没有 —— 回首页看看别的内容吧。">
+  <meta property="og:image" content="assets/hero-home.jpg">
+  <meta property="og:url" content="404.html">
+
+    <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+<link rel="stylesheet" href="css/base.css">
+  <style>
+    /* 这一页不需要 JS 也能完整显示 —— 404 页最常见的场景就是「什么都加载不出来」，
+       所以内容和按钮全部写在 HTML 里，样式也就是普通 CSS */
+
+    .lost {
+      min-height: 62vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .lost__code {
+      font-family: var(--font-serif);
+      font-size: clamp(64px, 16vw, 132px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 4px;
+      margin: 0;
+      background: linear-gradient(135deg, var(--c-pink), var(--c-purple), var(--c-blue));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      /* 万一浏览器不支持「文字渐变」，退回看得见的颜色 */
+    }
+    @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+      .lost__code { color: var(--c-purple); background: none; }
+    }
+
+    .lost__title {
+      margin: 18px 0 8px;
+      font-size: 19px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .lost__desc {
+      margin: 0 0 26px;
+      max-width: 30em;
+      font-size: 14.5px;
+      line-height: 1.9;
+      color: var(--ink-2);
+    }
+
+    .lost__acts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .lost__links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: center;
+      margin-top: 30px;
+      font-size: 13.5px;
+      color: var(--ink-3);
+    }
+    .lost__links a:hover { color: var(--ink); }
+  </style>
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- 顶部导航：和别的页面同一个样子，一眼还认得出这是本站 -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__acts">
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" style="padding-top: calc(var(--nav-h) + 40px);">
+    <section class="lost">
+      <p class="lost__code">404</p>
+      <h1 class="lost__title">这里什么都没有，只有风。</h1>
+      <p class="lost__desc">
+        你要找的页面大概搬了家、改了名字，或者压根就没存在过。<br>
+        不急着走的话，可以回首页看看别的 —— 文字、小诗、音乐都在那头。
+      </p>
+
+      <div class="lost__acts">
+        <a class="btn btn--primary" href="index.html">回首页</a>
+        <a class="btn" href="articles.html">读点文章</a>
+        <a class="btn" href="about.html">关于我</a>
+      </div>
+
+      <nav class="lost__links">
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="english.html">英语</a>
+        <a href="c/index.html">C 语言练习站</a>
+      </nav>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="study.html">学习</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
+      <p class="footer__copy">朔的小窝 &copy; <span data-year>2026</span></p>
+    </div>
+  </footer>
+
+  <script src="js/main.js" defer></script>
+</body>
+</html>

@@ -177,3 +177,41 @@ html[data-theme="dark"] .site-foot__sign { color: #a8a2b8; }
   .site-top__nav a:nth-child(3),
   .site-top__nav a:nth-child(5) { display: none; }
 }
+
+
+/* ==========================================================================
+   ④ 主站身份条落位（2026-10-11 新加）
+   --------------------------------------------------------------------------
+   主站那条身份条（.adminbar）是 fixed 在最顶上的，34px 高，
+   它会把自己插到 <body> 最前面并给 body 加上 has-adminbar。
+   本站顶部本来就有一条固定的 .site-top + .site-header，
+   两边都是 fixed → 直接叠在一起。这里按顺序往下推一层即可：
+       身份条 34px → .site-top → .site-header（原来的 60px）
+   子站自己的 body 上边距由主站那条 body.has-adminbar 规则负责，不用重复写。
+   ========================================================================== */
+
+/* 身份条高度取主站的变量（万一那边调了高度，这里自动跟上） */
+:root { --adminbar-fallback: 34px; }
+
+body.has-adminbar .site-top {
+  top: var(--adminbar-h, var(--adminbar-fallback));
+}
+
+body.has-adminbar .site-header {
+  top: calc(var(--site-top-h) + var(--adminbar-h, var(--adminbar-fallback))) !important;
+}
+
+/* --header-h 是本站自己的变量（内容区用它算上边距），这里把多出来的一段补上 */
+body.has-adminbar {
+  --header-h: calc(60px + var(--site-top-h) + var(--adminbar-h, var(--adminbar-fallback)));
+}
+
+/* 窄屏时身份条允许换行长高，别把导航挤没了 */
+@media (max-width: 760px) {
+  body.has-adminbar .site-header {
+    top: calc(42px + var(--adminbar-h, var(--adminbar-fallback))) !important;
+  }
+  body.has-adminbar {
+    --header-h: calc(60px + 42px + var(--adminbar-h, var(--adminbar-fallback)));
+  }
+}

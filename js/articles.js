@@ -24,6 +24,10 @@ const ArticlesPage = {
   /* 当前状态，整页共用这一份 */
   state: {
     category: '全部',
+    /* 归档方式：'column' 按栏目（默认，和以前一样）/ 'month' 按月份 */
+    view: 'column',
+    /* 「按月份」时选中的那个月，形如 '2026-08'；空表示不筛 */
+    month: '',
     keyword: '',
     list: [],
     /* 弹窗现在在干嘛：'view' 读文章 / 'edit' 编辑中 */
@@ -39,9 +43,39 @@ const ArticlesPage = {
     this.bindRandom();
     this.bindNew();
     this.bindModal();
+    this.bindViewSwitch();
     this.renderMarks();
     this.renderColumns();
     this.load();
+  },
+
+  /* ---------- 1.4 归档方式切换：栏目 ⇄ 月份 ----------
+     两种视图共用下面那块地（[data-columns]），只是渲染的内容不同。 */
+  bindViewSwitch() {
+    const box = App.qs('[data-view-switch]');
+    if (!box) { return; }
+    const self = this;
+
+    box.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-view]');
+      if (!btn) { return; }
+      self.state.view = btn.getAttribute('data-view');
+      /* 换视图的时候把上一次的筛选清掉，否则会出现「切到月份却还按栏目筛」的怪事 */
+      self.state.month = '';
+      self.state.category = '全部';
+
+      App.qsa('.view-switch__btn', box).forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      const hint = App.qs('[data-view-hint]');
+      if (hint) {
+        hint.textContent = self.state.view === 'month'
+          ? '点一个月份，就只看那个月写的'
+          : '点一个栏目，就只看它';
+      }
+      self.load();
+      self.renderColumns();
+    });
   },
 
   /* ---------- 读数据 & 渲染 ---------- */
@@ -51,8 +85,17 @@ const ArticlesPage = {
       category: this.state.category,
       keyword: this.state.keyword
     }).then(function (list) {
-      self.state.list = list;
-      self.renderGrid(list);
+      /* 「按月份」筛的那一步放在前端做：
+         月份是 YYYY-MM，数据库里只存了 YYYY-MM-DD，取前 7 位就是月份，
+         没必要为它专门加一条接口。 */
+      let shown = list;
+      if (self.state.month) {
+        shown = list.filter(function (a) {
+          return String(a.date || '').slice(0, 7) === self.state.month;
+        });
+      }
+      self.state.list = shown;
+      self.renderGrid(shown);
       self.renderTabs();
     });
   },
@@ -117,6 +160,8 @@ const ArticlesPage = {
   renderColumns() {
     const box = App.qs('[data-columns]');
     if (!box) { return; }
+    /* 同一块地，两种画法 */
+    if (this.state.view === 'month') { this.renderMonths(box); return; }
 
     Promise.all([
       this.loadAll(), SiteAPI.getColumns(), SiteAPI.getPoems(), SiteAPI.getMusic()
@@ -165,6 +210,55 @@ const ArticlesPage = {
           if (grid && grid.scrollIntoView) {
             grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
+        });
+      });
+    });
+  },
+
+  /* ---------- 1.6 按月份归档 ----------
+     一篇篇往回翻太累，按月摊开就清楚多了：哪个月写得勤、哪个月空着，
+     一眼看得出来 —— 这也是给自己留的一本「写作日历」。 */
+  renderMonths(box) {
+    const self = this;
+    this.loadAll().then(function (all) {
+      /* 先数一遍：每个月各写了几篇 */
+      const buckets = {};
+      all.forEach(function (a) {
+        const m = String(a.date || '').slice(0, 7);
+        if (!m) { return; }
+        if (!buckets[m]) { buckets[m] = []; }
+        buckets[m].push(a);
+      });
+
+      const months = Object.keys(buckets).sort().reverse();   /* 新的月份排前面 */
+      if (!months.length) {
+        box.innerHTML =
+          '<div class="empty"><div class="empty__icon">☁</div>还没有写过文章，也就还没有月份可翻。</div>';
+        return;
+      }
+
+      box.innerHTML = months.map(function (m) {
+        const list = buckets[m];
+        const active = self.state.month === m ? ' is-active' : '';
+        const title = list.map(function (a) { return a.title; }).slice(0, 3).join('、');
+        return '<button class="column-card' + active + '" type="button" data-month="' + App.escape(m) + '"' +
+                 ' title="这个月写了 ' + list.length + ' 篇">' +
+                 '<span class="column-card__name">' + App.escape(m.slice(0, 4)) + ' 年 ' +
+                   App.escape(String(Number(m.slice(5, 7)))) + ' 月</span>' +
+                 '<span class="column-card__tag">' + App.escape(m) + '</span>' +
+                 '<span class="column-card__count">' + list.length + ' 篇</span>' +
+                 '<span class="column-card__desc">' + App.escape(title) +
+                   (list.length > 3 ? ' 等' : '') + '</span>' +
+               '</button>';
+      }).join('');
+
+      App.qsa('.column-card', box).forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const m = btn.getAttribute('data-month');
+          /* 再点一次同一个月 = 取消筛选，看全部 */
+          self.state.month = (self.state.month === m) ? '' : m;
+          self.load();
+          self.renderColumns();
         });
       });
     });
@@ -239,8 +333,10 @@ const ArticlesPage = {
             '<h3 class="article-card__title">' + App.escape(a.title) + marks + '</h3>' +
             '<p class="article-card__desc">' + App.escape(a.excerpt) + '</p>' +
             '<div class="article-card__tags">' + tags + '</div>' +
-            '<div class="article-card__foot">' +
-              '<span>' + App.formatDate(a.date) + '</span>' +
+            /* 元信息写成一行代码注释：// 2026.08.05 · 342 字 · 阅读 →
+               只换了字体和前面那两个斜杠，数据一个字没动 */
+            '<div class="article-card__foot meta-mono">' +
+              '<span>// ' + App.formatDate(a.date) + '</span>' +
               '<span>' + a.words + ' 字 · 阅读 →</span>' +
             '</div>' +
           '</div>' +
@@ -267,6 +363,22 @@ const ArticlesPage = {
 
     /* 记一下打开弹窗前焦点在哪，关闭时还回去 */
     this._lastFocus = null;
+
+    /* 阅读进度：弹窗滚动时算百分比，写到页面顶上那条细线里。
+       用 'scroll' 事件 + 被动监听，不影响滚动本身的流畅度。 */
+    const box = App.qs('.modal__box', modal);
+    const bar = App.qs('#readProgress');
+    if (box && bar) {
+      const fill = bar.querySelector('i');
+      box.addEventListener('scroll', function () {
+        /* scrollHeight - clientHeight = 还能往下滚多少；
+           滚到底刚好是 100%。一篇很短、根本不出滚动条的文章分母会是 0，
+           除出来是 NaN，所以用 Math.max(1, …) 兜住 */
+        const room = Math.max(1, box.scrollHeight - box.clientHeight);
+        const pct = Math.min(100, Math.max(0, (box.scrollTop / room) * 100));
+        if (fill) { fill.style.width = pct + '%'; }
+      }, { passive: true });
+    }
 
     modal.addEventListener('click', function (e) {
       /* 关：右上角 ✕、底部「关闭」，编辑态也走这里 */
@@ -301,16 +413,49 @@ const ArticlesPage = {
       /* 不要照片了 */
       if (e.target.closest('[data-cover-clear]')) { ArticlesPage.setCover(''); return; }
 
+      /* 正文里插照片：按钮 → 唤起选文件框（可以给删除的那三行 hidden input 让位） */
+      if (e.target.closest('[data-img-pick]')) {
+        const picker = App.qs('[data-img-file]', modal);
+        if (picker) { picker.click(); }
+        return;
+      }
+
       /* 点弹窗外的遮罩也关掉 */
       if (e.target === modal) { ArticlesPage.tryClose(); }
     });
 
-    /* 选好一张本地图片 → 压小 → 当成封面 */
+    /* 选好本地图片 → 压小 → 当成正文插图，插在光标处 */
     modal.addEventListener('change', function (e) {
-      const input = e.target.closest('[data-cover-file]');
-      if (!input || !input.files || !input.files[0]) { return; }
-      ArticlesPage.pickCover(input.files[0]);
+      const input = e.target.closest('[data-img-file]');
+      if (input && input.files && input.files.length) {
+        ArticlesPage.pickBodyImages(input.files);
+        input.value = '';   /* 清掉，否则同一张图选第二次不会触发 change */
+        return;
+      }
+      const coverInput = e.target.closest('[data-cover-file]');
+      if (coverInput && coverInput.files && coverInput.files[0]) {
+        ArticlesPage.pickCover(coverInput.files[0]);
+      }
     });
+
+    /* 直接往正文里粘贴照片（截图、复制的图片都能用） */
+    const area = App.qs('#fContent');
+    if (area) {
+      area.addEventListener('paste', function (e) {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) { return; }
+        const pics = [];
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type && items[i].type.indexOf('image/') === 0) {
+            pics.push(items[i].getAsFile());
+          }
+        }
+        if (!pics.length) { return; }
+        /* 拦下浏览器「把图片当文件塞进来」的默认行为，走我们自己的插入流程 */
+        e.preventDefault();
+        ArticlesPage.pickBodyImages(pics);
+      });
+    }
 
     /* 手动填封面路径时，左边的预览实时跟着变（fromInput=true 保护输入框内容） */
     modal.addEventListener('input', function (e) {
@@ -354,6 +499,14 @@ const ArticlesPage = {
     const box = App.qs('.modal__box', modal);
     if (box && box.focus) { box.focus(); }
 
+    /* 进度条露出来，并从 0 开始 —— 上一篇文章读到哪儿了不带到下一篇 */
+    const bar = App.qs('#readProgress');
+    if (bar) {
+      const fill = bar.querySelector('i');
+      if (fill) { fill.style.width = '0%'; }
+      bar.classList.add('is-on');
+    }
+
     /* 焦点圈定：Tab 在弹窗里循环，别跑到后面被锁住的页面上。
        （不这么做的话，键盘用户按着 Tab 会一路走到看不见的页面元素里，找不回来） */
     if (!modal.dataset.trapBound) {
@@ -391,7 +544,7 @@ const ArticlesPage = {
       self.state.editingCover = '';
 
       const body = a.content && a.content.length
-        ? a.content.map(function (p) { return '<p>' + App.escape(p) + '</p>'; }).join('')
+        ? a.content.map(function (p) { return App.paragraphHtml(p); }).join('')
         : '<p>' + App.escape(a.excerpt) + '</p>';
 
       /* 底部那排小标记：我写的 / 改过的 */
@@ -400,11 +553,11 @@ const ArticlesPage = {
       if (a.edited) { marks += '<span class="tag tag--gray">已修改</span>'; }
 
       App.qs('[data-modal-body]', modal).innerHTML =
-        App.coverHtml(a.cover, 'cover modal__cover', a.title) +
+        App.coverHtml(a.cover, 'cover modal__cover', a.title, { eager: true }) +
         '<div class="modal__content">' +
-          '<div class="meta">' +
+          '<div class="meta meta-mono">' +
             '<span class="tag tag--pink">' + App.escape(DataTools.columnLabel(a.category)) + '</span>' +
-            '<span>' + App.formatDate(a.date) + '</span>' +
+            '<span>// ' + App.formatDate(a.date) + '</span>' +
             '<span class="meta__dot"></span>' +
             '<span>' + a.words + ' 字</span>' +
             marks +
@@ -419,7 +572,7 @@ const ArticlesPage = {
           /* 留言区：谁都能看、谁都能写，内容由 js/comments.js 填 */
           '<div class="comments-box" data-comments="article-' + App.escape(a.id) + '"></div>' +
           '<div class="modal__foot">' +
-            /* data-admin-only：游客身份时这两个按钮会被 CSS 收起来（见 base.css） */
+            /* data-admin-only：没登录时这两个按钮会被 CSS 收起来（见 base.css） */
             '<button class="btn btn--sm" type="button" data-admin-only data-edit="' + App.escape(a.id) + '">✎ 编辑这篇</button>' +
             '<button class="btn btn--sm btn--danger" type="button" data-admin-only data-del="' + App.escape(a.id) + '">删除</button>' +
             '<button class="btn btn--sm btn--ghost" type="button" data-close>关闭</button>' +
@@ -548,8 +701,8 @@ const ArticlesPage = {
                   App.escape(App.isImageUrl(a.cover) ? a.cover : '') + '">' +
                 '<p class="field__tip">' +
                   '选好的照片会<b>自动压小</b>再保存，不用手动改代码。<br>' +
-                  (SiteAPI.isDb()
-                    ? '照片会跟文章一起存进数据库，换浏览器也还在。' +
+                  (SiteAPI.isRemote()
+                    ? '照片会跟文章一起存进' + SiteAPI.storeLabel() + '，换浏览器也还在。' +
                       '如果这张图以后要用在很多地方，放进 <code>assets/covers/</code> 再填路径会更省空间。'
                     : '现在没连数据库，照片存在浏览器里（换电脑就没了）。' +
                       '想长期保存就把照片放进 <code>assets/covers/</code>，再把路径填到上面这栏。') +
@@ -558,12 +711,22 @@ const ArticlesPage = {
             '</div>' +
           '</div>' +
 
+          /* ---------- 正文 ---------- */
           '<div class="field field--full">' +
             '<label for="fContent">正文</label>' +
+            '<div class="editor-tools">' +
+              '<button class="btn btn--sm" type="button" data-img-pick>🖼 插入照片</button>' +
+              '<span class="editor-tools__hint">也可以直接把照片<b>粘贴</b>到下面的框里</span>' +
+              '<input type="file" accept="image/*" data-img-file hidden multiple>' +
+            '</div>' +
             '<textarea id="fContent" rows="14" placeholder="正文写在这里。&#10;中间空一行，就是新的一段。">' +
               App.escape((a.content || []).join('\n\n')) +
             '</textarea>' +
-            '<p class="field__tip">中间<b>空一行</b>就是新的一段，不用手动敲空格。</p>' +
+            '<p class="field__tip">' +
+              '中间<b>空一行</b>就是新的一段。插进去的照片会自动压小收纳，' +
+              '选中那行 <code>![](…)</code> 按退格就能删掉。<br>' +
+              '照片太大会让文章变卡，建议一次别放太多张。' +
+            '</p>' +
           '</div>' +
         '</div>' +
 
@@ -621,6 +784,56 @@ const ArticlesPage = {
     });
   },
 
+  /* ---------- 4.3.2 正文插图 ----------
+     把挑好的照片压小，写成像这样的一个「段落」塞进正文：
+         ![照片说明](data:image/jpeg;base64,...)
+     渲染时 App.paragraphHtml 会认出这一行，把它变成一张图。
+     整段只有这一行且长得像图片标记 —— 这是约定，别在它前后加别的字。 */
+  pickBodyImages(files) {
+    const self = this;
+    const list = Array.prototype.slice.call(files || []).filter(Boolean);
+    if (!list.length) { return; }
+
+    App.toast('正在处理' + list.length + '张照片…');
+
+    /* 一张一张处理，报错的那张跳过、不连累后面的 */
+    list.reduce(function (chain, file) {
+      return chain.then(function (done) {
+        return App.readImageFile(file, 1200).then(function (dataUrl) {
+          self.insertIntoBody('![](' + dataUrl + ')');
+          return done + 1;
+        }).catch(function () {
+          App.toast('有一张照片读不出来，已经跳过');
+          return done;
+        });
+      });
+    }, Promise.resolve(0)).then(function (n) {
+      App.toast(n ? ('已插入 ' + n + ' 张照片，记得点「保存」') : '这些照片没能插进去');
+    });
+  },
+
+  /* 往正文输入框里插一段：落在光标处（有选中就替换选中），前后空出一行，
+     免得跟原来的文字糊在一起变成同一段 */
+  insertIntoBody(text) {
+    const area = App.qs('#fContent');
+    if (!area) { return; }
+
+    const start = area.selectionStart;
+    const end = area.selectionEnd;
+    const before = area.value.slice(0, start);
+    const after = area.value.slice(end);
+
+    const lead = (!before || /\n\s*\n$/.test(before)) ? '' : ((before.slice(-1) === '\n') ? '\n' : '\n\n');
+    const tail = (!after || /^\s*\n/.test(after)) ? '' : '\n\n';
+
+    area.value = before + lead + text + tail + after;
+
+    /* 光标挪到刚插的这段后面，方便接着写（或连着删） */
+    const caret = (before + lead + text).length;
+    area.focus();
+    area.setSelectionRange(caret, caret);
+  },
+
   /* ---------- 4.4 保存 / 删除 ---------- */
   /* 把表单里的值收成一个对象 */
   collectForm() {
@@ -656,6 +869,14 @@ const ArticlesPage = {
       return;
     }
 
+    /* 正文 + 封面加起来快到服务器上限（8MB）时，提前说人话拦下来，
+       别等请求被拒收、页面却一点动静都没有 */
+    const totalKB = Math.round(((data.content || '').length + (data.cover || '').length) / 1024);
+    if (totalKB > 6 * 1024) {
+      App.toast('这篇约 ' + (totalKB / 1024).toFixed(1) + 'MB，太大了 —— 删掉几张照片再保存');
+      return;
+    }
+
     const id = this.state.editingId;
 
     const done = function (saved) {
@@ -670,20 +891,34 @@ const ArticlesPage = {
       App.toast(id ? '已保存' : '已经写好一篇了');
     };
 
+    /* 之前这里没有 catch：一旦请求失败（服务没开、内容超限、断网），
+       页面就一声不吭，看起来就像「点了保存没反应」。现在必须给个说法。 */
+    const fail = function (err) {
+      const msg = (err && err.message) || '';
+      if (/太大|payload|413/i.test(msg)) {
+        App.toast('内容太大被服务器拒收了，删掉几张照片再试');
+      } else if (/Failed to fetch|NetworkError|ECONN/i.test(msg)) {
+        App.toast('连不上服务 —— 确认 start.bat 那个黑窗口还开着');
+      } else {
+        App.toast('保存失败：' + (msg || '服务没响应'));
+      }
+    };
+
     if (id) {
       SiteAPI.updateArticle(id, data)
         .then(function () { return SiteAPI.getArticle(id); })
-        .then(done);
+        .then(done)
+        .catch(fail);
     } else {
-      SiteAPI.addArticle(data).then(done);
+      SiteAPI.addArticle(data).then(done).catch(fail);
     }
   },
 
   removeArticle(id) {
     if (!window.Auth || !Auth.gate()) { return; }
     if (!id) { return; }
-    const msg = SiteAPI.isDb()
-      ? '确定要删掉这篇吗？\n数据库里删掉就真的没有了。'
+    const msg = SiteAPI.isRemote()
+      ? '确定要删掉这篇吗？\n' + SiteAPI.storeLabel() + '里删掉就真的没有了。'
       : '确定要删掉这篇吗？\n（写在 js/data.js 里的文章只是先隐藏，点工具栏的「恢复默认」就能回来）';
     if (!window.confirm(msg)) {
       return;
@@ -693,7 +928,7 @@ const ArticlesPage = {
       self.state.editingCover = '';
       self.refresh();
       self.closeModal();
-      App.toast(SiteAPI.isDb() ? '已删除' : '已删除，想反悔就点工具栏的「恢复默认」');
+      App.toast(SiteAPI.isRemote() ? '已删除' : '已删除，想反悔就点工具栏的「恢复默认」');
     });
   },
 
@@ -706,6 +941,10 @@ const ArticlesPage = {
 
     modal.classList.remove('is-open');
     this.state.mode = 'view';
+
+    /* 进度条收起来（留着 % 不还原也没关系，下次打开会重置成 0） */
+    const bar = App.qs('#readProgress');
+    if (bar) { bar.classList.remove('is-on'); }
 
     /* 延时解锁滚动：等淡出动画走完，页面不会突然跳一下 */
     setTimeout(function () {

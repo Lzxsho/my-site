@@ -16,6 +16,9 @@
 <meta property="og:description" content="纯图扫描卷（黄冈师范学院预测卷等）原图练习，旁边可填写答案，一键显示参考答案。">
 <meta property="og:image" content="../assets/hero-home.jpg">
 <meta property="og:url" content="c/papers-image.html">
+<!-- 主站的基础样式（身份条、登录框、提示条用的类都在里面）
+     放在子站自己的样式**之前**：这样两边若有同名规则，永远以子站的为准。 -->
+<link rel="stylesheet" href="../css/base.css">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/bridge.css">
 <link rel="stylesheet" href="css/layout.css">
@@ -204,5 +207,11 @@
     }, true);
   })();
 </script>
+<!-- 主站的通用件：工具方法 App / 身份条与登录（auth）/ 主题与 C 站联动（bridge）
+     data.js 不加载 —— C 站的题目数据在自己的 js/data 里，不需要那套读写层。
+     codefx（代码雨）也不加载：做题的地方不该分心。 -->
+<script src="../js/main.js" defer></script>
+<script src="../js/auth.js" defer></script>
+<script src="js/bridge.js" defer></script>
 </body>
 </html>

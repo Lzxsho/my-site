@@ -16,7 +16,9 @@
   <meta property="og:description" content="英语：课堂知识点、词汇复习（导入词库练习）、我的错题本、学习资料。">
   <meta property="og:image" content="assets/hero-home.jpg">
   <meta property="og:url" content="english.html">
-  <link rel="stylesheet" href="css/base.css">
+    <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+<link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/codefx.css">
   <link rel="stylesheet" href="css/english.css">
 </head>
@@ -92,8 +94,7 @@
             </p>
           </div>
           <div class="en-panel__acts">
-            <button class="btn btn--sm" type="button" data-note-expand>全部展开</button>
-            <button class="btn btn--sm" type="button" data-note-collapse>全部收起</button>
+            <span class="en-panel__hint">点一条 → 沉浸阅读</span>
           </div>
         </div>
 
@@ -302,8 +303,8 @@
             <h2 class="en-panel__title">把学习资料，整理在一起。</h2>
             <p class="en-panel__desc">导入词库、调整学习日期，随时回顾每一份资料。</p>
           </div>
-          <button class="btn" type="button" data-newmat data-admin-only>＋ 手动新建</button>
-          <button class="btn btn--primary" type="button" data-import data-admin-only>＋ 导入学习资料</button>
+          <button class="btn" type="button" data-newmat>＋ 手动新建</button>
+          <button class="btn btn--primary" type="button" data-import>＋ 导入学习资料</button>
         </div>
 
         <div class="card en-mat">
@@ -349,7 +350,7 @@
         <a href="about.html">关于</a>
         <a href="index.html#music">曲音拾集</a>
       </nav>
-      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
       <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
     </div>
   </footer>

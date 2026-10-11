@@ -26,6 +26,24 @@
      盒子里的列表、输入框、发布按钮都由这里生成，页面不用管细节。
    ========================================================================== */
 
+/* 两条小工具：把一条留言补齐成「有 parentId / replies 的形状」、按时间排序 */
+function commentsShape(r) {
+  const row = r || {};
+  return {
+    id: row.id,
+    target: row.target,
+    name: row.name,
+    content: row.content,
+    parentId: (row.parentId === undefined || row.parentId === null || row.parentId === '')
+      ? null : row.parentId,
+    createdAt: row.createdAt,
+    replies: []
+  };
+}
+function byTime(a, b) {
+  return String(a.createdAt || '') < String(b.createdAt || '') ? -1 : 1;
+}
+
 const Comments = {
 
   /* 本地模式下，评论存在浏览器里的钥匙名 */
@@ -42,10 +60,14 @@ const Comments = {
      云端配置（js/config.js）
      ------------------------------------------------------------------ */
   cfg() {
-    const c = (window.SHUOSCAPE_CONFIG && window.SHUOSCAPE_CONFIG.comments) || {};
+    const all = window.SHUOSCAPE_CONFIG || {};
+    const c = all.comments || {};
+    const content = all.content || {};
+    /* 留言这块没填、但内容那块填了 —— 一般就是同一个 Supabase 项目，
+       那就直接借用它的地址，省得同一串 key 抄两遍还抄错。 */
     return {
-      url: String(c.supabaseUrl || '').replace(/\/+$/, ''),
-      key: String(c.supabaseKey || ''),
+      url: String(c.supabaseUrl || content.supabaseUrl || '').replace(/\/+$/, ''),
+      key: String(c.supabaseKey || content.supabaseKey || ''),
       table: String(c.table || 'comments')
     };
   },
@@ -71,15 +93,41 @@ const Comments = {
     });
   },
 
-  /* 数据库那边的字段名是 created_at（下划线），页面里用 createdAt */
+  /* 数据库那边的字段名是 created_at / parent_id（下划线），页面里用驼峰 */
   fromRow(r) {
     return {
       id: r.id,
       target: r.target,
       name: r.name,
       content: r.content,
+      parentId: r.parent_id === undefined ? (r.parentId === undefined ? null : r.parentId) : r.parent_id,
       createdAt: r.created_at || r.createdAt || r.createdat
     };
+  },
+
+  /* 把「一串平铺的留言」整理成「带孩子的两级结构」：
+     顶层留言按时间排，每条下面挂自己的回复（回复内部也按时间排）。
+     只做两级 —— 再深缩进就没地儿了，看着也累。 */
+  nest(rows) {
+    const list = (rows || []).map(function (r) { return commentsShape(r); });
+    const top = [];
+    const kids = {};
+    list.forEach(function (r) {
+      if (r.parentId === null || r.parentId === undefined || String(r.parentId) === '') { top.push(r); return; }
+      const key = String(r.parentId);
+      if (!kids[key]) { kids[key] = []; }
+      kids[key].push(r);
+    });
+    top.sort(byTime);
+    Object.keys(kids).forEach(function (k) { kids[k].sort(byTime); });
+    top.forEach(function (t) { t.replies = kids[String(t.id)] || []; });
+    /* 回复的父亲可能已经被删了（云端尤其常见），那就把它挂到顶层，别丢 */
+    Object.keys(kids).forEach(function (k) {
+      const exists = top.some(function (t) { return String(t.id) === k; });
+      if (!exists) { kids[k].forEach(function (r) { top.push(r); }); }
+    });
+    top.sort(byTime);
+    return top;
   },
 
   /* ------------------------------------------------------------------
@@ -141,27 +189,45 @@ const Comments = {
   /* ------------------------------------------------------------------
      写：发一条
      ------------------------------------------------------------------ */
-  add(target, name, content) {
+  add(target, name, content, parentId) {
     const self = this;
     return this.ready().then(function () {
+      /* 回复的话，把父亲的 id 一起交给后端 —— 后端会自己校验它是否存在 */
+      const pid = (parentId === undefined || parentId === null || String(parentId) === '')
+        ? null : parentId;
+
+      /* 登录了（管理员或注册用户）→ 留言自动带上你的邮箱身份，
+         游客留言则不带。name 用表单里填的（登录后会预填昵称，还能改）。 */
+      const who = (typeof Auth !== 'undefined' && Auth.user && Auth.user.email)
+        ? Auth.user.email : null;
+
       if (self.mode === 'cloud') {
+        const extra = {};
+        /* 登录用户的留言带 access_token —— RLS 的 insert 策略认它；
+           没登录就是 anon，同样能发（游客留言）。 */
+        if (typeof Auth !== 'undefined' && Auth.token && Auth.token()) {
+          extra.Authorization = 'Bearer ' + Auth.token();
+        }
+        const row = {
+          target: target,
+          name: name,
+          content: content,
+          parent_id: pid,
+          created_at: new Date().toISOString()
+        };
+        if (who) { row.userEmail = who; }
         return self.cloudReq('', {
           method: 'POST',
-          headers: { Prefer: 'return=representation' },
-          body: {
-            target: target,
-            name: name,
-            content: content,
-            created_at: new Date().toISOString()
-          }
+          headers: Object.assign({ Prefer: 'return=representation' }, extra),
+          body: row
         }).then(function (r) { return r.json(); })
           .then(function (d) {
             if (d && (d.error || d.message)) {
               throw new Error(d.message || d.error || '云端没写上');
             }
-            const row = Array.isArray(d) ? d[0] : d;
-            return row && row.id
-              ? self.fromRow(row)
+            const got = Array.isArray(d) ? d[0] : d;
+            return got && got.id
+              ? self.fromRow(got)
               : { id: 'c' + Date.now(), target: target, name: name, content: content,
                   createdAt: new Date().toISOString() };
           });
@@ -170,7 +236,7 @@ const Comments = {
         return fetch('/api/comments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ target: target, name: name, content: content })
+          body: JSON.stringify({ target: target, name: name, content: content, parentId: pid })
         }).then(function (r) { return r.json(); })
           .then(function (d) {
             if (d && d.error) { throw new Error(d.error); }
@@ -183,8 +249,10 @@ const Comments = {
         target: target,
         name: name,
         content: content,
+        parentId: pid,
         createdAt: new Date().toISOString()
       };
+      if (who) { row.userEmail = who; }
       if (!all[target]) { all[target] = []; }
       all[target].push(row);
       self.localSave(all);
@@ -231,7 +299,10 @@ const Comments = {
       }
       const all = self.localAll();
       if (all[target]) {
-        all[target] = all[target].filter(function (r) { return String(r.id) !== String(id); });
+        all[target] = all[target].filter(function (r) {
+          /* 连回复一起删 —— 留下一堆找不着爹的回复更让人糊涂 */
+          return String(r.id) !== String(id) && String(r.parentId || '') !== String(id);
+        });
         self.localSave(all);
       }
       return true;
@@ -305,36 +376,135 @@ const Comments = {
     const sendEl = box.querySelector('[data-c-send]');
 
     if (nickEl && self.nick()) { nickEl.value = self.nick(); }
+    /* 登录了就把昵称预填进名字框（仍可改）—— 留言身份一目了然 */
+    if (nickEl && !nickEl.value && typeof Auth !== 'undefined' && Auth.user) {
+      nickEl.value = Auth.user.nickname || '';
+    }
 
     /* 画列表 */
     const paint = function (rows) {
-      if (!rows.length) {
+      const total = (rows || []).length;
+      if (!total) {
         listEl.innerHTML = '<p class="comments__empty">还没有人留言 —— 你可以是第一个。</p>';
         countEl.textContent = '0 条';
         return;
       }
-      countEl.textContent = rows.length + ' 条';
-      listEl.innerHTML = rows.map(function (r) {
+      countEl.textContent = total + ' 条';
+
+      /* 「回复某层楼」的小输入框：一次只开一个，点哪条就在哪条下面展开 */
+      const replyTo = { id: null };
+
+      const oneHtml = function (r, isReply) {
         return '' +
-          '<div class="comment" data-cid="' + App.escape(String(r.id)) + '">' +
+          '<div class="comment' + (isReply ? ' comment--reply' : '') + '" data-cid="' + App.escape(String(r.id)) + '">' +
             '<div class="comment__top">' +
               '<span class="comment__name">' + App.escape(r.name || '匿名') + '</span>' +
+              (isReply ? '<span class="comment__arrow" aria-hidden="true">↳</span>' : '') +
               '<span class="comment__time">' + App.escape(self.time(r.createdAt)) + '</span>' +
+              '<button class="icon-mini comment__reply" type="button" data-c-reply ' +
+                'title="回复这条">↩</button>' +
               '<button class="icon-mini comment__del" type="button" data-c-del ' +
                 'data-admin-only title="删除这条留言">✕</button>' +
             '</div>' +
             '<p class="comment__text">' + App.escape(r.content || '').replace(/\n/g, '<br>') + '</p>' +
           '</div>';
-      }).join('');
+      };
 
-      App.qsa('[data-c-del]', listEl).forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          if (typeof Auth !== 'undefined' && !Auth.gate()) { return; }
-          const cid = btn.closest('.comment').getAttribute('data-cid');
-          self.remove(cid, target).then(function () { return self.list(target); })
-            .then(paint);
+      const render = function () {
+        const top = self.nest(rows);
+        let html = '';
+        top.forEach(function (t) {
+          html += oneHtml(t, false);
+          /* 回复区：有自己的小框，缩进一点点，看着像「楼中楼」 */
+          html += '<div class="comment__kids" data-kids="' + App.escape(String(t.id)) + '">' +
+            (t.replies || []).map(function (k) { return oneHtml(k, true); }).join('') +
+          '</div>';
         });
-      });
+        listEl.innerHTML = html;
+        bind(listEl);
+      };
+
+      /* 渲染完再绑事件：节点是临时生成的，每次重画都要重新挂一次 */
+      const bind = function (root) {
+        App.qsa('[data-c-del]', root).forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            if (typeof Auth !== 'undefined' && !Auth.gate()) { return; }
+            const cid = btn.closest('.comment').getAttribute('data-cid');
+            /* 站点自带确认框就用它，没有（老版本 main.js）退回浏览器原生的 */
+            const ask = (typeof App.confirm === 'function')
+              ? App.confirm({
+                  title: '删掉这条留言？',
+                  desc: '连同它下面的回复一起删，删了就找不回来了。',
+                  okText: '删掉',
+                  danger: true
+                })
+              : Promise.resolve(window.confirm('连同回复一起删掉这条留言？'));
+
+            ask.then(function (yes) {
+              if (!yes) { return; }
+              self.remove(cid, target).then(function () { return self.list(target); })
+                .then(paint);
+            });
+          });
+        });
+
+        App.qsa('[data-c-reply]', root).forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const box = btn.closest('.comment');
+            const cid = box.getAttribute('data-cid');
+            /* 点同一个人的「回复」= 收起，算个开关 */
+            const old = App.qs('.comment-reply', listEl);
+            if (old) { old.remove(); }
+            if (replyTo.id === cid) { replyTo.id = null; return; }
+            replyTo.id = cid;
+            openReplyBox(box, cid);
+          });
+        });
+      };
+
+      /* 在某一楼下面插一个小输入框 */
+      const openReplyBox = function (box, cid) {
+        const wrap = document.createElement('div');
+        wrap.className = 'comment-reply';
+        wrap.innerHTML =
+          '<textarea class="comment-reply__text" rows="2" maxlength="1000" ' +
+            'placeholder="回复这一条…"></textarea>' +
+          '<div class="comment-reply__foot">' +
+            '<button class="btn btn--sm" type="button" data-r-cancel>取消</button>' +
+            '<button class="btn btn--sm btn--primary" type="button" data-r-send>回复</button>' +
+          '</div>';
+        box.appendChild(wrap);
+
+        const text = wrap.querySelector('.comment-reply__text');
+        text.focus();
+
+        wrap.querySelector('[data-r-cancel]').addEventListener('click', function () {
+          wrap.remove();
+          replyTo.id = null;
+        });
+        const sendReply = function () {
+          const val = (text.value || '').trim();
+          if (!val) { App.toast('先写点什么再回复'); text.focus(); return; }
+          const name = (nickEl.value || '').trim() || '匿名';
+          self.saveNick(name === '匿名' ? '' : name);
+          const btn = wrap.querySelector('[data-r-send]');
+          btn.disabled = true; btn.textContent = '发送中…';
+          self.add(target, name, val, cid).then(function () { return self.list(target); })
+            .then(function (rows2) {
+              paint(rows2);
+              App.toast('回复已发布');
+            }).catch(function (e) {
+              App.toast(e.message || '没发出去，再试一次');
+              btn.disabled = false; btn.textContent = '回复';
+            });
+        };
+        wrap.querySelector('[data-r-send]').addEventListener('click', sendReply);
+        text.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { sendReply(); }
+        });
+      };
+
+      render();
     };
 
     /* 第一次拉数据；顺手把「存在哪」说清楚 */

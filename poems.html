@@ -16,7 +16,9 @@
   <meta property="og:description" content="随手记下来的几句话，加上时间。点开能看全文，也能直接在这里改。">
   <meta property="og:image" content="assets/hero-poems.jpg">
   <meta property="og:url" content="poems.html">
-  <link rel="stylesheet" href="css/base.css">
+    <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+<link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/codefx.css">
   <link rel="stylesheet" href="css/poems.css">
   <link rel="stylesheet" href="css/comments.css">
@@ -50,7 +52,7 @@
       <!-- ===================== 页面小封面 ===================== -->
       <!-- 背景插画放在 assets/ 里，换图只要改下面的 src -->
       <section class="poem-hero">
-        <img class="hero-bg" src="assets/hero-poems.jpg" alt="二次元插画背景">
+        <picture class="hero-bg"><source srcset="assets/hero-poems.webp" type="image/webp"><img class="hero-bg__img" src="assets/hero-poems.jpg" alt="二次元插画背景" decoding="async" fetchpriority="high"></picture>
         <span class="hero-scrim hero-scrim--poems"></span>
         <div class="poem-hero__mark">〝 〞</div>
         <!-- 栏目名「诗札」来自 js/data.js 的 columns；这里只是写死在页面上的同一个名字 -->
@@ -130,7 +132,7 @@
         <a href="index.html#music">曲音拾集</a>
         <a href="about.html">关于</a>
       </nav>
-      <p class="footer__sign">Shuoscape · 朔的小窝</p>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
       <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
     </div>
   </footer>
