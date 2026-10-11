@@ -195,12 +195,43 @@ create policy "en_materials_read"   on public.en_materials   for select using (t
 --     写权限必须收窄到 admins 名单里的人 —— 普通注册用户只能留言。
 --   ★ 一张表的 policy 名字不能重复，所以 insert/update/delete 各起一个名；
 --     先 drop if exists 再 create，整段可以重复执行。
+--   ⚠️ 2026-10-11 踩过的坑：下面这排 drop 必须和 create **同名**。
+--     曾经写成 drop 旧名 *_write、create 新名 *_ins —— 旧库上 _ins 已经存在，
+--     drop 掉的是不存在的 _write，create 一跑就报
+--     「policy "articles_ins" ... already exists」整段卡死。
+--     现在按 create 的名字逐个 drop，另留一行 *_write 兼容更老的残留。
+drop policy if exists "articles_ins" on public.articles;
+drop policy if exists "articles_upd" on public.articles;
+drop policy if exists "articles_del" on public.articles;
 drop policy if exists "articles_write" on public.articles;
+
+drop policy if exists "poems_ins" on public.poems;
+drop policy if exists "poems_upd" on public.poems;
+drop policy if exists "poems_del" on public.poems;
 drop policy if exists "poems_write"    on public.poems;
+
+drop policy if exists "music_ins" on public.music;
+drop policy if exists "music_upd" on public.music;
+drop policy if exists "music_del" on public.music;
 drop policy if exists "music_write"    on public.music;
+
+drop policy if exists "profile_ins" on public.profile;
+drop policy if exists "profile_upd" on public.profile;
+drop policy if exists "profile_del" on public.profile;
 drop policy if exists "profile_write"  on public.profile;
+
+drop policy if exists "skills_ins" on public.skills;
+drop policy if exists "skills_upd" on public.skills;
+drop policy if exists "skills_del" on public.skills;
 drop policy if exists "skills_write"   on public.skills;
+
+drop policy if exists "study_progress_ins" on public.study_progress;
+drop policy if exists "study_progress_upd" on public.study_progress;
 drop policy if exists "study_progress_write" on public.study_progress;
+
+drop policy if exists "en_materials_ins" on public.en_materials;
+drop policy if exists "en_materials_upd" on public.en_materials;
+drop policy if exists "en_materials_del" on public.en_materials;
 drop policy if exists "en_materials_write"   on public.en_materials;
 
 create policy "articles_ins" on public.articles for insert with check (public.is_shuo_admin());
