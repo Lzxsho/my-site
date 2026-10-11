@@ -61,7 +61,13 @@ const Auth = {
     this.buildModal();
     this.bind();
     this.restoreCloud().then(() => {
-      this.role = this.read();
+      /* ▍曾经在这里踩过的坑（2026-10-11）：
+         原来是无条件 `this.role = this.read()` —— 云端登录只把会话存进
+         SESSION_KEY，从没把身份写进 localStorage 的 KEY，
+         结果每跳一页都拿空值把内存里刚恢复好的身份冲掉，
+         表现就是「跳转到别的界面，登录就被顶掉了」。
+         现在：restoreCloud() 认定过的身份优先，没有才读存档。 */
+      this.role = this.role || this.read();
       this.apply();
     });
   },
@@ -243,6 +249,9 @@ const Auth = {
   applyCloudSession(s) {
     this.user = { email: s.email, nickname: s.nickname };
     this.role = this.isAdminEmail(s.email) ? 'admin' : 'user';
+    /* ⚠️ 身份必须同时写进 localStorage —— 恢复会话（restoreCloud）和登录
+       （loginCloud / signup）都走这里，落盘一次，跳页才不会被打回未登录 */
+    this.save(this.role);
   },
 
   clearCloud() {
@@ -292,6 +301,12 @@ const Auth = {
       if (tipEl) { tipEl.textContent = tip; }
       if (adminBtn) { adminBtn.textContent = this.role ? '退出登录' : '登录 / 注册'; }
     }
+
+    /* 广播身份变化 —— 进站门（js/gate.js）靠这个事件知道「登录成功了，
+       可以关门放行」。谁想跟着身份联动，监听 'auth:change' 即可。 */
+    document.dispatchEvent(new CustomEvent('auth:change', {
+      detail: { role: this.role, user: this.user }
+    }));
   },
 
   /* ---------- 登录卡片 ---------- */
@@ -437,6 +452,8 @@ const Auth = {
 
   close() {
     if (this.modal) { this.modal.classList.remove('is-open'); }
+    /* 进站门（js/gate.js）在等这个信号：登录卡片关了人还没进去，门要挡回来 */
+    document.dispatchEvent(new CustomEvent('auth:modal-closed'));
   },
 
   /* ---------- 事件 ---------- */

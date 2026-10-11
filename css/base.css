@@ -1053,29 +1053,24 @@ body.theme-dark .backtop {
 
 /* ---------- 10. 响应式 ---------- */
 @media (max-width: 900px) {
+  /* 导航一排常显 —— 手机 / 平板上不再藏进汉堡菜单
+     （2026-10-11 之前这里是个下拉抽屉，五个入口在手机上完全看不见，
+      用户反馈「被遮住了」；现在直接摆出来，窄屏由 720px 断点接管成两行） */
   .nav {
-    position: fixed;
-    top: calc(var(--nav-h) + var(--adminbar-h));
-    left: 16px;
-    right: 16px;
-    transform: none;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 2px;
-    border-radius: var(--r-md);
-    padding: 10px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+    opacity: 1;
+    pointer-events: auto;
   }
-  .nav.is-open { opacity: 1; pointer-events: auto; }
   .nav a { text-align: center; }
-  .menu-btn { display: grid; }
+  .menu-btn { display: none; }
   .section__title { font-size: 22px; }
   .section { padding: 34px 0; }
   /* 弹窗里的两列表单，窄屏堆成一列 */
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* 手机（≤720px）的顶栏两行 / 导航常显 / 徽章加大样式，
+   统一放在文件最末尾（10.9 节）—— 必须排在 10.5「手指友好」块之后，
+   不然后者的 .role-btn 会把它覆盖掉。 */
 
 @media (max-width: 560px) {
   .container { padding: 0 16px; }
@@ -1373,3 +1368,52 @@ body.theme-dark .auth-box__back { color: var(--c-purple); }
 
 /* 关于页头像：鼠标移上去给点提示，说明这里可以点 */
 .is-login-trigger { cursor: pointer; }
+
+/* ==========================================================================
+   10.9 手机端顶栏（≤720px）—— 排在最后，压过上面所有同权重的移动端规则
+   --------------------------------------------------------------------------
+   顶栏变两行：第一行 logo + 按钮，第二行导航胶囊常显。
+   只改 --nav-h 一个变量，全站 margin-top: calc(var(--nav-h) + 18px)
+   和各种偏移自动跟着对位，不用逐页调。
+   ========================================================================== */
+@media (max-width: 720px) {
+  :root { --nav-h: 112px; }
+
+  .topbar { height: var(--nav-h); align-items: flex-start; }
+  .topbar__inner { padding-top: 4px; }
+
+  /* 导航落到底部第二行：铺满一行、可以横向滑动 */
+  .nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: calc(var(--adminbar-h, 34px) + 56px);
+    transform: none;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { padding: 8px 13px; font-size: 13.5px; }
+
+  /* 身份徽章：手机上加大加亮 —— 之前 12px 灰字根本看不见 */
+  .role-btn {
+    min-height: 40px;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(120deg, var(--c-pink), var(--c-purple));
+    border-color: transparent;
+    box-shadow: 0 6px 16px rgba(195, 164, 255, 0.40);
+  }
+  body.theme-dark .role-btn { background: linear-gradient(120deg, var(--c-pink), var(--c-purple)); }
+  /* 登录后保持白字（is-admin 的渐变本来就亮） */
+  .role-btn.is-admin { color: var(--on-accent); }
+
+  /* 顶栏两行后，右侧圆按钮缩一点给标题让位 */
+  .icon-btn { width: 38px; height: 38px; font-size: 16px; }
+}

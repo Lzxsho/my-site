@@ -1,0 +1,183 @@
+/* ==========================================================================
+   gate.css —— 进站身份门（配合 js/gate.js）
+   --------------------------------------------------------------------------
+   全屏一层：粉紫梦境底 + 毛玻璃，中间一张「选身份」卡。
+   站在门口时锁住页面滚动（body.gate-locked）。
+   ========================================================================== */
+
+/* 门开着时锁滚动 */
+body.gate-locked { overflow: hidden; }
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 400;                       /* 高于顶栏 100 / 弹窗 300 */
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgba(255, 176, 216, 0.35), transparent 60%),
+    radial-gradient(1000px 480px at 110% 15%, rgba(159, 212, 255, 0.30), transparent 55%),
+    radial-gradient(900px 520px at 50% 115%, rgba(195, 164, 255, 0.32), transparent 60%),
+    linear-gradient(160deg, #fdf3fa 0%, #f4edff 55%, #eef4ff 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s var(--ease, ease);
+}
+.gate.is-open { opacity: 1; pointer-events: auto; }
+/* 点了「管理员/访客」去登录卡片时：门退到背后但不消失，
+   登录卡片关掉后撤回 is-behind，门又回来 */
+.gate.is-behind { opacity: 0; pointer-events: none; }
+
+.gate__panel {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--r-lg, 28px);
+  box-shadow: 0 30px 80px rgba(150, 120, 190, 0.28);
+  padding: 34px 30px 26px;
+  text-align: center;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.4s var(--ease, ease);
+}
+.gate.is-open .gate__panel { transform: none; }
+
+/* ---------- 品牌区 ---------- */
+.gate__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 26px;
+}
+.gate__avatar {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--c-pink, #ffb0d8), var(--c-purple, #c3a4ff));
+  box-shadow: 0 8px 22px rgba(195, 164, 255, 0.45);
+}
+.gate__brandtext { display: flex; flex-direction: column; line-height: 1.3; }
+.gate__brandtext b { font-size: 17px; color: var(--ink, #332f47); }
+.gate__brandtext i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--ink-3, #8b85a1);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- 标题 ---------- */
+.gate__title {
+  font-size: 24px;
+  margin: 0 0 8px;
+  color: var(--ink, #332f47);
+  letter-spacing: 0.02em;
+}
+.gate__desc {
+  margin: 0 0 22px;
+  font-size: 13.5px;
+  color: var(--ink-2, #5a5470);
+}
+
+/* ---------- 三扇门 ---------- */
+.gate__doors { display: flex; flex-direction: column; gap: 12px; }
+
+.gate__door {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  grid-template-areas: "ico name" "ico sub";
+  column-gap: 14px;
+  align-items: center;
+  text-align: left;
+  padding: 14px 18px;
+  border-radius: var(--r-md, 18px);
+  border: 1px solid rgba(170, 150, 205, 0.25);
+  background: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.22s var(--ease, ease), box-shadow 0.22s var(--ease, ease),
+              border-color 0.22s var(--ease, ease), background 0.22s var(--ease, ease);
+}
+.gate__door:hover {
+  transform: translateY(-2px);
+  border-color: rgba(195, 164, 255, 0.65);
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(150, 120, 190, 0.20);
+}
+.gate__door:active { transform: translateY(0); }
+
+.gate__door-ico {
+  grid-area: ico;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 176, 216, 0.22), rgba(195, 164, 255, 0.25));
+}
+.gate__door-name {
+  grid-area: name;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink, #332f47);
+}
+.gate__door-sub {
+  grid-area: sub;
+  font-size: 12.5px;
+  color: var(--ink-3, #8b85a1);
+  margin-top: 2px;
+}
+
+/* 「随便看看」弱化一档，但依然是显眼的一扇门 */
+.gate__door--soft { background: rgba(255, 255, 255, 0.5); }
+.gate__door--soft .gate__door-ico {
+  background: rgba(169, 239, 220, 0.28);
+}
+
+.gate__note {
+  margin: 20px 0 0;
+  font-size: 11.5px;
+  color: var(--ink-3, #8b85a1);
+}
+
+/* ---------- 深色主题 ---------- */
+body.theme-dark .gate {
+  background:
+    radial-gradient(1200px 500px at 15% -10%, rgba(255, 176, 216, 0.14), transparent 60%),
+    radial-gradient(1000px 480px at 110% 15%, rgba(159, 212, 255, 0.12), transparent 55%),
+    radial-gradient(900px 520px at 50% 115%, rgba(195, 164, 255, 0.16), transparent 60%),
+    linear-gradient(160deg, #2a2438 0%, #241f31 55%, #1e1a2a 100%);
+}
+body.theme-dark .gate__panel {
+  background: rgba(42, 36, 56, 0.92);
+  border-color: rgba(255, 255, 255, 0.10);
+}
+body.theme-dark .gate__door { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+body.theme-dark .gate__door:hover { background: rgba(255, 255, 255, 0.10); }
+body.theme-dark .gate__door--soft { background: rgba(255, 255, 255, 0.04); }
+
+/* ---------- 手机 ---------- */
+@media (max-width: 560px) {
+  .gate { padding: 14px; align-items: end; }       /* 面板贴下一点，拇指好够 */
+  .gate__panel { padding: 26px 20px 20px; border-radius: 22px; }
+  .gate__title { font-size: 21px; }
+  .gate__door { padding: 12px 14px; }
+  .gate__door-ico { width: 40px; height: 40px; font-size: 19px; }
+  .gate__note { margin-top: 16px; }
+}
+
+/* ---------- 减少动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .gate, .gate__panel, .gate__door { transition: none; }
+}
