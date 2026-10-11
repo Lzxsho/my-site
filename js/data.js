@@ -1713,10 +1713,19 @@ const CloudStore = {
     if (o.headers) {
       Object.keys(o.headers).forEach(function (k) { headers[k] = o.headers[k]; });
     }
+
+    /* ▍8 秒超时（很关键）
+       云端连不上时（断网、域名被墙、Supabase 免费项目被暂停），
+       浏览器会一直挂着等，页面就一直空白 —— 看着像「网站坏了」。
+       掐断它，兜底的静态副本才能顶上来。 */
+    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 8000) : null;
+
     return fetch(c.url + '/rest/v1/' + c.tables[table] + path, {
       method: o.method || 'GET',
       headers: headers,
-      body: o.body !== undefined ? JSON.stringify(o.body) : undefined
+      body: o.body !== undefined ? JSON.stringify(o.body) : undefined,
+      signal: ctrl ? ctrl.signal : undefined
     }).then(function (res) {
       return res.text().then(function (raw) {
         let data = null;
@@ -1729,6 +1738,19 @@ const CloudStore = {
         }
         return data;
       });
+    }).catch(function (e) {
+      /* 超时（AbortError）或连不上（TypeError）都算「云端这会儿够不着」，
+         记下来，好让页脚提示说实话，而不是含糊地写「云端数据库」 */
+      if (e && (e.name === 'AbortError' || e.name === 'TypeError')) {
+        CloudStore._offline = true;
+      }
+      throw e;
+    }).then(function (v) {
+      if (timer) { clearTimeout(timer); }
+      return v;
+    }, function (e) {
+      if (timer) { clearTimeout(timer); }
+      throw e;
     });
   },
 
@@ -2123,7 +2145,9 @@ const SiteAPI = {
   /* 给页面提示语用的一句中文：现在改动会写到哪 */
   storeLabel() {
     if (this.mode === 'cloud') {
-      return this._usingCopy ? '云端数据库（暂时显示静态副本）' : '云端数据库';
+      /* _offline = 连不上（断网/被墙/项目暂停）；_usingCopy = 连上了但表里没数据 */
+      return (CloudStore._offline || this._usingCopy)
+        ? '云端数据库（暂时显示静态副本）' : '云端数据库';
     }
     if (this.mode === 'db') { return '数据库 <code>db/site.db</code>'; }
     return '浏览器';

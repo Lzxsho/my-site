@@ -169,14 +169,22 @@ const Auth = {
   isLogin() { return !!this.role; },
 
   /* 有后端吗？登录必须有人能核对密码
-     返回值：'cloud' 云端（可注册可登录）/ 'db' 本机 server.js（仅管理员）/ false */
-  backendReady() {
-    if (this.cloudCfg()) { return Promise.resolve('cloud'); }
+     返回值：'cloud' 云端（可注册可登录）/ 'db' 本机 server.js（仅管理员）/ false
 
-    if (typeof SiteAPI === 'undefined' || !SiteAPI.whenReady) {
-      return Promise.resolve(false);
+     ▍优先级和 SiteAPI 的内容探测保持一致：本机 → 云端 → 没有
+       本机 server.js 开着时优先走它 —— 管理员账号（lizhixu）就是它核对的，
+       快而且断网也能用；只有 Pages 这种没有后端的地方才走云端，
+       不然本机登录会被拽去 Supabase，本机账号反而没地方登。 */
+  backendReady() {
+    const self = this;
+    if (typeof SiteAPI !== 'undefined' && SiteAPI.whenReady) {
+      return SiteAPI.whenReady().then(function () {
+        if (SiteAPI.isDb()) { return 'db'; }
+        return self.cloudCfg() ? 'cloud' : false;
+      });
     }
-    return SiteAPI.whenReady().then(function () { return SiteAPI.isDb() ? 'db' : false; });
+    if (this.cloudCfg()) { return Promise.resolve('cloud'); }
+    return Promise.resolve(false);
   },
 
   /* ------------------------------------------------------------------
