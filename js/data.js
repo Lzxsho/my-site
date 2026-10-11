@@ -2046,16 +2046,15 @@ const SiteAPI = {
 
     const self = this;
 
-    /* ① 云端优先：填了配置就直接走云端，不再探测本机后端。
-       （这样发到 GitHub Pages 上也能读到数据，Pages 是没有 server.js 的） */
-    const cloudCfg = (typeof window !== 'undefined' && window.SHUOSCAPE_CONFIG)
-      ? (window.SHUOSCAPE_CONFIG.content || {}) : {};
-    if (cloudCfg.supabaseUrl && cloudCfg.supabaseKey && typeof fetch === 'function') {
-      this.mode = 'cloud';
-      this._ready = Promise.resolve('cloud');
-      console.log('[SiteAPI] 已连接云端数据库', cloudCfg.supabaseUrl);
-      return this._ready;
-    }
+    /* ★ 顺序很重要：本机后端 → 云端 → 浏览器
+       ------------------------------------------------------------------
+       以前是「填了 Supabase 配置就无条件走云端」，结果本机开着 server.js
+       也被拽去走云端：一旦网络不通（或免费项目被暂停），本机连内容都改不了。
+       现在改成先问本机后端在不在 ——
+         · 本机跑 server.js  → 走数据库，能正常增删改，断网也没事
+         · GitHub Pages      → 没有 server.js，探不到后端 → 走云端
+         · 双击 html（file://）→ 走浏览器本地存储
+       这样两边各得其所，不会互相拖累。 */
 
     /* ⚠️ 这里不要直接写 location.protocol ——
        db/seed.js 会在 Node 里把整个 data.js 跑一遍（为了读 SITE_DATA），
@@ -2065,32 +2064,48 @@ const SiteAPI = {
     const proto = (typeof location !== 'undefined' && location.protocol) ? location.protocol : '';
     const canFetch = (typeof fetch === 'function');
 
-    /* 直接双击 html 打开时是 file://，根本没有服务器，不用试 */
-    if ((proto !== 'http:' && proto !== 'https:') || !canFetch) {
-      this.mode = 'local';
-      this._ready = Promise.resolve('local');
+    const cloudCfg = (typeof window !== 'undefined' && window.SHUOSCAPE_CONFIG)
+      ? (window.SHUOSCAPE_CONFIG.content || {}) : {};
+    const hasCloud = !!(cloudCfg.supabaseUrl && cloudCfg.supabaseKey) && canFetch;
+
+    /* ① 先探本机后端（http/https 打开时才有可能有） */
+    if ((proto === 'http:' || proto === 'https:') && canFetch) {
+      /* 加个 3 秒超时：万一后端没响应，页面也不能一直卡着不显示 */
+      const timeout = new Promise(function (resolve) {
+        setTimeout(function () { resolve(null); }, 3000);
+      });
+
+      const probe = fetch('/api/health', { cache: 'no-store' })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .catch(function () { return null; });
+
+      this._ready = Promise.race([probe, timeout]).then(function (info) {
+        if (info && info.ok) {
+          self.mode = 'db';
+          console.log('[SiteAPI] 已连接本机数据库', info.database, info.counts);
+        } else if (hasCloud) {
+          self.mode = 'cloud';
+          console.log('[SiteAPI] 没有本机后端，已连接云端数据库', cloudCfg.supabaseUrl);
+        } else {
+          self.mode = 'local';
+          console.log('[SiteAPI] 没检测到后端，使用本地模式（数据存在浏览器里）');
+        }
+        return self.mode;
+      });
+
       return this._ready;
     }
 
-    /* 加个 3 秒超时：万一后端没响应，页面也不能一直卡着不显示 */
-    const timeout = new Promise(function (resolve) {
-      setTimeout(function () { resolve(null); }, 3000);
-    });
+    /* ② 双击打开的 html、或 Node 里跑脚本：没有本机后端，有云端就走云端 */
+    if (hasCloud) {
+      this.mode = 'cloud';
+      this._ready = Promise.resolve('cloud');
+      console.log('[SiteAPI] 已连接云端数据库', cloudCfg.supabaseUrl);
+      return this._ready;
+    }
 
-    const probe = fetch('/api/health', { cache: 'no-store' })
-      .then(function (res) { return res.ok ? res.json() : null; })
-      .catch(function () { return null; });
-
-    this._ready = Promise.race([probe, timeout]).then(function (info) {
-      self.mode = (info && info.ok) ? 'db' : 'local';
-      if (self.mode === 'db') {
-        console.log('[SiteAPI] 已连接数据库', info.database, info.counts);
-      } else {
-        console.log('[SiteAPI] 没检测到后端，使用本地模式（数据存在浏览器里）');
-      }
-      return self.mode;
-    });
-
+    this.mode = 'local';
+    this._ready = Promise.resolve('local');
     return this._ready;
   },
 
@@ -2107,7 +2122,9 @@ const SiteAPI = {
 
   /* 给页面提示语用的一句中文：现在改动会写到哪 */
   storeLabel() {
-    if (this.mode === 'cloud') { return '云端数据库'; }
+    if (this.mode === 'cloud') {
+      return this._usingCopy ? '云端数据库（暂时显示静态副本）' : '云端数据库';
+    }
     if (this.mode === 'db') { return '数据库 <code>db/site.db</code>'; }
     return '浏览器';
   },
@@ -2118,11 +2135,58 @@ const SiteAPI = {
     return this.mode === 'db' ? DbStore : LocalStore;
   },
 
+  /* ------------------------------------------------------------------
+     云端「读」的兜底名单
+     ------------------------------------------------------------------
+     什么情况会用到？
+       · 刚接上云端、数据还没导进去（表是空的）
+       · Supabase 免费项目超过一周没人访问会被自动暂停，接口就不响应了
+       · 网络一时不通
+     这几种情况下不能让整站变空白，所以退回仓库里 js/data.js 的那份
+     静态副本 —— 内容可能旧一点，但至少看得见。
+     只兜「读」：写操作失败必须如实报错，不能假装成功。
+     ------------------------------------------------------------------ */
+  CLOUD_READS: { getProfile: 1, getArticles: 1, getPoems: 1, getMusic: 1 },
+
+  /* 云端这次读到的是「空的」吗？（空就算没读到，触发兜底） */
+  _isEmpty(res) {
+    if (Array.isArray(res)) { return res.length === 0; }
+    if (res && typeof res === 'object') {
+      /* profile：连主人名字和技能都没有，说明云端那张表是空的 */
+      return !res.owner && !res.siteName && !(res.skills || []).length;
+    }
+    return !res;
+  },
+
+  /* 用静态副本顶上。失败就彻底失败，不再二次兜底 */
+  _fromLocal(method, args) {
+    return LocalStore[method].apply(LocalStore, args);
+  },
+
   /* 页面调用统一走这里：先等检测完成，再转给对应实现 */
   _run(method, args) {
     const self = this;
     return this.whenReady().then(function () {
-      return self._impl()[method].apply(self._impl(), args);
+      const impl = self._impl();
+      const p = impl[method].apply(impl, args);
+
+      /* 只有云端模式的「读」才需要兜底，写操作原样返回 */
+      if (self.mode !== 'cloud' || !self.CLOUD_READS[method]) { return p; }
+
+      return p.then(function (res) {
+        if (self._isEmpty(res)) {
+          self._usingCopy = true;
+          console.warn('[SiteAPI] 云端没读到「' + method + '」的内容，先显示仓库里的静态副本');
+          return self._fromLocal(method, args);
+        }
+        self._usingCopy = false;
+        return res;
+      }).catch(function (err) {
+        self._usingCopy = true;
+        console.warn('[SiteAPI] 云端读取失败（' + ((err && err.message) || err) +
+                     '），改用仓库里的静态副本');
+        return self._fromLocal(method, args);
+      });
     });
   },
 

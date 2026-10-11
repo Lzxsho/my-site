@@ -33,13 +33,12 @@ window.SHUOSCAPE_CONFIG = {
        ★ 这个名单只管「按钮显不显示」；数据库那边真正拦人的是 supabase.sql
          里的 admins 表 —— 记得两边填同一批邮箱（见 supabase.sql 第 8 节）。 */
   adminEmails: [
-    /* 例：'yourname@qq.com' */
+    '2625407261@qq.com'
   ],
 
   content: {
-    /* ↓↓↓ 把引号里换成你自己的，两个都填才生效 ↓↓↓ */
-    supabaseUrl: '',      /* 例：'https://abcdefgh.supabase.co' */
-    supabaseKey: '',      /* 例：'eyJhbGciOi...（很长一串）' */
+    supabaseUrl: 'https://jtxccwjeyiqfqhzuruup.supabase.co',
+    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0eGNjd2pleWlxZnFoenVydXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2ODgzMDIsImV4cCI6MjEwNzI2NDMwMn0.vMUxSezsDi8xCsD4R8KM6_KjoUWZ8m-AQbG57vEiHuQ',
 
     /* 表名，supabase.sql 里建的就是这些，一般不用改 */
     tableArticles: 'articles',
@@ -52,9 +51,8 @@ window.SHUOSCAPE_CONFIG = {
   },
 
   comments: {
-    /* ↓↓↓ 把引号里换成你自己的，两个都填才生效 ↓↓↓ */
-    supabaseUrl: '',      /* 例：'https://abcdefgh.supabase.co' */
-    supabaseKey: '',      /* 例：'eyJhbGciOi...（很长一串）' */
+    supabaseUrl: 'https://jtxccwjeyiqfqhzuruup.supabase.co',
+    supabaseKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0eGNjd2pleWlxZnFoenVydXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2ODgzMDIsImV4cCI6MjEwNzI2NDMwMn0.vMUxSezsDi8xCsD4R8KM6_KjoUWZ8m-AQbG57vEiHuQ',
     table: 'comments'     /* 表名，supabase.sql 里建的就是这个，一般不用改 */
   }
 };

@@ -168,8 +168,9 @@ const Comments = {
             return (Array.isArray(rows) ? rows : []).map(function (r) { return self.fromRow(r); });
           })
           .catch(function (e) {
+            /* 云端读不到 → 退回本机存的留言（可能不全，但不会一片空白） */
             if (typeof console !== 'undefined') { console.warn('[comments]', e.message); }
-            return [];
+            return self.localAll()[target] || [];
           });
       }
       if (self.mode === 'db') {
@@ -230,6 +231,23 @@ const Comments = {
               ? self.fromRow(got)
               : { id: 'c' + Date.now(), target: target, name: name, content: content,
                   createdAt: new Date().toISOString() };
+          })
+          .catch(function (e) {
+            /* 云端写不进去（网络不通 / 免费项目被暂停）→ 先存到本机。
+               访客这条留言不至于丢，也不会看到干巴巴的「发送失败」。 */
+            if (typeof console !== 'undefined') {
+              console.warn('[comments] 云端没写进去，先存本机：', (e && e.message) || e);
+            }
+            const all = self.localAll();
+            const row = {
+              id: 'L' + Date.now(), target: target, name: name, content: content,
+              parentId: pid, createdAt: new Date().toISOString()
+            };
+            if (who) { row.userEmail = who; }
+            if (!all[target]) { all[target] = []; }
+            all[target].push(row);
+            self.localSave(all);
+            return row;
           });
       }
       if (self.mode === 'db') {
