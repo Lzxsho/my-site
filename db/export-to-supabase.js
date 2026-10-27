@@ -303,7 +303,7 @@ async function main() {
               id: r.id,
               name: r.name,
               date: r.date || '',
-              desc: r.desc || '',
+              photo_desc: r.desc || '',   /* 云端列名 photo_desc（desc 是保留字） */
               thumb: r.thumb || '',
               data: r.data || '',
               collection_id: r.collection_id || ''

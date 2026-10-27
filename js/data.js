@@ -2142,14 +2142,16 @@ const CloudStore = {
      GET 列表只带缩略图（photos_read 策略放行所有人）；
      大图 getPhotoFull 单独取；写走 req() 的管理员闸 + photos_write 策略。 */
   getPhotos() {
-    return this.req('photos', '?select=id,name,date,desc,thumb,collection_id&order=created_at.desc')
+    /* ⚠️ 云端列名是 photo_desc（desc 是 Postgres 保留字，建表时就改了名），
+       前端字段仍叫 desc，映射一次 */
+    return this.req('photos', '?select=id,name,date,photo_desc,thumb,collection_id&order=created_at.desc')
       .then(function (rows) {
         return (rows || []).map(function (r) {
           return {
             id: String(r.id),
             name: DataTools.str(r.name),
             date: DataTools.str(r.date),
-            desc: DataTools.str(r.desc),
+            desc: DataTools.str(r.photo_desc),
             thumb: String(r.thumb || r.data || ''),
             collectionId: DataTools.str(r.collection_id)
           };
@@ -2170,7 +2172,7 @@ const CloudStore = {
          写错了照片就归不进合集，只会在照片墙上游荡 */
       body: {
         id: photo.id, name: photo.name, date: photo.date || '',
-        desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
+        photo_desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
         collection_id: photo.collectionId || ''
       }
     }).then(function () { return true; });

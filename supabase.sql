@@ -167,7 +167,9 @@ create table if not exists public.photos (
   id         text primary key,                    -- 前端生成的 'p' + 时间戳
   name       text not null,
   date       text,
-  desc       text,
+  photo_desc text,                                -- 一句话说明。⚠️ 不能叫 desc：
+                                                  --   desc 是 Postgres 保留字（ORDER BY 的那个），
+                                                  --   当列名会 42601 语法错误
   thumb      text not null default '',
   data       text not null,
   created_at timestamptz not null default now()
