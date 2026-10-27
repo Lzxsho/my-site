@@ -1,7 +1,8 @@
 /* ==========================================================================
-   gate.css —— 进站身份门（配合 js/gate.js）
+   gate.css —— 进站门：登录 / 注册表单 + 随便看看（配合 js/gate.js）
    --------------------------------------------------------------------------
-   全屏一层：粉紫梦境底 + 毛玻璃，中间一张「选身份」卡。
+   全屏一层：粉紫梦境底 + 毛玻璃，中间一张「登录」卡。
+   表单复用 base.css 的 .field / .auth-tabs / .btn，这里只写门自己的布局。
    站在门口时锁住页面滚动（body.gate-locked）。
    ========================================================================== */
 
@@ -27,19 +28,16 @@ body.gate-locked { overflow: hidden; }
   transition: opacity 0.35s var(--ease, ease);
 }
 .gate.is-open { opacity: 1; pointer-events: auto; }
-/* 点了「管理员/访客」去登录卡片时：门退到背后但不消失，
-   登录卡片关掉后撤回 is-behind，门又回来 */
-.gate.is-behind { opacity: 0; pointer-events: none; }
 
 .gate__panel {
-  width: min(480px, 100%);
+  width: min(420px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--r-lg, 28px);
   box-shadow: 0 30px 80px rgba(150, 120, 190, 0.28);
-  padding: 34px 30px 26px;
+  padding: 30px 30px 22px;
   text-align: center;
   transform: translateY(16px) scale(0.98);
   transition: transform 0.4s var(--ease, ease);
@@ -52,7 +50,7 @@ body.gate-locked { overflow: hidden; }
   align-items: center;
   gap: 12px;
   text-align: left;
-  margin-bottom: 26px;
+  margin-bottom: 22px;
 }
 .gate__avatar {
   width: 46px;
@@ -78,76 +76,67 @@ body.gate-locked { overflow: hidden; }
 
 /* ---------- 标题 ---------- */
 .gate__title {
-  font-size: 24px;
-  margin: 0 0 8px;
+  font-size: 23px;
+  margin: 0 0 6px;
   color: var(--ink, #332f47);
   letter-spacing: 0.02em;
 }
 .gate__desc {
-  margin: 0 0 22px;
-  font-size: 13.5px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.7;
   color: var(--ink-2, #5a5470);
 }
 
-/* ---------- 三扇门 ---------- */
-.gate__doors { display: flex; flex-direction: column; gap: 12px; }
+/* ---------- 页签（复用 base.css 的 .auth-tabs，间距贴门自己的尺寸） ---------- */
+.gate__tabs { margin-bottom: 14px; }
+.gate__tabs .auth-tab { min-width: 88px; }
 
-.gate__door {
-  display: grid;
-  grid-template-columns: 46px 1fr;
-  grid-template-areas: "ico name" "ico sub";
-  column-gap: 14px;
-  align-items: center;
-  text-align: left;
-  padding: 14px 18px;
-  border-radius: var(--r-md, 18px);
-  border: 1px solid rgba(170, 150, 205, 0.25);
-  background: rgba(255, 255, 255, 0.75);
-  cursor: pointer;
-  font-family: inherit;
-  transition: transform 0.22s var(--ease, ease), box-shadow 0.22s var(--ease, ease),
-              border-color 0.22s var(--ease, ease), background 0.22s var(--ease, ease);
-}
-.gate__door:hover {
-  transform: translateY(-2px);
-  border-color: rgba(195, 164, 255, 0.65);
-  background: #fff;
-  box-shadow: 0 14px 34px rgba(150, 120, 190, 0.20);
-}
-.gate__door:active { transform: translateY(0); }
+/* ---------- 表单 ---------- */
+.gate .gate__field { text-align: left; margin-bottom: 12px; }
+.gate .gate__field input::placeholder { color: var(--ink-4, #a49eb5); }
 
-.gate__door-ico {
-  grid-area: ico;
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255, 176, 216, 0.22), rgba(195, 164, 255, 0.25));
-}
-.gate__door-name {
-  grid-area: name;
-  font-size: 15.5px;
-  font-weight: 700;
-  color: var(--ink, #332f47);
-}
-.gate__door-sub {
-  grid-area: sub;
+.gate__err {
+  margin: 0 0 10px;
   font-size: 12.5px;
-  color: var(--ink-3, #8b85a1);
-  margin-top: 2px;
+  color: #d9534f;
+  text-align: left;
 }
 
-/* 「随便看看」弱化一档，但依然是显眼的一扇门 */
-.gate__door--soft { background: rgba(255, 255, 255, 0.5); }
-.gate__door--soft .gate__door-ico {
-  background: rgba(169, 239, 220, 0.28);
+/* ---------- 主按钮 ---------- */
+.gate__actions { display: flex; gap: 10px; }
+.gate__actions .btn { flex: 1; justify-content: center; }
+
+/* ---------- 随便看看（最下面那条） ---------- */
+.gate__peek {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 16px;
+  border-radius: var(--r-md, 16px);
+  border: 1px dashed rgba(140, 120, 200, 0.35);
+  background: rgba(169, 239, 220, 0.16);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2, #5a5470);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.gate__peek:hover {
+  background: rgba(169, 239, 220, 0.30);
+  border-color: rgba(140, 120, 200, 0.55);
+  color: var(--ink, #332f47);
+  transform: translateY(-1px);
 }
 
 .gate__note {
-  margin: 20px 0 0;
+  margin: 14px 0 0;
   font-size: 11.5px;
+  line-height: 1.7;
   color: var(--ink-3, #8b85a1);
 }
 
@@ -163,21 +152,22 @@ body.theme-dark .gate__panel {
   background: rgba(42, 36, 56, 0.92);
   border-color: rgba(255, 255, 255, 0.10);
 }
-body.theme-dark .gate__door { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
-body.theme-dark .gate__door:hover { background: rgba(255, 255, 255, 0.10); }
-body.theme-dark .gate__door--soft { background: rgba(255, 255, 255, 0.04); }
+body.theme-dark .gate__peek {
+  background: rgba(169, 239, 220, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--ink-2, #b9b3cc);
+}
+body.theme-dark .gate__peek:hover { background: rgba(169, 239, 220, 0.20); color: #fff; }
 
 /* ---------- 手机 ---------- */
 @media (max-width: 560px) {
   .gate { padding: 14px; align-items: end; }       /* 面板贴下一点，拇指好够 */
-  .gate__panel { padding: 26px 20px 20px; border-radius: 22px; }
-  .gate__title { font-size: 21px; }
-  .gate__door { padding: 12px 14px; }
-  .gate__door-ico { width: 40px; height: 40px; font-size: 19px; }
-  .gate__note { margin-top: 16px; }
+  .gate__panel { padding: 24px 20px 18px; border-radius: 22px; }
+  .gate__title { font-size: 20px; }
+  .gate__note { margin-top: 12px; }
 }
 
 /* ---------- 减少动态效果 ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .gate, .gate__panel, .gate__door { transition: none; }
+  .gate, .gate__panel, .gate__peek { transition: none; }
 }

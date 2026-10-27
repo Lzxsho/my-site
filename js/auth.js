@@ -351,18 +351,20 @@ const Auth = {
           '<button class="auth-tab" type="button" data-auth-tab="signup">注册</button>' +
         '</div>' +
 
-        /* ⑤ 表单（登录注册共用邮箱 / 密码两格，注册多一格昵称） */
+        /* ⑤ 表单（登录注册共用邮箱 / 密码两格，注册多一格昵称）
+             data-f-* 是给「表单搬运」用的通用选择器：进站门（gate.js）里
+             也有一套一模一样的表单，Auth 靠这些属性在两个容器里找输入框 */
         '<div class="field" data-auth-nick hidden>' +
           '<label for="authNick">昵称</label>' +
-          '<input id="authNick" type="text" autocomplete="nickname" placeholder="留言时显示的名字（可留空）">' +
+          '<input id="authNick" type="text" data-f-nick autocomplete="nickname" placeholder="留言时显示的名字（可留空）">' +
         '</div>' +
         '<div class="field">' +
           '<label for="authUser">邮箱</label>' +
-          '<input id="authUser" type="text" autocomplete="username" placeholder="lizhixu 或你的登录邮箱">' +
+          '<input id="authUser" type="text" data-f-user autocomplete="username" placeholder="lizhixu 或你的登录邮箱">' +
         '</div>' +
         '<div class="field">' +
           '<label for="authPass">密码</label>' +
-          '<input id="authPass" type="password" autocomplete="current-password" placeholder="输入你的密码">' +
+          '<input id="authPass" type="password" data-f-pass autocomplete="current-password" placeholder="输入你的密码">' +
         '</div>' +
 
         '<p class="auth-box__err" data-auth-err hidden></p>' +
@@ -386,20 +388,23 @@ const Auth = {
     this.modal = modal;
   },
 
-  /* 登录卡片切页签：'login' / 'signup' */
-  switchTab(which) {
-    if (!this.modal) { return; }
+  /* ---------- 页签切换（登录卡片和进站门共用这一套） ----------
+     scope = 表单所在的容器：登录卡片是 this.modal，进站门是门的面板。
+     靠 data-auth-* / data-f-* 属性在容器里找元素，两边的标记起一样的名字。 */
+  switchForm(scope, which) {
+    if (!scope) { return; }
     const login = which !== 'signup';
 
-    this.modal.querySelectorAll('[data-auth-tab]').forEach(function (t) {
+    scope.querySelectorAll('[data-auth-tab]').forEach(function (t) {
       t.classList.toggle('is-active', t.getAttribute('data-auth-tab') === which);
     });
 
-    const q = (sel) => this.modal.querySelector(sel);
+    const q = (sel) => scope.querySelector(sel);
     const title = q('[data-auth-title]');
     const desc = q('[data-auth-desc]');
     const nick = q('[data-auth-nick]');
-    const pass = q('#authPass');
+    const pass = q('[data-f-pass]');
+    const user = q('[data-f-user]');
     const loginBtn = q('[data-auth-admin]');
     const signupBtn = q('[data-auth-signup]');
     const err = q('[data-auth-err]');
@@ -407,18 +412,20 @@ const Auth = {
     if (title) { title.textContent = login ? '欢迎回来。' : '加入朔的小窝。'; }
     if (desc) {
       desc.textContent = login
-        ? '管理员登录后可以管理整个小窝；注册用户登录后可以留言、本地练习。'
+        ? '登录后可以留言、练习；管理员账号登录会自动拿到管理权限。'
         : '注册后可以留言（带你的昵称）、练习词汇；导入的资料只存自己电脑，不会上传。';
     }
     if (nick) { nick.hidden = login; }
     if (pass) { pass.setAttribute('autocomplete', login ? 'current-password' : 'new-password'); }
+    if (user) { user.setAttribute('autocomplete', login ? 'username' : 'email'); }
     if (loginBtn) { loginBtn.hidden = !login; }
     if (signupBtn) { signupBtn.hidden = login; }
     if (err) { err.hidden = true; }
+  },
 
-    /* 注册时邮箱要独立填充，别跟本机管理员的账号记忆混了 */
-    const user = q('#authUser');
-    if (user) { user.setAttribute('autocomplete', login ? 'username' : 'email'); }
+  /* 登录卡片切页签：'login' / 'signup' */
+  switchTab(which) {
+    this.switchForm(this.modal, which);
   },
 
   open(mode) {
@@ -520,13 +527,15 @@ const Auth = {
     return false;
   },
 
-  /* ---------- 取表单里的值 ---------- */
-  formValues() {
-    const q = (sel) => (this.modal && this.modal.querySelector(sel)) || {};
+  /* ---------- 取表单里的值 ----------
+     scope：表单在哪个容器里（登录卡片 / 进站门）。不传 = 登录卡片。 */
+  formValues(scope) {
+    const root = scope || this.modal || document;
+    const q = (sel) => root.querySelector(sel) || {};
     return {
-      user: (q('#authUser').value || '').trim(),
-      pass: q('#authPass').value || '',
-      nick: (q('#authNick').value || '').trim(),
+      user: (q('[data-f-user]').value || '').trim(),
+      pass: q('[data-f-pass]').value || '',
+      nick: (q('[data-f-nick]').value || '').trim(),
       err: q('[data-auth-err]'),
       loginBtn: q('[data-auth-admin]'),
       signupBtn: q('[data-auth-signup]')
@@ -543,8 +552,8 @@ const Auth = {
      为什么不在这里比对密码？
      因为源码谁都能下载 —— 把密码（或者它的哈希）放在这里，
      等于把钥匙挂在门上。交给服务端才是对的。 */
-  loginAdmin() {
-    const f = this.formValues();
+  loginAdmin(scope) {
+    const f = this.formValues(scope);
     if (!f.user || !f.pass) { this.sayErr(f.err, '邮箱和密码都要填'); return; }
 
     const self = this;
@@ -652,8 +661,8 @@ const Auth = {
        · 开了「邮箱确认」→ 返回 user 但没有 session，提示去邮箱点确认链接
      注册成功的都是**普通用户**；想当管理员，把邮箱加进
      js/config.js 的 adminEmails + supabase.sql 的 admins 表。 */
-  signup() {
-    const f = this.formValues();
+  signup(scope) {
+    const f = this.formValues(scope);
     const cfg = this.cloudCfg();
 
     if (!cfg) {

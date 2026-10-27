@@ -46,10 +46,14 @@
     <div class="container">
 
       <!-- ===================== 页面小封面 ===================== -->
+      <!-- 背景就用自己拍的一张照片（assets/hero-photos.jpg，想换就替换这个文件） -->
       <section class="photo-hero">
+        <picture class="hero-bg"><source srcset="assets/hero-photos.webp" type="image/webp"><img class="hero-bg__img" src="assets/hero-photos.jpg" alt="自己拍的照片做背景" decoding="async" fetchpriority="high"></picture>
+        <span class="hero-scrim hero-scrim--photos"></span>
         <div class="photo-hero__mark">▦</div>
         <h1 class="photo-hero__title">照片</h1>
         <p class="photo-hero__desc">拍下来的瞬间 —— 不用配文字，图在，那一刻就在。</p>
+        <p class="photo-hero__quote">Some moments refuse to be rewritten.</p>
       </section>
 
       <!-- ===================== 工具栏 ===================== -->
@@ -61,18 +65,28 @@
         </div>
       </div>
 
-      <!-- ===================== 主视图：合集 + 散照片 ===================== -->
+      <!-- ===================== 主视图：照片流 + 合集 + 散照片 ===================== -->
       <div id="mainView">
 
-        <!-- 合集：一个合集 = 封面 + 名字 + 一段话，点开看里面的照片 -->
+        <!-- 板块一：照片流 —— 所有照片排成一排，左右滑动看，点开是大图 -->
+        <section class="strip-section" data-strip-section hidden>
+          <h2 class="col-section__title">照片流</h2>
+          <div class="strip-wrap">
+            <button class="strip-arrow strip-arrow--prev" type="button" data-strip-prev aria-label="往左滑">‹</button>
+            <div class="strip" data-strip></div>
+            <button class="strip-arrow strip-arrow--next" type="button" data-strip-next aria-label="往右滑">›</button>
+          </div>
+        </section>
+
+        <!-- 板块二：合集 —— 一个合集 = 封面 + 名字 + 一段话，点开看里面的照片 -->
         <section class="col-section" data-col-section hidden>
           <h2 class="col-section__title">合集</h2>
           <div class="col-grid" data-col-grid></div>
         </section>
 
-        <!-- 不属于任何合集的照片，直接铺在照片墙上 -->
-        <section class="loose-section" data-loose-section>
-          <h2 class="col-section__title" data-loose-title>照片</h2>
+        <!-- 板块三：没归进合集的照片，直接铺在照片墙上 -->
+        <section class="loose-section" data-loose-section hidden>
+          <h2 class="col-section__title" data-loose-title>零散照片</h2>
           <div class="photo-grid" data-photo-grid></div>
           <div class="photo-empty" data-photo-empty hidden>
             <span class="photo-empty__icon">☼</span>

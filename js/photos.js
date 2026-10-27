@@ -52,6 +52,10 @@ const PhotosPage = {
     App.qs('[data-col-back]').addEventListener('click', function () { self.closeCol(); });
     App.qs('[data-col-del]').addEventListener('click', function () { self.delCol(); });
 
+    /* 照片流的左右箭头 */
+    App.qs('[data-strip-prev]').addEventListener('click', function () { self.slideStrip(-1); });
+    App.qs('[data-strip-next]').addEventListener('click', function () { self.slideStrip(1); });
+
     /* 灯箱 */
     App.qs('[data-lb-close]').addEventListener('click', function () { self.closeLb(); });
     App.qs('[data-lb-prev]').addEventListener('click', function () { self.navLb(-1); });
@@ -88,9 +92,46 @@ const PhotosPage = {
 
   /* ---------- 画 ---------- */
   render() {
+    this.renderStrip();
     this.renderCols();
     this.renderGrid();
     this.renderColView();
+  },
+
+  /* 照片流：所有照片排成一排，左右滑动，点开大图（不挑合集，全量展示） */
+  renderStrip() {
+    const sec = App.qs('[data-strip-section]');
+    const strip = App.qs('[data-strip]');
+    if (!sec || !strip) { return; }
+    const list = this.state.list;
+    if (!list.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+
+    const self = this;
+    strip.innerHTML = list.map(function (p) {
+      const idx = list.indexOf(p);
+      return '' +
+        '<figure class="strip-card" data-photo-idx="' + idx + '" title="' + App.escape(p.name || '照片') + '">' +
+          '<img class="strip-card__img" loading="lazy" decoding="async" src="' + App.escape(p.thumb || '') + '" alt="' + App.escape(p.name || '照片') + '">' +
+          '<figcaption class="strip-card__cap">' +
+            '<span class="strip-card__name">' + App.escape(p.name || '未命名') + '</span>' +
+            (p.date ? '<span class="strip-card__date">' + App.escape(p.date) + '</span>' : '') +
+          '</figcaption>' +
+        '</figure>';
+    }).join('');
+
+    App.qsa('[data-photo-idx]', strip).forEach(function (card) {
+      card.addEventListener('click', function () {
+        self.openLb(Number(card.getAttribute('data-photo-idx')));
+      });
+    });
+  },
+
+  /* 照片流左右箭头：一屏一屏地滑（滑不到头时自动到边） */
+  slideStrip(dir) {
+    const strip = App.qs('[data-strip]');
+    if (!strip) { return; }
+    strip.scrollBy({ left: dir * Math.max(strip.clientWidth * 0.8, 260), behavior: 'smooth' });
   },
 
   renderCols() {
@@ -131,16 +172,21 @@ const PhotosPage = {
     const empty = App.qs('[data-photo-empty]');
     const count = App.qs('[data-photo-count]');
     const looseTitle = App.qs('[data-loose-title]');
+    const looseSec = App.qs('[data-loose-section]');
     if (count) { count.textContent = String(this.state.list.length); }
     if (looseTitle) { looseTitle.textContent = this.state.cols.length ? '零散照片' : '照片'; }
     if (!grid) { return; }
 
-    const photos = this.viewPhotos();
+    /* 没归合集的照片才铺在这里；全都进了合集时，整块收起来
+       （上面已有照片流，别再挂一块「这里还空着」） */
+    const photos = this.state.list.filter(function (p) { return !p.collectionId; });
     if (!photos.length) {
       grid.innerHTML = '';
-      if (empty) { empty.hidden = false; }
+      if (looseSec) { looseSec.hidden = !!this.state.cols.length; }
+      if (empty) { empty.hidden = !!this.state.cols.length; }
       return;
     }
+    if (looseSec) { looseSec.hidden = false; }
     if (empty) { empty.hidden = true; }
     this._paintGrid(grid, photos);
   },
@@ -247,13 +293,10 @@ const PhotosPage = {
   },
 
   navLb(d) {
-    const photos = this.viewPhotos();
-    const n = photos.length;
-    if (!n) { return; }
-    /* 在视图自己的序列里转圈，换算回 list 的下标 */
-    const cur = photos.indexOf(this.state.list[this.state.lb]);
-    const nextIdx = photos[(cur + d + n) % n];
-    this.state.lb = this.state.list.indexOf(nextIdx);
+    const n = this.state.list.length;
+    if (!n || this.state.lb < 0) { return; }
+    /* 在全部照片里转圈 —— 照片流和照片墙都指向全量列表，语义一致 */
+    this.state.lb = (this.state.lb + d + n) % n;
     this.renderLb();
   },
 
@@ -271,9 +314,8 @@ const PhotosPage = {
     }
     if (name) { name.textContent = p.name || '未命名'; }
     if (meta) {
-      const photos = this.viewPhotos();
-      const pos = photos.indexOf(p) + 1;
-      meta.textContent = [p.date, p.desc, pos + ' / ' + photos.length].filter(Boolean).join(' · ');
+      const meta2 = [p.date, p.desc, (this.state.lb + 1) + ' / ' + this.state.list.length];
+      meta.textContent = meta2.filter(Boolean).join(' · ');
     }
     if (del) { del.hidden = !(typeof Auth !== 'undefined' && Auth.isAdmin && Auth.isAdmin()); }
   },

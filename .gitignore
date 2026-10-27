@@ -32,3 +32,4 @@ Thumbs.db
 #   c/assets/papers/   559 张真题卷面图（77MB），线上翻卷子要用
 #   assets/audio/*.mp3 六首免版权曲子，线上听歌要用
 #   feed.xml           RSS 订阅源（Pages 上没有后端，得放静态文件）
+_shot/
