@@ -2166,10 +2166,12 @@ const CloudStore = {
     return this.req('photos', '', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      /* ⚠️ 云端列名是 collection_id（snake_case），别写成 collectionId ——
+         写错了照片就归不进合集，只会在照片墙上游荡 */
       body: {
         id: photo.id, name: photo.name, date: photo.date || '',
         desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
-        collectionId: photo.collectionId || ''
+        collection_id: photo.collectionId || ''
       }
     }).then(function () { return true; });
   },

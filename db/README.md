@@ -4,11 +4,45 @@
 
 ```
 db/
-├── site.db        ← 数据库本体。你的文章、小诗、唱片、自我介绍都在这里
+├── site.db        ← 数据库本体。你的文章、小诗、唱片、自我介绍、照片都在这里
 ├── schema.sql     ← 建表清单。里面的建表语句决定了有哪些表、每张表有哪些列
 ├── seed.js        ← 导入脚本。第一次建库时，把 js/data.js 里的内容导进来
+├── export-to-supabase.js  ← 上云脚本。把本机库的 8 张表整批搬到 Supabase
+├── sync-to-cloud.bat      ← 上云脚本的双击入口（不用敲命令）
+├── check-cloud.js         ← 体检脚本。检查云端表建好没有、各表有几条
 └── README.md      ← 你正在看的这个文件
 ```
+
+---
+
+## 〇、把本机数据同步到云端（Supabase）
+
+双击 **`db/sync-to-cloud.bat`**，按提示输管理员邮箱和密码，回车就完事。
+脚本会把本机 `site.db` 的 8 张表（文章 / 小诗 / 唱片 / 技能 / 自我介绍 / 留言 /
+**照片** / **合集**）整批推到云端 —— 每张表都是「先清空再写入」，
+所以重复跑不会产生重复数据，改了本机内容再跑一次即可覆盖。
+
+不想交互也可以直接敲命令：
+
+```bash
+# 方式一：管理员账号登录（推荐）
+node db/export-to-supabase.js --email 2625407261@qq.com --password 你的密码
+
+# 方式二：service_role 超级钥匙（后台 Settings → API）
+node db/export-to-supabase.js --key eyJhbGciOi...
+
+# 只导某一张表（调试用）
+node db/export-to-supabase.js --email ... --password ... --only photos
+```
+
+前置条件：
+
+1. Supabase 后台 SQL Editor 里跑过**最新的** `supabase.sql`（里面有 photos / collections 两张表）
+2. 这个账号已经在云端注册过（在网页上注册一次，或后台 Authentication → Add user）
+3. 关掉加速器 / 代理再跑（脚本直连 Supabase，不走系统代理）
+
+> 照片是**一张一张**写的 —— 每张大图 base64 有几百 KB，
+> 10 张塞进一个请求体容易被网关拒收。慢一点，但稳。
 
 ---
 
