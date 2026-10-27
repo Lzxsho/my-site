@@ -33,3 +33,4 @@ Thumbs.db
 #   assets/audio/*.mp3 六首免版权曲子，线上听歌要用
 #   feed.xml           RSS 订阅源（Pages 上没有后端，得放静态文件）
 _shot/
+node_modules/

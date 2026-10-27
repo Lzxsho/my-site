@@ -30,13 +30,16 @@
      1. Supabase 后台 SQL Editor 里已经跑过最新的 supabase.sql（表都建好了，
         包含 photos / collections 这两张）
      2. Node >= 22.5（用到内置的 node:sqlite）
-     3. 这台电脑能连上 Supabase（关掉加速器 / 代理再跑更稳）
+     3. 这台电脑能连上 Supabase —— 直连不通也没关系：
+        脚本会自动找本机代理（Clash / v2rayN 等），找不到就走 IPv4。
+        建议：加速器开着跑，别关。
    ========================================================================== */
 'use strict';
 
 const { DatabaseSync } = require('node:sqlite');
 const path = require('node:path');
 const fs = require('node:fs');
+const net = require('node:net');
 const readline = require('node:readline');
 
 /* ---------------- 交互式问一句（双击 .bat 时用） ----------------
@@ -85,7 +88,9 @@ function parseArgs() {
     key: get('key'),
     email: get('email'),
     password: get('password'),
-    only: get('only')                      /* 可选：只导某一张表，调试用 */
+    only: get('only'),                     /* 可选：只导某一张表，调试用 */
+    proxyHost: get('proxy-host'),          /* 可选：手动指定本机代理（找不到时用） */
+    proxyPort: Number(get('proxy-port')) || 0
   };
 }
 
@@ -115,10 +120,139 @@ try {
   process.exit(1);
 }
 
-/* ---------------- 登录拿 token（方式一） ---------------- */
+/* ---------------- 网络层：自动找一条能连上 Supabase 的路 ----------------
+   ▍为什么需要它？
+     Supabase 的服务器在国外。浏览器开着加速器能访问，但 Node 的 fetch
+     默认不走系统代理 —— 于是出现「浏览器能开后台、脚本 fetch failed」的怪事。
+     这里按固定顺序试：① 直连 ② 环境变量里的代理 ③ 本机常见代理端口
+     （Clash 7890 / v2rayN 10809 之类）④ 强制 IPv4。哪条通用哪条。
+   依赖：undici（package.json 里有，npm install 就装上）；没装也能跑，
+     只是后两条路用不了，退化成原来的直连。 */
+
+/* 选定的路线，找到一次就记住，后面所有请求都走它 */
+let ROUTE = null;
+
+function loadUndici() {
+  try { return require('undici'); } catch (e) { return null; }
+}
+
+/* 环境变量里配的代理（只认 http/https 的，socks 交给客户端自己开混合端口） */
+function envProxy() {
+  const raw = process.env.HTTPS_PROXY || process.env.https_proxy ||
+              process.env.HTTP_PROXY || process.env.http_proxy ||
+              process.env.ALL_PROXY || process.env.all_proxy || '';
+  const m = raw.match(/^https?:\/\/([^:/]+)(?::(\d+))?/i);
+  return m ? { host: m[1], port: Number(m[2]) || 7890 } : null;
+}
+
+/* 本机这个端口上有没有程序在听（600ms 内连上就算有） */
+function probePort(port) {
+  return new Promise(function (resolve) {
+    const s = net.connect({ host: '127.0.0.1', port: port });
+    const done = function (ok) { s.removeAllListeners('error'); s.destroy(); resolve(ok); };
+    s.setTimeout(600, function () { done(false); });
+    s.on('connect', function () { done(true); });
+    s.on('error', function () { done(false); });
+  });
+}
+
+/* 国内常见的本地代理端口：Clash / Clash Verge / v2rayN / SSR / Surge 等 */
+const COMMON_PROXY_PORTS = [7890, 7897, 10809, 10808, 1080, 8888, 8889, 33210, 4780];
+
+async function findProxy() {
+  /* 命令行手动指定的最优先 */
+  if (args.proxyHost && args.proxyPort) {
+    return { host: args.proxyHost, port: args.proxyPort, manual: true };
+  }
+  const env = envProxy();
+  if (env) { return env; }
+  for (let i = 0; i < COMMON_PROXY_PORTS.length; i += 1) {
+    if (await probePort(COMMON_PROXY_PORTS[i])) {
+      return { host: '127.0.0.1', port: COMMON_PROXY_PORTS[i], guessed: true };
+    }
+  }
+  return null;
+}
+
+/* 算不算「没连上」—— 只有网络错误才值得换条路重试，401/404 这类不用 */
+function isNetErr(e) {
+  const code = (e && e.cause && e.cause.code) || (e && e.code) || '';
+  if (code) {
+    return /^(ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|UND_ERR|CERT_|SSL|DEPTH_ZERO|UNABLE_TO_VERIFY)/.test(code);
+  }
+  return /fetch failed|network|socket|timeout/i.test((e && e.message) || '');
+}
+
+function netMsg(e) {
+  const c = e && e.cause;
+  return String((c && (c.code + ' ' + c.message)) || (e && e.message) || '未知网络错误').slice(0, 90);
+}
+
+function routeName(r) {
+  return r.kind === 'proxy' ? '本机代理 ' + r.proxy.host + ':' + r.proxy.port
+       : r.kind === 'v4' ? 'IPv4 直连'
+       : '直连';
+}
+
+async function buildAttempts() {
+  const list = [{ kind: 'direct' }];
+  const undici = loadUndici();
+  if (undici) {
+    const proxy = await findProxy();
+    if (proxy) { list.push({ kind: 'proxy', proxy: proxy }); }
+    list.push({ kind: 'v4' });
+  }
+  return list;
+}
+
+/* 按 opts 发请求；单条路线 30 秒连不上就算失败，换下一条 */
+function fetchVia(route, url, opts) {
+  const o = Object.assign({}, opts);
+  if (!o.signal) { o.signal = AbortSignal.timeout(30000); }
+  if (route.kind === 'direct') { return fetch(url, o); }
+
+  const undici = loadUndici();
+  if (!undici) { return fetch(url, o); }
+  const dispatcher = route.kind === 'proxy'
+    ? new undici.ProxyAgent('http://' + route.proxy.host + ':' + route.proxy.port)
+    : new undici.Agent({ connect: { family: 4 } });
+  return undici.fetch(url, Object.assign(o, { dispatcher: dispatcher }));
+}
+
+async function smartFetch(url, opts) {
+  const attempts = ROUTE ? [ROUTE] : await buildAttempts();
+  let last = null;
+  for (let i = 0; i < attempts.length; i += 1) {
+    try {
+      const res = await fetchVia(attempts[i], url, opts);
+      if (!ROUTE) {
+        ROUTE = attempts[i];
+        if (attempts[i].kind !== 'direct') {
+          console.log('  （直连不通，改走' + routeName(attempts[i]) + ' —— 后面的请求都用这条路）');
+        }
+      }
+      return res;
+    } catch (e) {
+      if (!isNetErr(e)) { throw e; }
+      last = e;
+      console.log('  ' + routeName(attempts[i]) + '不通：' + netMsg(e));
+    }
+  }
+  throw new Error(
+    '连不上 Supabase（' + attempts.map(routeName).join(' → ') + ' 都试过了）。' +
+    '最后错误：' + netMsg(last) + '。' +
+    '可以试试：开着加速器再跑一次（脚本会自动找代理）；' +
+    '或者换个网络（比如手机热点）；或者把加速器的「本地端口」告诉我，我写死进去。');
+}
+
+/* ---------------- 登录拿 token（方式一） ----------------
+   走 smartFetch —— 浏览器能开 Supabase 后台、Node 却连不上时，
+   十有八九是加速器 / 代理的事：浏览器走了代理，Node 默认不走。
+   smartFetch 会自动按「直连 → 本机代理 → 强制 IPv4」的顺序试，
+   哪条路通了就用哪条，全程不用你配置。 */
 async function login() {
   const anonKey = readAnonKey();
-  const res = await fetch(args.url + '/auth/v1/token?grant_type=password', {
+  const res = await smartFetch(args.url + '/auth/v1/token?grant_type=password', {
     method: 'POST',
     headers: { apikey: anonKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: args.email, password: args.password })
@@ -145,7 +279,7 @@ function readAnonKey() {
 /* ---------------- 一次 REST 请求 ---------------- */
 async function req(table, pathStr, opts) {
   const o = opts || {};
-  const res = await fetch(args.url + '/rest/v1/' + table + pathStr, {
+  const res = await smartFetch(args.url + '/rest/v1/' + table + pathStr, {
     method: o.method || 'GET',
     headers: {
       apikey: args.key || readAnonKey(),
@@ -334,6 +468,6 @@ main().catch(function (e) {
   console.error('  · 401 / 403 → 账号不在 admins 表里（supabase.sql 第 8 节），或 key 用错了');
   console.error('  · 42P01 表不存在 → supabase.sql 还没在 SQL Editor 里跑过（要跑最新的那份）');
   console.error('  · 42703 列不存在（比如 photos 少了 collection_id）→ 云端表结构旧了，重跑 supabase.sql');
-  console.error('  · 连不上 → 关掉加速器 / 代理再试');
+  console.error('  · 连不上 → 保持加速器开着（脚本会自动找本机代理），或换个网络（手机热点）');
   process.exit(1);
 });

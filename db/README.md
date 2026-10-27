@@ -39,7 +39,9 @@ node db/export-to-supabase.js --email ... --password ... --only photos
 
 1. Supabase 后台 SQL Editor 里跑过**最新的** `supabase.sql`（里面有 photos / collections 两张表）
 2. 这个账号已经在云端注册过（在网页上注册一次，或后台 Authentication → Add user）
-3. 关掉加速器 / 代理再跑（脚本直连 Supabase，不走系统代理）
+3. 加速器开着跑就行 —— 脚本会自动按「直连 → 本机代理（Clash / v2rayN 等常见端口）
+   → IPv4」的顺序试，哪条通用哪条。如果它找不到你的代理，把端口号用
+   `--proxy-host 127.0.0.1 --proxy-port 7890` 传进去也行（或设 HTTPS_PROXY 环境变量）
 
 > 照片是**一张一张**写的 —— 每张大图 base64 有几百 KB，
 > 10 张塞进一个请求体容易被网关拒收。慢一点，但稳。
