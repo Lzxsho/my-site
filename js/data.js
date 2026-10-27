@@ -1646,6 +1646,69 @@ const DbStore = {
   deleteEnMaterial(id) {
     return this.del('/api/en-materials/' + encodeURIComponent(String(id)))
       .then(function () { return true; });
+  },
+
+  /* ---------------- 相册照片（管理员上传，人人可看） ----------------
+     列表只带缩略图（thumb，网格快）；大图点开才单独取 getPhotoFull。
+     data 是前端压好的 dataURL，服务端存 sqlite 的 photos 表。 */
+  getPhotos() {
+    return this.get('/api/photos').then(function (rows) {
+      return (rows || []).map(function (r) {
+        return {
+          id: String(r.id),
+          name: DataTools.str(r.name),
+          date: DataTools.str(r.date),
+          desc: DataTools.str(r.desc),
+          thumb: String(r.thumb || r.data || ''),
+          collectionId: DataTools.str(r.collectionId)
+        };
+      });
+    });
+  },
+
+  getPhotoFull(id) {
+    return this.get('/api/photos/' + encodeURIComponent(String(id)) + '/full')
+      .then(function (r) { return String((r && r.data) || ''); });
+  },
+
+  savePhoto(photo) {
+    return this.post('/api/photos', {
+      id: photo.id, name: photo.name, date: photo.date || '',
+      desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
+      collectionId: photo.collectionId || ''
+    }).then(function () { return true; });
+  },
+
+  deletePhoto(id) {
+    return this.del('/api/photos/' + encodeURIComponent(String(id)))
+      .then(function () { return true; });
+  },
+
+  /* ---------------- 照片合集（管理员建，人人可看） ---------------- */
+  getCollections() {
+    return this.get('/api/collections').then(function (rows) {
+      return (rows || []).map(function (r) {
+        return {
+          id: String(r.id),
+          name: DataTools.str(r.name),
+          date: DataTools.str(r.date),
+          note: DataTools.str(r.note),
+          cover: String(r.cover || '')
+        };
+      });
+    });
+  },
+
+  saveCollection(col) {
+    return this.post('/api/collections', {
+      id: col.id, name: col.name, date: col.date || '',
+      note: col.note || '', cover: col.cover || ''
+    }).then(function () { return true; });
+  },
+
+  deleteCollection(id) {
+    return this.del('/api/collections/' + encodeURIComponent(String(id)))
+      .then(function () { return true; });
   }
 };
 
@@ -1677,7 +1740,8 @@ const CloudStore = {
         profile: String(c.tableProfile || 'profile'),
         skills: String(c.tableSkills || 'skills'),
         studyProgress: String(c.tableStudyProgress || 'study_progress'),
-        enMaterials: String(c.tableEnMaterials || 'en_materials')
+        enMaterials: String(c.tableEnMaterials || 'en_materials'),
+        photos: String(c.tablePhotos || 'photos')
       }
     };
   },
@@ -2072,6 +2136,79 @@ const CloudStore = {
   deleteEnMaterial(id) {
     return this.req('enMaterials', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
       .then(function () { return true; });
+  },
+
+  /* ---------------- 相册照片（管理员上传，人人可看） ----------------
+     GET 列表只带缩略图（photos_read 策略放行所有人）；
+     大图 getPhotoFull 单独取；写走 req() 的管理员闸 + photos_write 策略。 */
+  getPhotos() {
+    return this.req('photos', '?select=id,name,date,desc,thumb,collection_id&order=created_at.desc')
+      .then(function (rows) {
+        return (rows || []).map(function (r) {
+          return {
+            id: String(r.id),
+            name: DataTools.str(r.name),
+            date: DataTools.str(r.date),
+            desc: DataTools.str(r.desc),
+            thumb: String(r.thumb || r.data || ''),
+            collectionId: DataTools.str(r.collection_id)
+          };
+        });
+      });
+  },
+
+  getPhotoFull(id) {
+    return this.req('photos', '?select=data&id=eq.' + encodeURIComponent(String(id)))
+      .then(function (rows) { return String((rows && rows[0] && rows[0].data) || ''); });
+  },
+
+  savePhoto(photo) {
+    return this.req('photos', '', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: {
+        id: photo.id, name: photo.name, date: photo.date || '',
+        desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
+        collectionId: photo.collectionId || ''
+      }
+    }).then(function () { return true; });
+  },
+
+  deletePhoto(id) {
+    return this.req('photos', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
+  },
+
+  /* ---------------- 照片合集（管理员建，人人可看） ---------------- */
+  getCollections() {
+    return this.req('collections', '?select=id,name,date,note,cover&order=created_at.desc')
+      .then(function (rows) {
+        return (rows || []).map(function (r) {
+          return {
+            id: String(r.id),
+            name: DataTools.str(r.name),
+            date: DataTools.str(r.date),
+            note: DataTools.str(r.note),
+            cover: String(r.cover || '')
+          };
+        });
+      });
+  },
+
+  saveCollection(col) {
+    return this.req('collections', '', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: {
+        id: col.id, name: col.name, date: col.date || '',
+        note: col.note || '', cover: col.cover || ''
+      }
+    }).then(function () { return true; });
+  },
+
+  deleteCollection(id) {
+    return this.req('collections', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
+      .then(function () { return true; });
   }
 };
 
@@ -2457,6 +2594,66 @@ const SiteAPI = {
     return this.whenReady().then(function () {
       if (self.mode === 'local') { return false; }
       return self._run('deleteEnMaterial', [id]);
+    });
+  },
+
+  /* ---------------- 相册照片 ----------------
+     注意：照片不做静态副本兜底（图放 git 里太重），
+     云端读不到就返回空数组，页面上显示「还没有照片」。 */
+  getPhotos() {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return []; }
+      return self._run('getPhotos', []);
+    }).catch(function () { return []; });
+  },
+
+  savePhoto(photo) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('savePhoto', [photo]);
+    });
+  },
+
+  getPhotoFull(id) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return ''; }
+      return self._run('getPhotoFull', [id]);
+    }).catch(function () { return ''; });
+  },
+
+  deletePhoto(id) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('deletePhoto', [id]);
+    });
+  },
+
+  /* ---------------- 照片合集 ---------------- */
+  getCollections() {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return []; }
+      return self._run('getCollections', []);
+    }).catch(function () { return []; });
+  },
+
+  saveCollection(col) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('saveCollection', [col]);
+    });
+  },
+
+  deleteCollection(id) {
+    const self = this;
+    return this.whenReady().then(function () {
+      if (self.mode === 'local') { return false; }
+      return self._run('deleteCollection', [id]);
     });
   }
 };

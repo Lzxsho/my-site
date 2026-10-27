@@ -158,6 +158,34 @@ create table if not exists public.en_materials (
 alter table public.en_materials add column if not exists owner text;
 create index if not exists en_materials_owner_idx on public.en_materials (owner);
 
+-- 12. 相册照片表 —— 管理员上传，所有人都能看
+--     分两档：thumb 是网格用的缩略图（长边 400px，一张 ~30KB），
+--     data 是灯箱看的大图（长边 1600px，一张 ~300KB），点开才单独取 ——
+--     列表一次拉几十张缩略图也不卡。dataURL 存 text 列，
+--     就不用开 Storage bucket 了 —— 少一层配置，少一层出错的可能。
+create table if not exists public.photos (
+  id         text primary key,                    -- 前端生成的 'p' + 时间戳
+  name       text not null,
+  date       text,
+  desc       text,
+  thumb      text not null default '',
+  data       text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.photos add column if not exists thumb text not null default '';
+alter table public.photos add column if not exists collection_id text not null default '';
+
+-- 13. 照片合集 —— 一个合集 = 封面 + 名字 + 一段话，点开里面是这个合集的照片
+--     photos.collection_id 指到这里的 id；空 = 不属于任何合集（直接在照片墙展示）
+create table if not exists public.collections (
+  id         text primary key,                    -- 前端生成的 'c' + 时间戳
+  name       text not null,
+  date       text,
+  note       text not null default '',            -- 合集开头的那段文字
+  cover      text not null default '',            -- 封面缩略图 dataURL
+  created_at timestamptz not null default now()
+);
+
 -- ==========================================================================
 --  行级安全（RLS）：这一节是「上云能不能安全用」的关键，顺序不能乱
 -- ==========================================================================
@@ -170,6 +198,8 @@ alter table public.skills         enable row level security;
 alter table public.comments       enable row level security;
 alter table public.study_progress enable row level security;
 alter table public.en_materials   enable row level security;
+alter table public.photos         enable row level security;
+alter table public.collections    enable row level security;
 
 -- 「他是管理员吗」：当前登录邮箱在不在 admins 表里。
 --   security definer：函数用建表者的权限读 admins，
@@ -189,12 +219,16 @@ drop policy if exists "music_read"     on public.music;
 drop policy if exists "profile_read"   on public.profile;
 drop policy if exists "skills_read"    on public.skills;
 drop policy if exists "study_progress_read" on public.study_progress;
+drop policy if exists "photos_read"         on public.photos;
+drop policy if exists "collections_read"    on public.collections;
 drop policy if exists "en_materials_read"   on public.en_materials;
 create policy "articles_read" on public.articles  for select using (true);
 create policy "poems_read"    on public.poems     for select using (true);
 create policy "music_read"    on public.music     for select using (true);
 create policy "profile_read"  on public.profile   for select using (true);
 create policy "skills_read"   on public.skills    for select using (true);
+create policy "photos_read"   on public.photos    for select using (true);
+create policy "collections_read" on public.collections for select using (true);
 create policy "study_progress_read" on public.study_progress for select using (true);
 -- 学习资料的读权限 ★ 和别的表不一样 —— 不是「谁都能读」：
 --   公共资料（owner 空）谁都能读；私人资料（owner = 邮箱）只有本人能读。
@@ -249,6 +283,9 @@ drop policy if exists "en_materials_upd" on public.en_materials;
 drop policy if exists "en_materials_del" on public.en_materials;
 drop policy if exists "en_materials_write"   on public.en_materials;
 
+drop policy if exists "photos_write" on public.photos;
+drop policy if exists "collections_write" on public.collections;
+
 create policy "articles_ins" on public.articles for insert with check (public.is_shuo_admin());
 create policy "articles_upd" on public.articles for update using (public.is_shuo_admin()) with check (public.is_shuo_admin());
 create policy "articles_del" on public.articles for delete using (public.is_shuo_admin());
@@ -289,6 +326,14 @@ create policy "en_materials_del" on public.en_materials for delete using (
   (coalesce(owner, '') = '' and public.is_shuo_admin())
   or lower(owner) = lower(coalesce(auth.jwt() ->> 'email', ''))
 );
+
+-- 照片：读上面已放开给所有人；增删改只有管理员
+create policy "photos_write" on public.photos for all
+  using (public.is_shuo_admin()) with check (public.is_shuo_admin());
+
+-- 照片合集：同上 —— 所有人能看，管理员能建能删
+create policy "collections_write" on public.collections for all
+  using (public.is_shuo_admin()) with check (public.is_shuo_admin());
 
 -- 留言表：谁都能看、谁都能写（游客留言），但不开放删除
 --   （网页上云端留言的 ✕ 按钮走 js/comments.js：提示去后台删，不直接调接口）

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>照片 · Shuoscape</title>
+  <meta name="description" content="拍下来的瞬间 —— 管理员上传，所有人都能看。点开看大图，左右翻。">
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="朔的小窝 · Shuoscape">
+  <meta property="og:title" content="照片 · Shuoscape">
+  <meta property="og:description" content="拍下来的瞬间。点开看大图，左右翻。">
+  <meta property="og:url" content="photos.html">
+  <!-- 有 JS 才做淡入（没 JS 就不隐藏页面，避免白屏） -->
+  <script>document.documentElement.classList.add('js-fade');</script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/gate.css">
+  <link rel="stylesheet" href="css/photos.css">
+</head>
+<body>
+
+  <div class="page-bg"></div>
+
+  <!-- ===================== 顶部导航 ===================== -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="index.html">Shuo<span>scape</span></a>
+      <nav class="nav" id="nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="photos.html">照片</a>
+        <a href="about.html">关于</a>
+      </nav>
+      <div class="topbar__actions">
+        <button class="role-btn" data-role-badge type="button" title="点这里登录 / 退出">未登录</button>
+        <button class="icon-btn" id="themeBtn" title="切换浅色 / 深色" aria-label="切换浅色/深色">◐</button>
+        <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="打开菜单">≡</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+
+      <!-- ===================== 页面小封面 ===================== -->
+      <section class="photo-hero">
+        <div class="photo-hero__mark">▦</div>
+        <h1 class="photo-hero__title">照片</h1>
+        <p class="photo-hero__desc">拍下来的瞬间 —— 不用配文字，图在，那一刻就在。</p>
+      </section>
+
+      <!-- ===================== 工具栏 ===================== -->
+      <div class="photo-toolbar">
+        <span class="photo-count">共 <b data-photo-count>0</b> 张</span>
+        <div class="photo-toolbar__acts">
+          <button class="btn btn--sm" id="newColBtn" data-admin-only type="button">▤ 新建合集</button>
+          <button class="btn btn--primary btn--sm" id="uploadBtn" data-admin-only type="button">＋ 上传照片</button>
+        </div>
+      </div>
+
+      <!-- ===================== 主视图：合集 + 散照片 ===================== -->
+      <div id="mainView">
+
+        <!-- 合集：一个合集 = 封面 + 名字 + 一段话，点开看里面的照片 -->
+        <section class="col-section" data-col-section hidden>
+          <h2 class="col-section__title">合集</h2>
+          <div class="col-grid" data-col-grid></div>
+        </section>
+
+        <!-- 不属于任何合集的照片，直接铺在照片墙上 -->
+        <section class="loose-section" data-loose-section>
+          <h2 class="col-section__title" data-loose-title>照片</h2>
+          <div class="photo-grid" data-photo-grid></div>
+          <div class="photo-empty" data-photo-empty hidden>
+            <span class="photo-empty__icon">☼</span>
+            <p class="photo-empty__title">这里还空着</p>
+            <p class="photo-empty__desc">管理员登录后点「上传照片」，传几张来看看。</p>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===================== 合集视图：点开一个合集 ===================== -->
+      <section class="col-view" id="colView" hidden>
+        <button class="btn btn--ghost btn--sm col-view__back" type="button" data-col-back>← 返回</button>
+        <h2 class="col-view__name" data-col-name></h2>
+        <p class="col-view__note" data-col-note></p>
+        <div class="photo-grid" data-col-photo-grid></div>
+        <div class="photo-empty" data-col-empty hidden>
+          <span class="photo-empty__icon">▦</span>
+          <p class="photo-empty__title">这个合集还没有照片</p>
+          <p class="photo-empty__desc">上传照片时选「归入合集」就能放进来。</p>
+        </div>
+        <button class="btn btn--danger btn--sm col-view__del" type="button" data-col-del data-admin-only hidden>🗑 删除这个合集</button>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===================== 上传弹窗 ===================== -->
+  <div class="modal" id="uploadModal">
+    <div class="modal__box photo-upload">
+      <h3 class="photo-upload__title">上传照片</h3>
+      <p class="photo-upload__sub">可以一次选多张。上传前会自动压到长边 1600px，手机拍的原图也不用担心。</p>
+
+      <div class="field">
+        <label for="photoFiles">选择图片</label>
+        <input type="file" id="photoFiles" accept="image/*" multiple>
+      </div>
+
+      <div class="photo-upload__grid">
+        <div class="field">
+          <label for="photoName">标题（可留空）</label>
+          <input type="text" id="photoName" placeholder="用文件名，或者写个名字">
+        </div>
+        <div class="field">
+          <label for="photoDate">日期</label>
+          <input type="date" id="photoDate">
+        </div>
+      </div>
+      <div class="field">
+        <label for="photoDesc">一句话说明（可留空）</label>
+        <input type="text" id="photoDesc" placeholder="在哪里拍的、当时在想什么……">
+      </div>
+      <div class="field">
+        <label for="photoCol">归入合集（可留空 = 直接展示在照片墙）</label>
+        <select id="photoCol" data-photo-col><option value="">不归入合集</option></select>
+      </div>
+
+      <!-- 待上传的缩略图预览 -->
+      <div class="photo-upload__thumbs" data-upload-thumbs></div>
+      <p class="photo-upload__progress" data-upload-progress hidden></p>
+
+      <div class="photo-upload__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-upload-cancel>取消</button>
+        <button class="btn btn--primary btn--sm" type="button" data-upload-ok disabled>开始上传</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 新建合集弹窗 ===================== -->
+  <div class="modal" id="colModal">
+    <div class="modal__box photo-upload">
+      <h3 class="photo-upload__title">新建合集</h3>
+      <p class="photo-upload__sub">合集开头的那段话会显示在合集里面、照片的上面 —— 想写点什么就写点什么。</p>
+      <div class="photo-upload__grid">
+        <div class="field">
+          <label for="colName">合集名字</label>
+          <input type="text" id="colName" placeholder="比如：夏天的风">
+        </div>
+        <div class="field">
+          <label for="colDate">日期</label>
+          <input type="date" id="colDate">
+        </div>
+      </div>
+      <div class="field">
+        <label for="colNote">留一段话（可留空）</label>
+        <textarea id="colNote" rows="4" placeholder="这一集照片背后的事……"></textarea>
+      </div>
+      <div class="photo-upload__foot">
+        <button class="btn btn--ghost btn--sm" type="button" data-col-cancel>取消</button>
+        <button class="btn btn--primary btn--sm" type="button" data-col-ok>建好</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 灯箱（看大图） ===================== -->
+  <div class="lightbox" id="lightbox" hidden>
+    <button class="lightbox__close" type="button" title="关闭 (Esc)" data-lb-close>✕</button>
+    <button class="lightbox__nav lightbox__nav--prev" type="button" title="上一张 (←)" data-lb-prev>‹</button>
+    <figure class="lightbox__stage">
+      <img class="lightbox__img" data-lb-img alt="">
+      <figcaption class="lightbox__cap">
+        <span class="lightbox__name" data-lb-name></span>
+        <span class="lightbox__meta" data-lb-meta></span>
+      </figcaption>
+    </figure>
+    <button class="lightbox__nav lightbox__nav--next" type="button" title="下一张 (→)" data-lb-next>›</button>
+    <button class="btn btn--danger btn--sm lightbox__del" type="button" data-lb-del hidden>🗑 删除这张</button>
+  </div>
+
+  <!-- ===================== 页脚 ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <nav class="footer__nav">
+        <a href="index.html">首页</a>
+        <a href="articles.html">文章</a>
+        <a href="poems.html">诗札</a>
+        <a href="photos.html">照片</a>
+        <a href="about.html">关于</a>
+        <a href="index.html#music">曲音拾集</a>
+      </nav>
+      <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
+      <p>© <span data-year>2026</span> 朔 · 用 HTML / CSS / JavaScript 手写</p>
+    </div>
+  </footer>
+
+  <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
+
+  <script src="js/config.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/main.js" defer></script>
+  <script src="js/auth.js" defer></script>
+  <script src="js/gate.js" defer></script>
+  <script src="js/photos.js" defer></script>
+</body>
+</html>

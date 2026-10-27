@@ -238,7 +238,11 @@ const MIGRATIONS = [
   /* 学习资料的归属：空 = 管理员共享（所有人可见）；邮箱 = 该用户的私人资料。
      本机 server.js 只有一个管理员账号，所以实际用到的都是共享，
      加这一列是为了和云端（Supabase）的表结构保持一致。 */
-  ['en_materials', 'owner', "TEXT NOT NULL DEFAULT ''"]
+  ['en_materials', 'owner', "TEXT NOT NULL DEFAULT ''"],
+  /* 照片归入合集：空 = 不属于任何合集，直接在照片墙里展示 */
+  ['photos', 'collection_id', "TEXT NOT NULL DEFAULT ''"],
+  /* 网格用的缩略图（长边 400px）：列表接口只带 thumb，大图点开才取 */
+  ['photos', 'thumb', "TEXT NOT NULL DEFAULT ''"]
 ];
 
 /* 反过来：不再用的列删掉。
@@ -333,6 +337,45 @@ function ensureEnMaterialsTable() {
   `);
 }
 ensureEnMaterialsTable();
+
+/* ---------- 照片表 ----------
+   相册页的照片，分两档存：
+     thumb —— 网格用的缩略图（长边 400px / JPEG 0.7，一张 ~30KB），
+              列表接口一次全带上，几十张也就几 MB；
+     data  —— 灯箱看的大图（长边 1600px / JPEG 0.82，一张 ~300KB），
+              点开才单独取（GET /api/photos/:id/full），不拖慢列表。
+   GET 公开（人人可看）；上传/删除走统一的写鉴权闸（X-Admin-Token）。 */
+function ensurePhotosTable() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS photos (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      date       TEXT,
+      desc       TEXT,
+      thumb      TEXT NOT NULL DEFAULT '',
+      data       TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `);
+}
+ensurePhotosTable();
+
+/* ---------- 照片合集表 ----------
+   一个合集 = 封面 + 名字 + 一段话（note），点开里面是这个合集的照片。
+   cover 存封面图的缩略图 dataURL（默认取合集里第一张的缩略图）。 */
+function ensureCollectionsTable() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS collections (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      date       TEXT,
+      note       TEXT NOT NULL DEFAULT '',
+      cover      TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )
+  `);
+}
+ensureCollectionsTable();
 
 
 /* ============================================================================
@@ -720,6 +763,78 @@ const api = {
 
   'DELETE /api/en-materials/:id': function (body, params) {
     const info = db.prepare('DELETE FROM en_materials WHERE id = ?').run(params.id);
+    return { ok: true, deleted: info.changes };
+  },
+
+  /* ---------- 照片（相册页） ----------
+     列表只带缩略图（快）；大图单独一条接口，点开才取。
+     POST/DELETE 管理员：thumb/data 都是前端压好的 dataURL，
+     8MB 的请求体上限对单张大图够用。 */
+  'GET /api/photos': function () {
+    return db.prepare('SELECT id, name, date, desc, thumb, collection_id FROM photos ORDER BY created_at DESC, id DESC').all()
+      .map(function (r) {
+        return { id: r.id, name: r.name, date: r.date || '', desc: r.desc || '', thumb: r.thumb || r.data, collectionId: r.collection_id || '' };
+      });
+  },
+
+  'GET /api/photos/:id/full': function (body, params) {
+    const row = db.prepare('SELECT data FROM photos WHERE id = ?').get(params.id);
+    if (!row) { throw apiError(404, '照片不见了'); }
+    return { id: params.id, data: row.data };
+  },
+
+  'POST /api/photos': function (body) {
+    const id = text(body.id) || ('p' + Date.now());
+    const name = (text(body.name) || '未命名').slice(0, 60);
+    const desc = text(body.desc).slice(0, 200);
+    const data = text(body.data);
+    const thumb = text(body.thumb) || data;
+    if (!/^data:image\//.test(data)) { throw apiError(400, '照片数据不对（需要 dataURL）'); }
+    if (data.length > 6 * 1024 * 1024) { throw apiError(413, '这张照片压完还是太大，换小一点的原图试试'); }
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO photos (id, name, date, desc, thumb, data, collection_id, created_at)
+      VALUES (?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name, date = excluded.date, desc = excluded.desc,
+        thumb = excluded.thumb, data = excluded.data, collection_id = excluded.collection_id
+    `).run(id, name, text(body.date), desc, thumb, data, text(body.collectionId), now);
+    return { ok: true, id: id };
+  },
+
+  'DELETE /api/photos/:id': function (body, params) {
+    const info = db.prepare('DELETE FROM photos WHERE id = ?').run(params.id);
+    return { ok: true, deleted: info.changes };
+  },
+
+  /* ---------- 照片合集 ----------
+     一个合集 = 封面 + 名字 + 一段话，点开里面是这个合集的照片。 */
+  'GET /api/collections': function () {
+    return db.prepare('SELECT id, name, date, note, cover FROM collections ORDER BY created_at DESC, id DESC').all()
+      .map(function (r) {
+        return { id: r.id, name: r.name, date: r.date || '', note: r.note || '', cover: r.cover || '' };
+      });
+  },
+
+  'POST /api/collections': function (body) {
+    const id = text(body.id) || ('c' + Date.now());
+    const name = (text(body.name) || '未命名合集').slice(0, 60);
+    const note = text(body.note).slice(0, 2000);
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO collections (id, name, date, note, cover, created_at)
+      VALUES (?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        name = excluded.name, date = excluded.date,
+        note = excluded.note, cover = excluded.cover
+    `).run(id, name, text(body.date), note, text(body.cover), now);
+    return { ok: true, id: id };
+  },
+
+  'DELETE /api/collections/:id': function (body, params) {
+    /* 合集删掉后，里面的照片回到「未归集」，不会跟着消失 */
+    db.prepare("UPDATE photos SET collection_id = '' WHERE collection_id = ?").run(params.id);
+    const info = db.prepare('DELETE FROM collections WHERE id = ?').run(params.id);
     return { ok: true, deleted: info.changes };
   },
 

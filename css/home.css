@@ -333,11 +333,11 @@
 .post-card--plain .cover { background: linear-gradient(135deg, #fff0f8, #e9dcff); }
 
 /* ---------- 4. 小诗 / 音乐 双栏 ----------
-   右边那栏里装的是一台唱片机，比左边的小诗卡需要更多横向空间，
-   所以两栏不是均分的（0.85 : 1.15）。 */
+   学习站拆出去之后（_study-archive/），这里只剩小诗一张卡，
+   改回单列占满整行 —— 原来是 0.85 : 1.15 两栏（诗札 : 学习进度）。 */
 .duo-grid {
   display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
+  grid-template-columns: 1fr;
   gap: 22px;
 }
 .duo-card { padding: 24px 26px 26px; }

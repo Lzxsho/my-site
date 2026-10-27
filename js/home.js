@@ -23,7 +23,6 @@ const HomePage = {
     this.renderPosts();
     this.renderPoems();
     this.renderFeature();
-    this.renderStudy();
   },
 
   /* ---------- 1. 首屏文案 ---------- */
@@ -198,85 +197,6 @@ const HomePage = {
     });
   },
 
-  /* ---------- 6. 学习进度预览 ----------
-     左右两栏：C 语言一栏、英语一栏。
-     每栏 = 进度条 + 一句话现状 + 几个直接进去的入口，
-     这样在首页就能一键跳到「章节练习」「真题」「词汇复习」这些地方，
-     不用先经过学习页再找。真正的练习仍在学习页里，这里只做门。 */
-  renderStudy() {
-    const box = App.qs('[data-home-study]');
-    if (!box || !SiteAPI.getStudy) { return; }
-
-    Promise.all([SiteAPI.getStudy(), SiteAPI.getStudyProgress()]).then(function (res) {
-      const study = res[0];
-      const prog = res[1];
-      const count = function (map) {
-        return Object.keys(map || {}).filter(function (k) { return map[k]; }).length;
-      };
-
-      /* 英语的现状（词库多少词、多少待巩固）在浏览器里，english.js 存的那几把钥匙 */
-      let words = 0, pending = 0, mats = 0;
-      try {
-        const list = JSON.parse(localStorage.getItem('shuoscape_en_materials') || '[]') || [];
-        const wrong = JSON.parse(localStorage.getItem('shuoscape_en_wrong') || '[]') || [];
-        const seen = {};
-        list.forEach(function (m) {
-          (m.words || []).forEach(function (w) {
-            const k = String((w && w.en) || '').toLowerCase().trim();
-            if (!k || seen[k]) { return; }
-            seen[k] = 1; words += 1;
-          });
-        });
-        mats = list.length;
-        wrong.forEach(function (r) { if (r && !r.mastered) { pending += 1; } });
-      } catch (e) { /* 没存过就是 0，照常显示 */ }
-
-      /* 知识点条数：直接读 data.js 里存的数字。
-         以前为了这个数把 js/notes-data.js（119KB 全文）也拉下来了，
-         首页只是显示一个「23 条笔记」，不值当。 */
-      const noteCount = (study.en && study.en.noteCount) || 0;
-
-      const s = study.c.stats || {};
-      const doneC = count(prog.c);
-      const pctC = study.c.total ? Math.round((doneC / study.c.total) * 100) : 0;
-
-      const colC = '' +
-        '<div class="study-peek__col">' +
-          '<a class="sp-head" href="study.html#c">' +
-            '<span class="sp-head__name">C 语言</span>' +
-            '<span class="sp-head__num"><b>' + doneC + '</b> / ' + study.c.total + '</span>' +
-          '</a>' +
-          '<span class="sp-bar"><i style="width:' + pctC + '%"></i></span>' +
-          '<span class="sp-now">' + pctC + '% · ' +
-            App.escape((s.chapters || 0) + ' 章 / ' + (s.total || 0) + ' 题 / ' + (s.papers || 0) + ' 套卷') +
-          '</span>' +
-          '<span class="sp-links">' +
-            '<a href="c/index.html">学习总览</a>' +
-            '<a href="c/practice.html">章节练习</a>' +
-            '<a href="c/papers-image.html">真题试卷</a>' +
-            '<a href="study.html#c">知识点清单</a>' +
-          '</span>' +
-        '</div>';
-
-      const colEn = '' +
-        '<div class="study-peek__col">' +
-          '<a class="sp-head" href="study.html#en">' +
-            '<span class="sp-head__name">英语</span>' +
-            '<span class="sp-head__num"><b>' + words + '</b> 词汇</span>' +
-          '</a>' +
-          '<span class="sp-bar"><i style="width:' + (words ? 100 : 0) + '%"></i></span>' +
-          '<span class="sp-now">' + mats + ' 份资料 · ' + pending + ' 条待巩固 · ' + noteCount + ' 条笔记</span>' +
-          '<span class="sp-links">' +
-            '<a href="english.html#vocab">词汇复习</a>' +
-            '<a href="english.html#wrong">错题本</a>' +
-            '<a href="english.html#materials">学习资料</a>' +
-            '<a href="english.html#notes">知识点</a>' +
-          '</span>' +
-        '</div>';
-
-      box.innerHTML = colC + colEn;
-    });
-  }
 };
 
 document.addEventListener('DOMContentLoaded', function () {

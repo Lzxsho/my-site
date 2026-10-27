@@ -1,21 +1,27 @@
 /* ==========================================================================
-   search.js —— 站内搜索（文章 / 小诗 / 知识点 一起搜）
+   search.js —— 站内搜索（文章 / 小诗 一起搜）
    --------------------------------------------------------------------------
    为什么要有这个：
-     文章页原来只能按栏目筛，小诗的搜索只管小诗，知识点又只在英语页里能搜。
+     文章页原来只能按栏目筛，小诗的搜索只管小诗，
      想找一句话到底写在哪儿，得挨个页面点一遍。
 
-   它做的事：一个输入框，三个数据源，结果分组显示。
+   它做的事：一个输入框，两个数据源，结果分组显示。
      文章      → 点结果直接在这里开弹窗（复用 ArticlesPage.openModal）
      小诗      → 跳 poems.html?q=关键词，那边会自动搜出来
-     知识点    → 跳 english.html#notes（笔记里的搜索在那边）
+
+   ▍「知识点」那一组去哪了
+     学习板块（study.html / english.html / c/ / note.html）已整体封存到
+     _study-archive/，本文件里 loadNotes / findNotes 这两个函数和
+     跳 english.html?note= 的分支都随之移除。
+     以后学习站接回来：把这两个函数从 _study-archive/js/ 对应的旧版本复制回来，
+     render() 多加一个 notes 参数、group('知识点', …) 再加一行即可。
 
    数据从哪来：一律走 SiteAPI —— 数据库模式和本地模式都能用，
                这里不碰 localStorage、也不直接 fetch 任何接口。
 
    ▍怎么用
      页面上放：
-       <input type="text" id="siteSearch" placeholder="搜索文章、小诗、知识点…">
+       <input type="text" id="siteSearch" placeholder="搜索文章、小诗…">
        <div class="search-results" data-search-results></div>
      然后：
        SiteSearch.init();
@@ -83,14 +89,11 @@ const SiteSearch = {
     const self = this;
     const q = String(kw).toLowerCase();
 
-    this.loadNotes().then(function () {
-      return Promise.all([
-        self.findArticles(q),
-        self.findPoems(q),
-        Promise.resolve(self.findNotes(q))
-      ]);
-    }).then(function (res) {
-      self.render(kw, res[0], res[1], res[2]);
+    Promise.all([
+      self.findArticles(q),
+      self.findPoems(q)
+    ]).then(function (res) {
+      self.render(kw, res[0], res[1]);
     }).catch(function (e) {
       if (typeof console !== 'undefined') { console.warn('[search]', e && e.message); }
       const box = App.qs('[data-search-results]');
@@ -124,48 +127,6 @@ const SiteSearch = {
     }).catch(function () { return []; });
   },
 
-  /* ---------- 知识点：笔记是静态文件，读 window.NOTES_DATA ----------
-     这个文件只在英语页加载，所以这里得容得住「没加载」的情况：
-     没有就返回空数组 —— 不是错误，只是这一组不显示。 */
-  /* ---------- 知识点 ----------
-     笔记全文在 js/notes-data.js（119KB），没在文章页预先加载 ——
-     为了一个「可能用不到」的搜索去拖慢整页不划算。
-     所以这里「用到才拉」：第一次搜索时把那个文件插进来，之后就一直在了。 */
-  loadNotes() {
-    if (window.NOTES_DATA) { return Promise.resolve(true); }
-    if (this._notesTask) { return this._notesTask; }
-
-    this._notesTask = new Promise(function (resolve) {
-      const s = document.createElement('script');
-      s.src = 'js/notes-data.js';
-      s.onload = function () { resolve(true); };
-      /* 加载失败也要 resolve —— 搜索照常进行，只是「知识点」这组不出现 */
-      s.onerror = function () { resolve(false); };
-      document.head.appendChild(s);
-    });
-    return this._notesTask;
-  },
-
-  findNotes(q) {
-    const groups = (window.NOTES_DATA || {}).groups || [];
-    const out = [];
-    groups.forEach(function (g) {
-      (g.items || []).forEach(function (it) {
-        const hay = (String(it.title || '') + ' ' + String(it.name || '') + ' ' +
-                     String(it.body || it.content || '')).toLowerCase();
-        if (hay.indexOf(q) >= 0) {
-          out.push({
-            id: String(it.id || out.length),
-            title: it.title || it.name || '知识点',
-            group: g.title || '',
-            snippets: SiteSearch.snippet(hay, q)
-          });
-        }
-      });
-    });
-    return out.slice(0, SiteSearch.MAX_EACH);
-  },
-
   /* 把命中关键词前后的那一小截抠出来，让人一眼看出「为什么这条被搜到了」 */
   snippet(hay, q) {
     const at = hay.indexOf(q);
@@ -188,12 +149,12 @@ const SiteSearch = {
   /* ------------------------------------------------------------------
      渲染结果：三组，各自一个小标题
      ------------------------------------------------------------------ */
-  render(kw, articles, poems, notes) {
+  render(kw, articles, poems) {
     const box = App.qs('[data-search-results]');
     if (!box) { return; }
 
     const self = this;
-    const total = articles.length + poems.length + notes.length;
+    const total = articles.length + poems.length;
 
     if (!total) {
       box.hidden = false;
@@ -201,7 +162,7 @@ const SiteSearch = {
         '<div class="search-empty">' +
           '<span class="search-empty__icon">☁</span>' +
           '<p>没找到「' + App.escape(kw) + '」。<br>' +
-            '换个说法试试 —— 比如只搜一个词：雨、晚自习、指针。</p>' +
+            '换个说法试试 —— 比如只搜一个词：雨、晚自习、便利店。</p>' +
         '</div>';
       return;
     }
@@ -245,23 +206,11 @@ const SiteSearch = {
         '</button></li>';
     });
 
-    const nHtml = notes.map(function (n) {
-      return '' +
-        '<li><button class="search-item" type="button" ' +
-          'data-search-item data-kind="note" data-id="' + App.escape(n.id) + '" ' +
-          'data-kw="' + App.escape(kw) + '">' +
-          '<span class="search-item__title">' + self.mark(n.title, kw) + '</span>' +
-          '<span class="search-item__meta">' + App.escape(n.group) + '</span>' +
-          '<span class="search-item__text">' + App.escape(n.snippets) + '</span>' +
-        '</button></li>';
-    });
-
     box.hidden = false;
     box.innerHTML =
       '<div class="search-head">搜到 <b>' + total + '</b> 条和「' + App.escape(kw) + '」有关的内容</div>' +
       group('文章', '✎', aHtml) +
-      group('小诗', '❝', pHtml) +
-      group('知识点', '📘', nHtml);
+      group('小诗', '❝', pHtml);
   },
 
   /* ------------------------------------------------------------------
@@ -282,8 +231,8 @@ const SiteSearch = {
       window.location.href = 'poems.html?q=' + encodeURIComponent(kw || '');
       return;
     }
-    /* 知识点：英语页的搜索框等着接手 */
-    window.location.href = 'english.html?note=' + encodeURIComponent(kw || '');
+    /* 知识点那一组已随学习站封存，没有别的地方可去了 */
+    return;
   }
 };
 

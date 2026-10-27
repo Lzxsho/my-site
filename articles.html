@@ -36,7 +36,7 @@
         <a href="index.html">首页</a>
         <a href="articles.html">文章</a>
         <a href="poems.html">诗札</a>
-        <a href="study.html">学习</a>
+        <a href="photos.html">照片</a>
         <a href="about.html">关于</a>
       </nav>
       <div class="topbar__actions">
@@ -66,14 +66,14 @@
         </p>
       </section>
 
-      <!-- ===================== 站内搜索（文章 / 小诗 / 知识点 一起搜） =====================
+      <!-- ===================== 站内搜索（文章 / 小诗 一起搜） =====================
            由 js/search.js 驱动：数据一律走 SiteAPI，db / local 两种模式都能用。
-           知识点那一组是「第一次搜索时才把笔记文件拉进来」，平时不占流量。 -->
+           原来还有「知识点」一组，随学习板块一起封存在 _study-archive/。 -->
       <section class="section search-zone">
         <div class="search-box search-box--wide">
           <span aria-hidden="true">🔍</span>
           <input type="text" id="siteSearch"
-                 placeholder="搜索文章、小诗、知识点…（回车立刻找，Esc 清空）"
+                 placeholder="搜索文章、小诗…（回车立刻找，Esc 清空）"
                  autocomplete="off">
         </div>
         <div class="search-results" data-search-results hidden></div>
@@ -150,6 +150,7 @@
         <a href="articles.html">文章</a>
         <a href="poems.html">小诗</a>
         <a href="index.html#music">曲音拾集</a>
+        <a href="photos.html">照片</a>
         <a href="about.html">关于</a>
       </nav>
       <p class="footer__sign">// Shuoscape · 用 HTML/CSS/JavaScript 手写</p>
