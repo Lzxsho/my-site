@@ -6,12 +6,18 @@
      2. 记住登录状态（本机凭证或云端会话都存浏览器，关掉再开还在）
      3. 刷新整站界面：按钮显不显示（data-admin-only）、身份条写什么
 
+   ▍进站不再拦人（2026-10-27 改）
+     以前一进站先弹一扇「门」挡住整页，现在没了 —— 打开网页直接就是内容。
+     想登录随时点最顶上那条身份条（或右上角小徽章、关于页的头像）。
+     不登录也能看全部内容、也能留言（留言同步到云端，所有人可见）；
+     只有改文章 / 小诗 / 照片这些，才需要管理员登录。
+
    ▍谁能干什么（权限就这一张表）
      ┌ 管理员 ──── 增删改文章 / 小诗 / 唱片 / 自我介绍 / 技能 / 英语资料；
      │             删除留言（本机模式）；云端评论自动带身份
      ├ 注册用户 ── 云端只能**留言**（自动带邮箱身份）；
      │             导入英语资料 → 只存自己浏览器（IndexedDB），不上云
-     └ 未登录 ──── 只能看；留言走匿名（填个名字就行）
+     └ 未登录 ──── 看全部内容；留言走匿名（填个名字就行，一样进云端）
 
    ▍三种运行模式，登录通道不一样
      · 云端（config.js 填了 Supabase）→ 注册 + 登录都走 Supabase Auth：
@@ -86,7 +92,7 @@ const Auth = {
         '<span class="adminbar__dot" aria-hidden="true"></span>' +
         '<b class="adminbar__who" data-bar-role>未登录</b>' +
         '<span class="adminbar__sep">·</span>' +
-        '<span class="adminbar__tip" data-bar-tip>现在是只读模式，登录后可留言 / 管理</span>' +
+        '<span class="adminbar__tip" data-bar-tip>留言不用登录，直接写就行；管理员登录后可以改内容</span>' +
         '<span class="adminbar__acts">' +
           '<button class="adminbar__btn adminbar__btn--main" type="button" data-bar-admin>登录 / 注册</button>' +
         '</span>' +
@@ -275,7 +281,7 @@ const Auth = {
     const tip = isAdmin
       ? '可以增删改内容；再点右边按钮退出'
       : (isUser ? '已登录 —— 可以留言、本地练习；导入的资料只存在这台电脑上'
-                : '现在是只读模式，登录后可留言 / 管理');
+                : '留言不用登录，直接写就行；管理员登录后可以改内容');
 
     /* 右上角那颗小徽章 */
     document.querySelectorAll('[data-role-badge]').forEach(function (node) {
@@ -302,8 +308,8 @@ const Auth = {
       if (adminBtn) { adminBtn.textContent = this.role ? '退出登录' : '登录 / 注册'; }
     }
 
-    /* 广播身份变化 —— 进站门（js/gate.js）靠这个事件知道「登录成功了，
-       可以关门放行」。谁想跟着身份联动，监听 'auth:change' 即可。 */
+    /* 广播身份变化 —— 谁想跟着身份联动（按钮显隐、留言框预填昵称），
+       监听 'auth:change' 即可。 */
     document.dispatchEvent(new CustomEvent('auth:change', {
       detail: { role: this.role, user: this.user }
     }));
@@ -352,8 +358,9 @@ const Auth = {
         '</div>' +
 
         /* ⑤ 表单（登录注册共用邮箱 / 密码两格，注册多一格昵称）
-             data-f-* 是给「表单搬运」用的通用选择器：进站门（gate.js）里
-             也有一套一模一样的表单，Auth 靠这些属性在两个容器里找输入框 */
+             data-f-* 是给「表单搬运」用的通用选择器：不管这张表单被搬到哪个
+             容器里（现在只有登录卡片，以后可能放进别的弹层），
+             Auth 都靠这些属性找输入框，不用改取值逻辑 */
         '<div class="field" data-auth-nick hidden>' +
           '<label for="authNick">昵称</label>' +
           '<input id="authNick" type="text" data-f-nick autocomplete="nickname" placeholder="留言时显示的名字（可留空）">' +
@@ -380,7 +387,8 @@ const Auth = {
 
         /* ⑧ 底部小字（云端 / 本机各一版，open 时按模式切换） */
         '<p class="auth-box__note" data-auth-note>' +
-          '管理员可以管理内容；注册用户可以留言、练习，导入的资料只保存在你自己的电脑上。' +
+          '不登录也能看全部内容、也能留言（留言会同步到云端，所有人都能看到）；' +
+          '登录是为了管理文章 / 小诗 / 照片。' +
         '</p>' +
       '</div>';
 
@@ -412,8 +420,8 @@ const Auth = {
     if (title) { title.textContent = login ? '欢迎回来。' : '加入朔的小窝。'; }
     if (desc) {
       desc.textContent = login
-        ? '登录后可以留言、练习；管理员账号登录会自动拿到管理权限。'
-        : '注册后可以留言（带你的昵称）、练习词汇；导入的资料只存自己电脑，不会上传。';
+        ? '管理员账号登录后可以增删改文章 / 小诗 / 照片；不登录也能看、也能留言。'
+        : '注册一个账号，留言会带上你的昵称；不注册同样能留言，只是显示你填的名字。';
     }
     if (nick) { nick.hidden = login; }
     if (pass) { pass.setAttribute('autocomplete', login ? 'current-password' : 'new-password'); }
@@ -451,15 +459,17 @@ const Auth = {
     const note = this.modal && this.modal.querySelector('[data-auth-note]');
     if (!note) { return; }
     if (this.cloudCfg()) {
-      note.innerHTML = '管理员可以管理内容；注册用户可以留言、练习，导入的资料只保存在你自己的电脑上。';
+      note.innerHTML = '不登录也能看全部内容、也能留言（留言同步到云端，所有人可见）。<br>' +
+                       '登录是为了管理文章 / 小诗 / 照片 —— 用管理员账号就行。';
     } else {
-      note.innerHTML = '本机模式只有管理员账号（账号见启动窗口打印的那行）。<br>注册 / 多用户功能在上云（Supabase）之后开放。';
+      note.innerHTML = '本机模式只有管理员账号（账号见启动窗口打印的那行）。<br>' +
+                       '不登录也能看、也能留言；注册 / 多用户在上云（Supabase）之后开放。';
     }
   },
 
   close() {
     if (this.modal) { this.modal.classList.remove('is-open'); }
-    /* 进站门（js/gate.js）在等这个信号：登录卡片关了人还没进去，门要挡回来 */
+    /* 广播一下「登录卡片关了」—— 谁要跟着收尾（比如关掉遮罩、恢复焦点）就监听它 */
     document.dispatchEvent(new CustomEvent('auth:modal-closed'));
   },
 
