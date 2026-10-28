@@ -27,7 +27,7 @@ const HomePage = {
 
   /* ---------- 1. 首屏文案 ---------- */
   renderHero() {
-    SiteAPI.getProfile().then(function (p) {
+    Api.getProfile().then(function (p) {
       const eyebrow = App.qs('[data-hero-eyebrow]');
       const title = App.qs('[data-hero-title]');
       const desc = App.qs('[data-hero-desc]');
@@ -69,7 +69,7 @@ const HomePage = {
   renderAbout() {
     const box = App.qs('[data-about-card]');
     if (!box) { return; }
-    SiteAPI.getProfile().then(function (p) {
+    Api.getProfile().then(function (p) {
       box.innerHTML =
         '<div class="about-card__avatar">' +
           /* 头像直接用 assets/avatar.jpg，换头像覆盖那个文件就行 */
@@ -89,7 +89,7 @@ const HomePage = {
     const grid = App.qs('[data-recent-posts]');
     if (!grid) { return; }
 
-    SiteAPI.getArticles({ limit: 3 }).then(function (list) {
+    Api.getArticles({ limit: 3 }).then(function (list) {
       grid.innerHTML = list.map(function (a, i) {
         /* 封面交给 App.coverHtml 处理：
            文章放了照片就显示照片，没放就显示渐变色块 */
@@ -126,7 +126,7 @@ const HomePage = {
     const box = App.qs('[data-home-poems]');
     if (!box) { return; }
 
-    SiteAPI.getPoems().then(function (list) {
+    Api.getPoems().then(function (list) {
       /* 取 3 条 —— 右边那栏装了台唱片机，本来就比左边高；
          只放 2 条的话小诗卡底下会空一大截，两栏看着不像一对。 */
       const top = list.slice(0, 3);
@@ -158,7 +158,7 @@ const HomePage = {
     const descBox = App.qs('[data-feature-desc]');
     const coverBox = App.qs('[data-feature-cover]');
 
-    SiteAPI.getArticles({ limit: 1 }).then(function (list) {
+    Api.getArticles({ limit: 1 }).then(function (list) {
       const a = list[0];
 
       /* 一篇文章都没有的时候别留一张空壳卡片 */

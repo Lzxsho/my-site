@@ -391,20 +391,11 @@ const DataMode = {
         label = '数据库';
         cls = 'is-db';
         tip = '数据来自 db/site.db，由 server.js 读写。改完刷新页面就能看到。';
-      } else if (mode === 'cloud') {
-        const off = typeof CloudStore !== 'undefined' && !!CloudStore._offline;
-        cls = 'is-cloud';
-        if (off) {
-          label = '云端·副本';
-          tip = 'Supabase 云端暂时连不上（断网 / 项目暂停 / 网络被拦），现在显示的是仓库里的静态副本，文章照常能看，留言会先存在本机。';
-        } else {
-          label = '云端';
-          tip = '数据来自 Supabase 云端数据库，登录后就能留言、同步练习记录。';
-        }
       } else {
-        label = '本地';
+        /* 纯静态：内容从仓库里的 data/*.json 读（js/api.js） */
+        label = '本地 JSON';
         cls = 'is-local';
-        tip = '没有检测到后端（直接双击打开的网页），数据写在 js/data.js 里，你自己改的记在浏览器中。想用数据库请双击 start.bat。';
+        tip = '数据来自仓库里的 data/*.json —— 改那几个文件就行，不用连任何云端服务。';
       }
 
       const badge = App.el('span', 'mode-badge ' + cls, label);
@@ -412,16 +403,28 @@ const DataMode = {
       sign.appendChild(document.createTextNode(' · '));
       sign.appendChild(badge);
 
-      /* 徽章画完之后云端才超时的（探测请求要挂满 8 秒）——
-         收到广播就把「云端」改成「云端·副本」 */
-      document.addEventListener('cloud:offline', function () {
-        const b = App.qs('.mode-badge.is-cloud');
-        if (b && b.textContent === '云端') {
-          b.textContent = '云端·副本';
-          b.title = 'Supabase 云端暂时连不上（断网 / 项目暂停 / 网络被拦），现在显示的是仓库里的静态副本，文章照常能看，留言会先存在本机。';
-        }
-      });
     });
+
+    /* 右上角那个小圆点：
+         绿 = 刚从 data/*.json 读到最新内容
+         黄 = JSON 没读到（断网 / 文件缺失），现在看的是浏览器里上次的缓存 */
+    if (typeof Api !== 'undefined' && Api.onStatus) {
+      const dot = App.el('span', 'status-dot', '');
+      dot.setAttribute('aria-hidden', 'true');
+      const badge = App.qs('[data-role-badge]');
+      if (badge && badge.parentNode) {
+        badge.parentNode.insertBefore(dot, badge);
+      }
+
+      Api.onStatus(function (s) {
+        const fresh = s === 'json';
+        dot.classList.toggle('is-ok', fresh);
+        dot.classList.toggle('is-cache', !fresh);
+        dot.title = fresh
+          ? '已连接到数据文件（data/*.json），看到的是最新内容'
+          : '离线模式：data/*.json 没读到，现在显示的是本机缓存的内容';
+      });
+    }
   }
 };
 

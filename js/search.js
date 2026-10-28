@@ -106,7 +106,7 @@ const SiteSearch = {
 
   /* ---------- 文章：标题 / 摘要 / 正文 / 标签 / 系列 ---------- */
   findArticles(q) {
-    return SiteAPI.getArticles({}).then(function (list) {
+    return Api.getArticles({}).then(function (list) {
       return (list || []).filter(function (a) {
         const hay = [
           a.title, a.excerpt, a.series, (a.tags || []).join(' '),
@@ -119,7 +119,7 @@ const SiteSearch = {
 
   /* ---------- 小诗：标题 / 正文 ---------- */
   findPoems(q) {
-    return SiteAPI.getPoems().then(function (list) {
+    return Api.getPoems().then(function (list) {
       return (list || []).filter(function (p) {
         const hay = (String(p.title || '') + ' ' + String(p.text || '')).toLowerCase();
         return hay.indexOf(q) >= 0;

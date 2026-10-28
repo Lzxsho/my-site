@@ -149,20 +149,30 @@ my-site/
 
 ## 四、想改内容，改哪里
 
+★ 站点现在是**纯静态**的：所有内容都放在 `data/` 目录的 JSON 文件里，
+用编辑器改完 push，所有人刷新就是新版，不连任何云端服务。
+
 | 想改什么 | 在哪改 |
 |---|---|
-| 文章 | 网站上的「✎ 写文章」 / 文章里的「编辑」，或 VS Code 打开 `db/site.db` |
-| 小诗 | 诗札页每条旁边的「编辑」 |
-| 唱片 | 首页「曲音拾集」里的「＋ 添加唱片」，或每张碟右上角的「✎」 |
-| 唱片的本地音频 / 分类 | 那张碟的「✎」→「本地音频」「分类」（分类决定碟架上它归进哪一组） |
+| 文章 | `data/articles.json` |
+| 小诗 | `data/poems.json` |
+| 唱片 | `data/music.json`（音频文件放 `assets/audio/`，路径写 `src`） |
+| 照片 | 图片放 `assets/photos/`，清单写 `data/photos.json`（合集写 `data/collections.json`） |
+| 自我介绍 / 技能 | `data/profile.json` |
 | 栏目名字 | `js/data.js` 的 `columns`（页面上的雅称）和 `categories`（分类值） |
-| 自我介绍 | 关于页「✎ 编辑资料」（要先管理员登录） |
-| 正在学的东西 | 关于页「✎ 编辑技能表」 |
-| C 语言知识点 / 英语单词 | `js/data.js` 的 `study` 段，或学习页上直接加（管理员） |
 | 头像 | 覆盖 `assets/avatar.jpg`（关于页点它就是登录） |
 | 首屏插画 | 覆盖 `assets/hero-*.jpg`（保持文件名不变） |
 | 配色 / 圆角 / 字体 | `css/base.css` 最上面的 `:root` 变量，改一处全站生效 |
-| 文章封面放照片 | 照片放 `assets/covers/`，编辑文章时填路径；或直接在编辑器里从电脑选 |
+| 文章封面放照片 | 照片放 `assets/covers/`，编辑文章时填路径 |
+
+两个顺手工具：
+
+- `node db/build-static-data.js` —— 把本机数据库（`db/site.db`）里的内容重新导出成这批 JSON + 照片文件。
+- 改坏了缓存导致页面显示旧内容？控制台里跑 `Api.clearCache()` 再刷新。
+
+> **改动内容的按钮看不到？** 先用管理员账号登录（本机双击 `start.bat` 后用 `lizhixu` 登录）——
+> 不登录时这些按钮是故意收起来的。纯静态版里你在页面上做的改动只存在你自己的浏览器里
+> （localStorage），想让人人都看到，还是得改 `data/*.json`。
 
 > **改动内容的按钮看不到？** 先用管理员账号登录 ——
 > 不登录或游客身份时这些按钮是故意收起来的（见「三点五、登录」）。
@@ -312,24 +322,14 @@ Node 版本低于 22.5。装新版。
 
 文章和每条小诗下面都有「留言」区：填个名字（不填就是匿名）写两句，点「留言」就发出去。
 
-- **填了云端配置（推荐，见下）**：留言进云端数据库 —— 任何人打开这个网站看到的都是同一批留言，**传到 GitHub Pages 上也是**。
+- **现在的纯静态版**：留言存在**留言人自己的浏览器**里（localStorage）——
+  没有后端，谁也看不到别人的留言，但界面照常能用，不会报错。
 - **跑着 server.js 时**：留言进数据库 `comments` 表，存服务器上 —— 换浏览器、别人访问，看到的都是同一批。
-- **直接双击 html（本地模式）**：留言退回浏览器 localStorage，只留在这台设备上，页面底部会写明白。
 - 管理员登录后，鼠标移到留言上会出现 ✕，可以删掉不合时宜的。
-- 接口：`GET/POST /api/comments`、`DELETE /api/comments/:id`（名字限 24 字、正文限 1000 字）。
+- 以后想让所有人看到同一批留言：接 CloudBase 后把 `js/api.js` 里的
+  `getComments / addComment` 填上真实现即可（占位函数已经留好）。
 
-### 让留言「上传 GitHub 后人人可见」：两分钟配一次
-
-GitHub Pages 是纯静态的，本身没有后端，所以要用一个免费的云端数据库（Supabase）：
-
-1. 打开 `supabase.com`，用 GitHub 账号登录 → New project（免费，地区选 Singapore / Tokyo）。
-2. 建好后：**Settings → API**，把 `Project URL` 和 `anon public key` 填进 `js/config.js`
-   —— 只想让留言上云就填 `comments` 那一块，**想把文章/小诗/唱片/资料也一起搬上云就把 `content` 那块也填了**（见下面「开启内容上云」）。
-3. **SQL Editor** → 把项目里的 `supabase.sql` 整段粘进去 → Run。
-4. 提交到 GitHub。搞定 —— 之后谁打开你的 Pages 网站，留言都是同一批；
-   自己在本地跑 server.js 发的留言，也会进同一个云端库。
-
-没填这两项时一切照旧（本地 / 数据库模式），不会报错。
+> 以前用 Supabase 同步留言的那套配置已经拆掉（国内连不上，只会刷报错）。
 
 ## 知识点板块（english.html → 知识点）
 
@@ -363,10 +363,22 @@ GitHub Pages 是纯静态的，本身没有后端，所以要用一个免费的�
 
 Pages 是纯静态托管，**不运行 server.js**，所以：
 
-- 没做下面的「内容上云」时，Pages 上看到的是仓库里那份 `js/data.js` 的初始数据，管理员登录用不了。
-- 做了「内容上云」之后，Pages 上读的是云端数据，用邮箱密码登录后能增删改。
+- 网站读的是仓库里的 `data/*.json` —— 这正是现在的设计：推上去就能用，不依赖任何云端。
+- 管理员登录在 Pages 上用不了（没有后端可验密码）；在你自己电脑上双击 `start.bat` 后可以。
 
-## 开启内容上云（可选，推荐）
+## 开启内容上云（以后想做再说）
+
+以前接过 Supabase，但国内访问经常连不上（ERR_CONNECTION_RESET），已经整块拆掉了。
+现在的数据出入口统一在 **`js/api.js`** 一个文件里 —— 以后想接 CloudBase（或任何后端）：
+
+1. 在 HTML 里引入 CloudBase SDK，把环境 ID 填进 `js/config.js` 的 `cloudbaseEnv`。
+2. 改 `js/api.js` 里的 `_load()`（文件里标了「以后接 CloudBase 只改这里」的那一处），
+   把 `fetch('data/xxx.json')` 换成 `db.collection('xxx').get()`。
+3. 文件末尾预留的 `getComments / addComment / getGuestbook / addGuestbook / adminLogin`
+   填上真实现，评论和留言就上云了。页面代码一行都不用动。
+
+旧的 Supabase 迁移脚本（`db/export-to-supabase.js`、`supabase.sql`）还在仓库里，
+只是网站不再使用它们。
 
 做完这七步，你的网站就变成「**访客读云端数据，你登录后改，所有人刷新看到的都是同一版**」：
 

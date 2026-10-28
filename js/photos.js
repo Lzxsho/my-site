@@ -75,7 +75,7 @@ const PhotosPage = {
   /* ---------- 读 ---------- */
   load() {
     const self = this;
-    Promise.all([SiteAPI.getPhotos(), SiteAPI.getCollections()]).then(function (res) {
+    Promise.all([Api.getPhotos(), Api.getCollections()]).then(function (res) {
       self.state.list = res[0] || [];
       self.state.cols = res[1] || [];
       self.render();
@@ -322,6 +322,9 @@ const PhotosPage = {
 
   /* 大图懒加载：每张只取一次，缓存在照片对象上（_full） */
   _loadFull(p, img) {
+    /* 静态版照片本来就是 assets/photos/ 里的文件，
+       地址已经在 p.url 里了 —— 直接用，不用再去问一遍接口 */
+    if (p.url && !p.data) { img.src = p.url; return; }
     if (p._full) { img.src = p._full; return; }
     if (p._loading) { return; }
     p._loading = true;

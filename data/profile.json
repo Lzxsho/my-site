@@ -1,0 +1,79 @@
+{
+  "siteName": "朔的小窝",
+  "siteEn": "Shuoscape",
+  "brandFirst": "Shuo",
+  "brandSecond": "scape",
+  "owner": "L小旭",
+  "slogan": "Undefined, still becoming.",
+  "heroEyebrow": "L小旭 · PERSONAL SPACE",
+  "heroDesc": "文字 · 记录 · 音乐 · 开发，以及发光的胡思乱想",
+  "heroTags": [
+    "随笔",
+    "小说",
+    "小诗",
+    "音乐"
+  ],
+  "intro": "喜欢文字与音乐，也在文字与想象之间，慢慢确认自己。",
+  "city": "某座有风的城市",
+  "email": "2625407261@qq.com",
+  "github": "",
+  "blog": "",
+  "avatar": "assets/avatar.jpg",
+  "aboutParagraphs": [
+    "我很难用几个固定的词把自己说清楚。兴趣和想法总在变，对很多事也还没有稳定的答案，比起给自己下一个准确的定义，我更习惯在不停地怀疑和推断中，慢慢确认自己真正喜欢什么。",
+    "我最喜欢文字与音乐，也常被虚构的故事吸引。遇到喜欢的作品时，常常会在结束之后惦记很久，反复回想其中的情绪、人物和那些没有被直接说出的东西。偶尔也会写一点小诗或小说，大多来自突然出现的念头，未必完整，但足够真实。",
+    "这个站点是我给自己留的一块空地。写下来的东西不一定要有意义，能被记住就已经很好。"
+  ],
+  "keywords": [
+    "文字",
+    "音乐",
+    "随笔",
+    "小说",
+    "前端开发",
+    "睡不着的夜"
+  ],
+  "skills": [
+    {
+      "name": "HTML",
+      "value": 82,
+      "level": "掌握",
+      "note": "语义化标签、表单、常见属性，现在能凭记忆写完一个页面骨架。"
+    },
+    {
+      "name": "CSS",
+      "value": 72,
+      "level": "掌握",
+      "note": "Flex / Grid 布局、响应式断点、CSS 变量，正在练「一套样式同时适配手机」。"
+    },
+    {
+      "name": "写作 / 小诗",
+      "value": 80,
+      "level": "掌握",
+      "note": "随笔和小诗写得最多，也在意行距、字距这种别人不太看的小事。"
+    },
+    {
+      "name": "JavaScript",
+      "value": 46,
+      "level": "在学",
+      "note": "DOM 操作和事件已经很熟，Promise、async 还在慢慢啃。"
+    },
+    {
+      "name": "Git / GitHub",
+      "value": 32,
+      "level": "在学",
+      "note": "add / commit / push 已经顺手，分支和合并刚摸到门。"
+    },
+    {
+      "name": "数据库（MySQL）",
+      "value": 12,
+      "level": "计划",
+      "note": "下一站。想先把「表要怎么设计」这件事弄清楚。"
+    },
+    {
+      "name": "Node.js / 后端",
+      "value": 8,
+      "level": "计划",
+      "note": "等 JS 再稳一点就上路，目标是给这个小站写一套真正的接口。"
+    }
+  ]
+}

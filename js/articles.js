@@ -81,7 +81,7 @@ const ArticlesPage = {
   /* ---------- 读数据 & 渲染 ---------- */
   load() {
     const self = this;
-    SiteAPI.getArticles({
+    Api.getArticles({
       category: this.state.category,
       keyword: this.state.keyword
     }).then(function (list) {
@@ -102,7 +102,7 @@ const ArticlesPage = {
 
   /* 重新拉全部数据（不筛选），用来算每个分类有多少篇 */
   loadAll() {
-    return SiteAPI.getArticles({});
+    return Api.getArticles({});
   },
 
   /* 内容有改动之后统一刷新：列表 + 分类计数 + 归档 + 标签云 + 工具栏小按钮 */
@@ -1022,7 +1022,7 @@ const Archive = {
     const box = App.qs('[data-archive]');
     if (!box) { return; }
 
-    SiteAPI.getArticles({}).then(function (list) {
+    Api.getArticles({}).then(function (list) {
       /* 用对象统计每个月的篇数 */
       const counter = {};
       list.forEach(function (a) {
@@ -1053,7 +1053,7 @@ const Archive = {
     const box = App.qs('[data-tag-cloud]');
     if (!box) { return; }
 
-    SiteAPI.getArticles({}).then(function (list) {
+    Api.getArticles({}).then(function (list) {
       const counter = {};
       list.forEach(function (a) {
         (a.tags || []).forEach(function (t) {

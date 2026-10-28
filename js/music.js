@@ -311,11 +311,20 @@ const MusicPage = {
         audio.load();          /* 重置一下状态，让新地址生效 */
       }
       self.syncProgress();
+      /* 探出结果了，把碟架上那颗小标签和下面那行提示刷新一下
+         （这两个都不再自己发请求，只是读缓存） */
+      self.markLocalAudio();
+      self.updateHint();
       if (done) { done(ok, url); }
     });
   },
 
-  /* 碟架上给每张碟标一句「本地有没有文件」 */
+  /* 碟架上给每张碟标一句「本地有没有文件」
+
+     ★ 这里以前是「每首歌都探一遍」—— 页面一打开就对 6 个 mp3 发 HEAD 请求，
+       而音频是本地文件、本来就不该预加载，那些请求还常被切歌打断、全成废请求。
+       现在改成：只显示「已经探过的」（也就是你点过播放的那几首），
+       没探过就写「未检测」，等你点播放再去问一次，结果就记住了。 */
   markLocalAudio() {
     const self = this;
 
@@ -330,13 +339,17 @@ const MusicPage = {
         return;
       }
 
-      badge.textContent = '检查中…';
-      badge.className = 'chip chip--local';
-
-      self.probeLocal(m.src, [m.genre, m.artist], function (ok) {
-        badge.textContent = ok ? '本地有声' : '待放文件';
-        badge.className = 'chip chip--local ' + (ok ? 'is-ok' : 'is-off');
-      });
+      const hit = self.state.probe[m.src];
+      if (hit === true || (typeof hit === 'string' && hit)) {
+        badge.textContent = '本地有声';
+        badge.className = 'chip chip--local is-ok';
+      } else if (hit === false) {
+        badge.textContent = '待放文件';
+        badge.className = 'chip chip--local is-off';
+      } else {
+        badge.textContent = '未检测';
+        badge.className = 'chip chip--local';
+      }
     });
   },
 
@@ -354,9 +367,16 @@ const MusicPage = {
     }
 
     const src = m.src;
-    box.innerHTML = '正在检查本地音频…';
 
-    this.probeLocal(src, [m.genre, m.artist], function (ok, found) {
+    /* ★ 懒加载：页面打开时不探（省掉 6 个没必要的请求），
+       只有你点过播放、这首歌被探过之后，这里才有话要说。 */
+    const hit = this.state.probe[src];
+    if (hit === undefined) {
+      box.innerHTML = '音频是点「播放」时才加载的 —— 页面打开不预先下载，省点流量。';
+      return;
+    }
+
+    const done = function (ok, found) {
       /* 探测是异步的，回来的时候用户可能已经切歌了。
          比对一下 src 还是不是当前这首，不是就丢弃这次结果。 */
       const now = MusicPage.state.all[MusicPage.state.currentIndex];
@@ -376,7 +396,11 @@ const MusicPage = {
           '按分类建文件夹（<code>assets/audio/民谣/Far From Home.mp3</code>）都认，' +
           '名字对得上就自动生效，不用回来改配置。';
       }
-    });
+    };
+
+    /* 探过了就直接用缓存里的结果（true = 找到了，字符串 = 真正命中的地址），
+       不再发第二次请求 */
+    done(hit !== false, typeof hit === 'string' ? hit : src);
   },
 
   renderRecords() {
@@ -497,18 +521,15 @@ const MusicPage = {
        提前去要只会在控制台刷一串 404，没意义。 */
     this.updateHint();
 
-    const self = this;
-    /* 地址解析好之后再决定「转起来」还是「停下来」，
-       免得出现「画面已经是下一首、耳朵里还是上一首」。
-       地址大多在页面加载时就已经探好了（markLocalAudio 会预探一遍），
-       命中缓存是同步回调的，所以常规切歌不会有延迟。 */
-    this.resolveSrc(function () {
-      if (autoPlay) {
-        self.play();
-      } else {
-        self.pause();
-      }
-    });
+    /* ★ 懒加载：换碟 / 页面打开时不去解析地址（那会立刻发一个探测请求），
+       只有真要出声（点播放、或带 ?id= 自动播放）才去解析。
+       play() 里也会走一遍 resolveSrc，所以点播放这条路不受影响。 */
+    if (autoPlay) {
+      const self = this;
+      this.resolveSrc(function () { self.play(); });
+    } else {
+      this.pause();
+    }
   },
 
   /* ---------- 3. 播放 / 暂停 ---------- */

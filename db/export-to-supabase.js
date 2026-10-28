@@ -157,13 +157,41 @@ function probePort(port) {
 }
 
 /* 国内常见的本地代理端口：Clash / Clash Verge / v2rayN / SSR / Surge 等 */
-const COMMON_PROXY_PORTS = [7890, 7897, 10809, 10808, 1080, 8888, 8889, 33210, 4780];
+const COMMON_PROXY_PORTS = [7890, 7897, 7891, 10809, 10808, 1080, 8888, 8889, 8080, 8118, 2080, 20171, 10811, 33210, 4780];
+
+/* Windows「系统代理」—— 浏览器能翻就是走的它。
+   从注册表读：ProxyEnable=1 且 ProxyServer=127.0.0.1:xxxx。
+   ProxyServer 有两种写法：「host:port」或「http=…;https=…;socks=…」，都得认。 */
+function systemProxy() {
+  try {
+    const cp = require('node:child_process');
+    const KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings';
+    const en = cp.execSync('reg query "' + KEY + '" /v ProxyEnable', { encoding: 'utf8', timeout: 3000 });
+    if (!/0x1\b/.test(en)) { return null; }   /* 系统代理没开 */
+    const out = cp.execSync('reg query "' + KEY + '" /v ProxyServer', { encoding: 'utf8', timeout: 3000 });
+    const m = out.match(/ProxyServer\s+REG_SZ\s+(\S+)/);
+    if (!m) { return null; }
+    const raw = m[1];
+    let hostPort = raw;
+    if (raw.indexOf('=') > -1) {
+      /* 分协议写法：优先 https，其次 http，最后 socks 不认（不是 http 代理） */
+      const pick = raw.match(/(?:^|;)https?=\*?([^;]+)/i) || raw.match(/(?:^|;)https=\*?([^;]+)/i);
+      if (!pick) { return null; }
+      hostPort = pick[1];
+    }
+    const hp = hostPort.split(':');
+    if (hp.length !== 2 || !Number(hp[1])) { return null; }
+    return { host: hp[0], port: Number(hp[1]), from: 'Windows 系统代理' };
+  } catch (e) { return null; }   /* 非 Windows / reg 不在 / 没开，都当没有 */
+}
 
 async function findProxy() {
   /* 命令行手动指定的最优先 */
   if (args.proxyHost && args.proxyPort) {
     return { host: args.proxyHost, port: args.proxyPort, manual: true };
   }
+  const sys = systemProxy();
+  if (sys) { return sys; }
   const env = envProxy();
   if (env) { return env; }
   for (let i = 0; i < COMMON_PROXY_PORTS.length; i += 1) {
@@ -241,8 +269,9 @@ async function smartFetch(url, opts) {
   throw new Error(
     '连不上 Supabase（' + attempts.map(routeName).join(' → ') + ' 都试过了）。' +
     '最后错误：' + netMsg(last) + '。' +
-    '可以试试：开着加速器再跑一次（脚本会自动找代理）；' +
-    '或者换个网络（比如手机热点）；或者把加速器的「本地端口」告诉我，我写死进去。');
+    '可以试试：① 确认加速器/代理软件还开着（脚本会自动读 Windows 系统代理）；' +
+    '② 换个网络（比如手机热点）；' +
+    '③ 都不行的话，把「用的什么加速器 + 它设置里的本地端口」发给帮你改网站的人。');
 }
 
 /* ---------------- 登录拿 token（方式一） ----------------

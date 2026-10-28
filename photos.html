@@ -89,8 +89,8 @@
           <div class="photo-grid" data-photo-grid></div>
           <div class="photo-empty" data-photo-empty hidden>
             <span class="photo-empty__icon">☼</span>
-            <p class="photo-empty__title">这里还空着</p>
-            <p class="photo-empty__desc">管理员登录后点「上传照片」，传几张来看看。</p>
+            <p class="photo-empty__title">还没有照片，上传第一张吧</p>
+            <p class="photo-empty__desc">管理员登录后点「上传照片」；也可以直接往 <code>data/photos.json</code> 里加一条，把图片放进 <code>assets/photos/</code>。</p>
           </div>
         </section>
       </div>
@@ -213,6 +213,7 @@
   <button class="backtop" id="backTop" title="回到顶部" aria-label="回到顶部">↑</button>
 
   <script src="js/config.js" defer></script>
+  <script src="js/api.js" defer></script>
   <script src="js/data.js" defer></script>
   <script src="js/main.js" defer></script>
   <script src="js/auth.js" defer></script>

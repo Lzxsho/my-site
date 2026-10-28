@@ -32,7 +32,7 @@ const AboutPage = {
 
   init() {
     const self = this;
-    SiteAPI.getProfile().then(function (p) {
+    Api.getProfile().then(function (p) {
       self.profile = p;
       self.renderProfile(p);
       self.renderSkills(p);
@@ -556,7 +556,7 @@ const AboutPage = {
         App.toast('保存失败，看看控制台里的提示');
         return;
       }
-      return SiteAPI.getProfile().then(function (p) {
+      return Api.getProfile().then(function (p) {
         self.profile = p;
         self.renderProfile(p);
         self.renderContact(p);     /* 邮箱 / GitHub / 博客可能改了，联系方式也要刷 */
@@ -593,7 +593,7 @@ const AboutPage = {
         App.toast('保存失败，看看控制台里的提示');
         return;
       }
-      return SiteAPI.getProfile().then(function (p) {
+      return Api.getProfile().then(function (p) {
         self.profile = p;
         self.renderSkills(p);
         self.close();

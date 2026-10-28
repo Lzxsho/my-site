@@ -3,44 +3,36 @@
    --------------------------------------------------------------------------
    【这个文件很重要，先看这里】
 
-   ▍现在有三套「仓库」，页面自己不用管用的是哪套
+   ▍现在网站是【纯静态】的：内容都放在仓库里的 data/*.json
 
-     ┌ 云端模式 ── js/config.js 里填了 Supabase 配置（优先级最高）
-     │    数据存在 Supabase 云端数据库，走原生 fetch + REST，不装任何库。
-     │    好处：传到 GitHub Pages 上也能读写；你用邮箱密码登录后改内容，
-     │          所有人刷新看到的都是同一版。
+     ┌ 静态模式（默认，GitHub Pages 就是这种）
+     │    文章 / 小诗 / 唱片 / 照片 / 自我介绍，全在 data/*.json 里。
+     │    读取统一走 js/api.js（带 localStorage 缓存 + 后台静默刷新）。
+     │    改内容 = 改那几个 JSON 文件，push 之后所有人刷新就看到新版。
      │
-     ├ 数据库模式 ── 你运行了 server.js（双击 start.bat）
-     │    数据存在 db/site.db 这个数据库文件里。
-     │    网页通过 server.js 提供的 /api/... 接口读写它。
-     │    好处：换浏览器、换电脑都还在；能在 VS Code 里直接打开看。
-     │
-     └ 本地模式 ──── 直接双击 html 打开（没有服务器）
-          数据还是写在下面的 SITE_DATA 里，你自己改的内容存在浏览器里。
-          好处：不用启动任何东西，改完刷新就能看。
+     └ 数据库模式（可选，要在 js/config.js 里写 localDb: true 才开）
+          自己电脑上跑 server.js（双击 start.bat）时，可以把改动写回
+          db/site.db。不开也不影响 —— 网站照样能看。
 
-   启动时它会自动挑一套（云端优先 → 其次探后端 → 都没有就本地）。
-   下面这个对象就是「转发员」：
+   ★ 以后想接云端（CloudBase / 任何后端）：只改 js/api.js 里的 _load()
+     一个函数，本文件和所有页面都不用动。
 
-        SiteAPI.getArticles()  →  云端模式？  → 问云端
-                               →  数据库模式？ → 问服务器
-                               →  本地模式？  → 读本地数据
+   下面这个对象是「转发员」：
 
-   页面里只调用 SiteAPI，从来不直接碰数据来源 ——
-   所以三套模式切换，页面代码一行都不用改。这就是「预留接口」的价值。
+        SiteAPI.getArticles()  →  数据库模式？ → 问 server.js
+                               →  其余        → 读 data/articles.json（js/api.js）
 
-   ▍想改内容，有三种办法，随便挑
-       ① 跑起网站，在界面上改（写入数据库，推荐）
-       ② 用 VS Code 打开 db/site.db 直接改表
-       ③ 不想跑服务器：改下面的 SITE_DATA，刷新浏览器就行
-          （注意：这条只影响「没连上后端」的时候）
+   页面里只调用 SiteAPI，从来不直接碰数据来源 —— 这就是「预留接口」的价值。
 
-   ▍文件的六个部分
-       一、初始内容 SITE_DATA
-       二、纯工具 Pure              正文分段、数字数、标签归一化
-       三、本地模式 LocalStore
-       四、数据库模式 DbStore
-       四·五、云端模式 CloudStore    js/config.js 填了 Supabase 才用得上
+   ▍想改内容
+       直接用编辑器改 data/*.json（推荐，改完 push 就行）；
+       或者跑 db/build-static-data.js 把本机数据库里的内容重新导一遍。
+
+   ▍文件的五个部分
+       一、初始内容 SITE_DATA   只剩分类 / 栏目这类配置，内容已搬到 data/
+       二、纯工具 Pure          正文分段、数字数、标签归一化
+       三、本地模式 LocalStore  把「本机改过的内容」盖到 JSON 数据上
+       四、数据库模式 DbStore   server.js + sqlite（可选）
        五、转发员 SiteAPI
 
    加载顺序必须是：data.js → main.js → 各页面自己的 js
@@ -981,7 +973,7 @@ const LocalStore = {
   KEY: 'shuoscape_user_data_v1',
 
   /* 空的本地数据骨架：
-       poems / articles / music        —— 自己新增的内容
+       poems / articles / music / photos / collections —— 自己新增的内容
        xxxEdits                        —— 对「内置内容」的修改，读取时盖到原文上
        xxxHidden                       —— 被隐藏（删掉）的内置内容 id
        profileEdits                    —— 改过的自我介绍字段
@@ -991,12 +983,16 @@ const LocalStore = {
       poems: [],
       articles: [],
       music: [],
+      photos: [],
+      collections: [],
       poemEdits: {},
       articleEdits: {},
       musicEdits: {},
       poemHidden: [],
       articleHidden: [],
       musicHidden: [],
+      photoHidden: [],
+      collectionHidden: [],
       profileEdits: {},
       skills: null
     };
@@ -1009,7 +1005,8 @@ const LocalStore = {
       if (!raw) { return empty; }
       const data = Object.assign(empty, JSON.parse(raw));
       /* 兼容老版本存下来的数据 / 手动改坏的 JSON：缺什么补什么 */
-      ['poems', 'articles', 'music', 'poemHidden', 'articleHidden', 'musicHidden']
+      ['poems', 'articles', 'music', 'photos', 'collections',
+       'poemHidden', 'articleHidden', 'musicHidden', 'photoHidden', 'collectionHidden']
         .forEach(function (k) { if (!Array.isArray(data[k])) { data[k] = []; } });
       ['poemEdits', 'articleEdits', 'musicEdits', 'profileEdits']
         .forEach(function (k) {
@@ -1042,11 +1039,13 @@ const LocalStore = {
 
   /* ---------------- 合并：内置 + 自己写的 + 改过的 − 删掉的 ----------------
      三个动作的顺序很重要：先删、再合并、最后盖修改。 */
-  mergeArticles(store) {
+  /* base = 从 data/*.json 读来的原始数据（js/api.js 负责读）。
+     不传就退回代码里那份 SITE_DATA —— 只有 Node 里跑脚本时才会走到。 */
+  mergeArticles(store, base) {
     const edits = store.articleEdits || {};
     const hidden = store.articleHidden || [];
 
-    return SITE_DATA.articles
+    return (base || SITE_DATA.articles)
       .concat(store.articles)
       .filter(function (a) { return hidden.indexOf(a.id) === -1; })
       .map(function (a) {
@@ -1063,11 +1062,11 @@ const LocalStore = {
       });
   },
 
-  mergePoems(store) {
+  mergePoems(store, base) {
     const edits = store.poemEdits || {};
     const hidden = store.poemHidden || [];
 
-    return SITE_DATA.poems
+    return (base || SITE_DATA.poems)
       .concat(store.poems)
       .filter(function (p) { return hidden.indexOf(p.id) === -1; })
       .map(function (p) {
@@ -1081,11 +1080,11 @@ const LocalStore = {
       });
   },
 
-  mergeMusic(store) {
+  mergeMusic(store, base) {
     const edits = store.musicEdits || {};
     const hidden = store.musicHidden || [];
 
-    return SITE_DATA.music
+    return (base || SITE_DATA.music)
       .concat(store.music)
       .filter(function (m) { return hidden.indexOf(m.id) === -1; })
       .map(function (m) {
@@ -1102,15 +1101,137 @@ const LocalStore = {
   /* 按日期从新到旧排 */
   byDateDesc(a, b) { return a.date < b.date ? 1 : -1; },
 
-  /* ---------------- 自我介绍 ---------------- */
-  getProfile() {
+  /* ---------------- 照片 / 合集 ----------------
+     纯静态版里照片是 assets/photos/ 下的图片文件，清单在 data/photos.json
+     （由 js/api.js 读）。管理员在页面上新传的照片没地方上传，就存进
+     localStorage —— 存不下（浏览器一般给 5MB）会如实返回 false，不假装成功。 */
+  mergePhotos(store, base) {
+    const hidden = store.photoHidden || [];
+    return (base || [])
+      .concat(store.photos || [])
+      .filter(function (p) { return hidden.indexOf(String(p.id)) === -1; })
+      .map(function (p) {
+        return {
+          id: String(p.id),
+          name: p.name || p.title || '',
+          title: p.title || p.name || '',
+          thumb: p.thumb || p.url || '',
+          url: p.url || '',
+          data: p.data || '',                     /* 本机上传的照片：base64 */
+          collectionId: p.collectionId || p.collection || '',
+          collection: p.collection || p.collectionId || '',
+          date: p.date || '',
+          desc: p.desc || ''
+        };
+      });
+  },
+
+  mergeCollections(store, base) {
+    const hidden = store.collectionHidden || [];
+    return (base || [])
+      .concat(store.collections || [])
+      .filter(function (c) { return hidden.indexOf(String(c.id)) === -1; })
+      .map(function (c) {
+        return {
+          id: String(c.id),
+          name: c.name || '',
+          date: c.date || '',
+          note: c.note || '',
+          cover: c.cover || ''
+        };
+      });
+  },
+
+  getPhotos() {
     const store = this.read();
-    const p = Object.assign({}, SITE_DATA.profile, store.profileEdits || {});
+    const self = this;
+    if (typeof Api !== 'undefined' && Api.getPhotos) {
+      return Api.getPhotos().then(function (base) { return self.mergePhotos(store, base); });
+    }
+    return this.delay(this.mergePhotos(store, []), 60);
+  },
+
+  savePhoto(photo) {
+    const store = this.read();
+    const item = Object.assign({
+      id: 'up' + Date.now(),
+      name: photo.name || '未命名',
+      date: DataTools.today(),
+      desc: photo.desc || '',
+      thumb: photo.thumb || '',
+      data: photo.data || '',
+      collectionId: photo.collectionId || ''
+    });
+    store.photos.unshift(item);
+    const ok = this.write(store);
+    return this.delay(ok ? item : false, 60);
+  },
+
+  getPhotoFull(id) {
+    const self = this;
+    return this.getPhotos().then(function (list) {
+      const hit = list.find(function (p) { return String(p.id) === String(id); });
+      return hit ? (hit.data || hit.url || '') : '';
+    });
+  },
+
+  deletePhoto(id) {
+    const store = this.read();
+    const key = String(id);
+    const before = store.photos.length;
+    store.photos = store.photos.filter(function (p) { return String(p.id) !== key; });
+    /* 不是自己传的（JSON 里的照片）只能在本机隐藏 */
+    if (store.photos.length === before && store.photoHidden.indexOf(key) === -1) {
+      store.photoHidden.push(key);
+    }
+    const ok = this.write(store);
+    return this.delay(ok, 40);
+  },
+
+  getCollections() {
+    const store = this.read();
+    const self = this;
+    if (typeof Api !== 'undefined' && Api.getCollections) {
+      return Api.getCollections().then(function (base) { return self.mergeCollections(store, base); });
+    }
+    return this.delay(this.mergeCollections(store, []), 60);
+  },
+
+  saveCollection(col) {
+    const store = this.read();
+    const item = {
+      id: col.id || ('uc' + Date.now()),
+      name: col.name || '未命名合集',
+      date: col.date || DataTools.today(),
+      note: col.note || '',
+      cover: col.cover || ''
+    };
+    const old = store.collections.findIndex(function (c) { return c.id === item.id; });
+    if (old > -1) { store.collections[old] = item; } else { store.collections.push(item); }
+    const ok = this.write(store);
+    return this.delay(ok ? item : false, 40);
+  },
+
+  deleteCollection(id) {
+    const store = this.read();
+    const key = String(id);
+    store.collections = store.collections.filter(function (c) { return String(c.id) !== key; });
+    if (store.collectionHidden.indexOf(key) === -1) { store.collectionHidden.push(key); }
+    /* 合集没了，里面的照片退回「零散照片」 */
+    store.photos.forEach(function (p) { if (String(p.collectionId) === key) { p.collectionId = ''; } });
+    const ok = this.write(store);
+    return this.delay(ok, 40);
+  },
+
+  /* ---------------- 自我介绍 ----------------
+     base = data/profile.json 读来的原始数据 */
+  mergeProfile(store, base) {
+    const p = Object.assign({}, base || SITE_DATA.profile, store.profileEdits || {});
     /* 数组字段做一次归一化，避免有人在界面上把它们存成字符串 */
     p.heroTags = DataTools.toTags(p.heroTags);
     p.keywords = DataTools.toTags(p.keywords);
     p.aboutParagraphs = DataTools.toParagraphs(p.aboutParagraphs);
-    p.skills = (store.skills || SITE_DATA.profile.skills || []).map(function (s) {
+    p.skills = (store.skills || p.skills || []).map(function (s) {
       return {
         name: DataTools.str(s.name),
         value: DataTools.num(s.value),
@@ -1118,7 +1239,18 @@ const LocalStore = {
         note: DataTools.str(s.note)
       };
     });
-    return this.delay(p, 0);
+    return p;
+  },
+
+  getProfile() {
+    const store = this.read();
+    const self = this;
+    /* 站点现在是纯静态的：内容从 data/*.json 读（js/api.js），
+       这里只负责把「本机改过的字段」盖上去 */
+    if (typeof Api !== 'undefined' && Api.getProfile) {
+      return Api.getProfile().then(function (base) { return self.mergeProfile(store, base); });
+    }
+    return this.delay(this.mergeProfile(store, SITE_DATA.profile), 0);
   },
 
   updateProfile(patch) {
@@ -1149,32 +1281,50 @@ const LocalStore = {
   },
 
   /* ---------------- 文章 ---------------- */
+  /* 文章正文现在来自 data/articles.json（js/api.js）。
+     过滤 / 排序 / 「只取前几条」还是在这里做，页面调用方式没变。 */
   getArticles(options) {
     const opt = options || {};
     const store = this.read();
-    let list = this.mergeArticles(store);
+    const self = this;
 
-    if (opt.category && opt.category !== '全部') {
-      list = list.filter(function (a) { return a.category === opt.category; });
+    const shape = function (base) {
+      let list = self.mergeArticles(store, base);
+
+      if (opt.category && opt.category !== '全部') {
+        list = list.filter(function (a) { return a.category === opt.category; });
+      }
+      if (opt.keyword) {
+        const kw = String(opt.keyword).toLowerCase();
+        list = list.filter(function (a) {
+          /* 不管字段有没有值，都拼成字符串再找，避免报错 */
+          const text = [a.title, a.summary, a.excerpt, (a.tags || []).join(''), a.series || ''].join(' ');
+          return String(text).toLowerCase().indexOf(kw) > -1;
+        });
+      }
+      list.sort(self.byDateDesc);
+      if (opt.limit) { list = list.slice(0, opt.limit); }
+      return list;
+    };
+
+    if (typeof Api !== 'undefined' && Api.getArticles) {
+      return Api.getArticles().then(shape);
     }
-    if (opt.keyword) {
-      const kw = String(opt.keyword).toLowerCase();
-      list = list.filter(function (a) {
-        /* 不管字段有没有值，都拼成字符串再找，避免报错 */
-        const text = [a.title, a.excerpt, (a.tags || []).join(''), a.series || ''].join(' ');
-        return text.toLowerCase().indexOf(kw) > -1;
-      });
-    }
-    list.sort(this.byDateDesc);
-    if (opt.limit) { list = list.slice(0, opt.limit); }
-    return this.delay(list, 80);
+    return this.delay(shape(SITE_DATA.articles), 80);
   },
 
   getArticle(id) {
     const store = this.read();
     const key = String(id);
-    const found = this.mergeArticles(store).find(function (a) { return String(a.id) === key; });
-    return this.delay(found || null, 60);
+    const self = this;
+    const find = function (base) {
+      const found = self.mergeArticles(store, base).find(function (a) { return String(a.id) === key; });
+      return found || null;
+    };
+    if (typeof Api !== 'undefined' && Api.getArticles) {
+      return Api.getArticles().then(find);
+    }
+    return this.delay(find(SITE_DATA.articles), 60);
   },
 
   addArticle(article) {
@@ -1252,9 +1402,14 @@ const LocalStore = {
   /* ---------------- 小诗 ---------------- */
   getPoems() {
     const store = this.read();
-    const list = this.mergePoems(store);
-    list.sort(this.byDateDesc);
-    return this.delay(list, 80);
+    const self = this;
+    const shape = function (base) {
+      const list = self.mergePoems(store, base);
+      list.sort(self.byDateDesc);
+      return list;
+    };
+    if (typeof Api !== 'undefined' && Api.getPoems) { return Api.getPoems().then(shape); }
+    return this.delay(shape(SITE_DATA.poems), 80);
   },
 
   addPoem(poem) {
@@ -1319,7 +1474,11 @@ const LocalStore = {
   /* ---------------- 音乐 ---------------- */
   getMusic() {
     const store = this.read();
-    return this.delay(this.mergeMusic(store), 80);
+    const self = this;
+    if (typeof Api !== 'undefined' && Api.getMusic) {
+      return Api.getMusic().then(function (base) { return self.mergeMusic(store, base); });
+    }
+    return this.delay(this.mergeMusic(store, SITE_DATA.music), 80);
   },
 
   addMusic(track) {
@@ -1713,508 +1872,14 @@ const DbStore = {
 };
 
 
-/* ==========================================================================
-   四·五、云端模式 CloudStore
+/* --------------------------------------------------------------------------
+   四·五、云端存储（Supabase）—— 已移除
    --------------------------------------------------------------------------
-   js/config.js 里填了 Supabase 配置时用这套：所有内容都存云端数据库。
-   实现方式与 DbStore 平行，方法签名完全一致 —— 页面代码一行都不用改。
-
-   读写规则（和 supabase.sql 的 RLS 一一对应）：
-     · 读：带 apikey 即可（公开读）
-     · 写：必须带 Authorization: Bearer <access_token>（登录后由 auth.js 存着）
-
-   ⚠️ 全部走原生 fetch + Supabase REST，不引任何 SDK。
-   ========================================================================== */
-const CloudStore = {
-
-  /* ---------------- 配置读取 ---------------- */
-  cfg() {
-    const c = (window.SHUOSCAPE_CONFIG && window.SHUOSCAPE_CONFIG.content) || {};
-    return {
-      url: String(c.supabaseUrl || '').replace(/\/+$/, ''),
-      key: String(c.supabaseKey || ''),
-      tables: {
-        articles: String(c.tableArticles || 'articles'),
-        poems: String(c.tablePoems || 'poems'),
-        music: String(c.tableMusic || 'music'),
-        profile: String(c.tableProfile || 'profile'),
-        skills: String(c.tableSkills || 'skills'),
-        studyProgress: String(c.tableStudyProgress || 'study_progress'),
-        enMaterials: String(c.tableEnMaterials || 'en_materials'),
-        photos: String(c.tablePhotos || 'photos')
-      }
-    };
-  },
-
-  hasCloud() {
-    const c = this.cfg();
-    return !!(c.url && c.key);
-  },
-
-  /* 一次 REST 请求：table 是上面的键名，path 是表名后的部分（含查询串）
-     ⚠️ 写操作（非 GET）在这里统一设一道软闸：
-       云端内容只有管理员能改 —— 普通注册用户 / 未登录直接在这里被人话拦下。
-       真正的硬闸在 supabase.sql 的 RLS（is_shuo_admin 查 admins 表），
-       这道闸只是让普通用户不用等到 403 才知道结果。 */
-  req(table, path, opts) {
-    const c = this.cfg();
-    const o = opts || {};
-
-    if ((o.method || 'GET') !== 'GET') {
-      const isAdmin = !!(typeof Auth !== 'undefined' && Auth.isAdmin && Auth.isAdmin());
-      const loggedIn = !!(typeof Auth !== 'undefined' && Auth.isLogin && Auth.isLogin());
-      const myEmail = String(
-        (typeof Auth !== 'undefined' && Auth.user && Auth.user.email) || ''
-      ).trim().toLowerCase();
-
-      /* 管理员什么都能写。除此之外，每个人还能写「属于自己的那一份」：
-           userProgress  自己的练习进度（一人一行）
-           enMaterials   学习资料 —— owner 空 = 管理员共享（只有管理员能动）；
-                         owner 是自己邮箱 = 私人资料，本人随便改
-         这两处放行都是安全的：真正的硬闸在 supabase.sql 的 RLS 里，
-         就算前端被人改了，云端也只会让他动到自己的那一行。 */
-      let allowed = isAdmin;
-      if (!allowed && loggedIn && table === 'userProgress') { allowed = true; }
-      if (!allowed && loggedIn && table === 'enMaterials') {
-        if (o.method === 'POST') {
-          /* 新建 / 更新：必须是「owner 写成自己邮箱」的私人资料 */
-          allowed = !!myEmail &&
-            String((o.body && o.body.owner) || '').trim().toLowerCase() === myEmail;
-        } else {
-          /* 删除：请求里带不上归属，交给 RLS 判（个人信息本人、公共信息管理员） */
-          allowed = true;
-        }
-      }
-
-      if (!allowed) {
-        return Promise.reject(new Error('云端内容只有管理员能改 —— 注册用户可以留言、本地练习'));
-      }
-    }
-
-    const headers = {
-      apikey: c.key,
-      Authorization: 'Bearer ' + c.key,
-      'Content-Type': 'application/json'
-    };
-    /* 登录后换真实用户 token —— 云端靠它认出「是不是 admins 名单里的人」 */
-    if (typeof Auth !== 'undefined' && Auth.token) {
-      const t = Auth.token();
-      if (t) { headers.Authorization = 'Bearer ' + t; }
-    }
-    if (o.headers) {
-      Object.keys(o.headers).forEach(function (k) { headers[k] = o.headers[k]; });
-    }
-
-    /* ▍8 秒超时（很关键）
-       云端连不上时（断网、域名被墙、Supabase 免费项目被暂停），
-       浏览器会一直挂着等，页面就一直空白 —— 看着像「网站坏了」。
-       掐断它，兜底的静态副本才能顶上来。 */
-    const ctrl = (typeof AbortController === 'function') ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 8000) : null;
-
-    return fetch(c.url + '/rest/v1/' + c.tables[table] + path, {
-      method: o.method || 'GET',
-      headers: headers,
-      body: o.body !== undefined ? JSON.stringify(o.body) : undefined,
-      signal: ctrl ? ctrl.signal : undefined
-    }).then(function (res) {
-      return res.text().then(function (raw) {
-        let data = null;
-        try { data = raw ? JSON.parse(raw) : null; } catch (e) { data = null; }
-        if (!res.ok) {
-          const msg = (data && data.error && data.error.message) ? data.error.message
-                    : (data && data.message) ? data.message
-                    : ('云端 ' + res.status);
-          throw new Error(msg);
-        }
-        return data;
-      });
-    }).catch(function (e) {
-      /* 超时（AbortError）或连不上（TypeError）都算「云端这会儿够不着」，
-         记下来，好让页脚提示说实话，而不是含糊地写「云端数据库」 */
-      if (e && (e.name === 'AbortError' || e.name === 'TypeError')) {
-        CloudStore._offline = true;
-        /* 页脚徽章（js/main.js 的 DataMode）多半已经按「云端」渲染好了
-           —— 探测请求挂满 8 秒超时的时候，徽章早就画完了。
-           广播一声，让徽章当场改成「云端·副本」，别骗人 */
-        document.dispatchEvent(new CustomEvent('cloud:offline'));
-      }
-      throw e;
-    }).then(function (v) {
-      if (timer) { clearTimeout(timer); }
-      return v;
-    }, function (e) {
-      if (timer) { clearTimeout(timer); }
-      throw e;
-    });
-  },
-
-  /* ---------------- 归一化：与 DbStore 完全一致 ---------------- */
-  article(row) { return DbStore.article(row); },
-  poems(rows) { return DbStore.poems(rows || []); },
-  track(m) { return DbStore.track(m); },
-
-  /* 页面字段里有几个是算出来的（words / fromDb / draft），
-     云端表没有这几列，写之前先剔掉，否则 PostgREST 会报「找不到列」。 */
-  only(row, keys) {
-    const out = {};
-    keys.forEach(function (k) {
-      if (row && Object.prototype.hasOwnProperty.call(row, k) && row[k] !== undefined) {
-        out[k] = row[k];
-      }
-    });
-    return out;
-  },
-
-  profile(row, skills) {
-    const r = row || {};
-    return {
-      siteName: DataTools.str(r.siteName),
-      siteEn: DataTools.str(r.siteEn),
-      brandFirst: DataTools.str(r.brandFirst),
-      brandSecond: DataTools.str(r.brandSecond),
-      owner: DataTools.str(r.owner),
-      slogan: DataTools.str(r.slogan),
-      city: DataTools.str(r.city),
-      email: DataTools.str(r.email),
-      github: DataTools.str(r.github),
-      blog: DataTools.str(r.blog),
-      heroEyebrow: DataTools.str(r.heroEyebrow),
-      heroDesc: DataTools.str(r.heroDesc),
-      heroTags: DataTools.toTags(r.heroTags),
-      intro: DataTools.str(r.intro),
-      aboutParagraphs: DataTools.toParagraphs(r.aboutParagraphs),
-      keywords: DataTools.toTags(r.keywords),
-      skills: (skills || []).map(function (s) {
-        return {
-          name: DataTools.str(s.name),
-          value: DataTools.num(s.value),
-          level: DataTools.str(s.level) || '在学',
-          note: DataTools.str(s.note)
-        };
-      })
-    };
-  },
-
-  /* ---------------- 自我介绍 / 技能 ---------------- */
-  getProfile() {
-    const self = this;
-    return this.req('profile', '?select=*&id=eq.1').then(function (rows) {
-      const row = (Array.isArray(rows) && rows[0]) ? rows[0] : {};
-      return self.req('skills', '?select=*&order=sort.asc').then(function (skillRows) {
-        return self.profile(row, Array.isArray(skillRows) ? skillRows : []);
-      });
-    });
-  },
-
-  updateProfile(patch) {
-    const body = this.only(patch, [
-      'siteName', 'siteEn', 'brandFirst', 'brandSecond', 'owner', 'slogan',
-      'city', 'email', 'github', 'blog', 'heroEyebrow', 'heroDesc', 'heroTags',
-      'intro', 'aboutParagraphs', 'keywords'
-    ]);
-    if ('aboutParagraphs' in body) { body.aboutParagraphs = DataTools.joinParagraphs(body.aboutParagraphs); }
-    if ('heroTags' in body) { body.heroTags = DataTools.toTags(body.heroTags); }
-    if ('keywords' in body) { body.keywords = DataTools.toTags(body.keywords); }
-    if (!Object.keys(body).length) { return Promise.resolve(true); }
-    return this.req('profile', '?id=eq.1', { method: 'PATCH', body: body }).then(function () { return true; });
-  },
-
-  updateSkills(list) {
-    const self = this;
-    const rows = (list || []).map(function (s, i) {
-      return {
-        name: DataTools.str(s.name),
-        value: DataTools.num(s.value),
-        level: DataTools.str(s.level) || '在学',
-        note: DataTools.str(s.note),
-        sort: i
-      };
-    });
-    /* 云端没有「覆盖整表」的接口：先清空再整批插入（数据量很小，可接受） */
-    return this.req('skills', '?id=gt.0', { method: 'DELETE' }).then(function () {
-      if (!rows.length) { return true; }
-      return self.req('skills', '', {
-        method: 'POST',
-        headers: { Prefer: 'return=minimal' },
-        body: rows
-      }).then(function () { return true; });
-    });
-  },
-
-  /* ---------------- 文章 ---------------- */
-  getArticles(options) {
-    const opt = options || {};
-    return this.req('articles', '?select=*&order=date.desc')
-      .then(function (rows) { return (rows || []).map(DbStore.article); })
-      .then(function (list) {
-        let out = list;
-        if (opt.category && opt.category !== '全部') {
-          out = out.filter(function (a) { return a.category === opt.category; });
-        }
-        if (opt.keyword) {
-          const kw = String(opt.keyword).toLowerCase();
-          out = out.filter(function (a) {
-            const text = [a.title, a.excerpt, (a.tags || []).join(''), a.series || ''].join(' ');
-            return text.toLowerCase().indexOf(kw) > -1;
-          });
-        }
-        if (opt.limit) { out = out.slice(0, opt.limit); }
-        return out;
-      });
-  },
-
-  getArticle(id) {
-    return this.req('articles', '?select=*&id=eq.' + encodeURIComponent(String(id)))
-      .then(function (rows) {
-        return (Array.isArray(rows) && rows[0]) ? DbStore.article(rows[0]) : null;
-      });
-  },
-
-  addArticle(article) {
-    const body = this.only(article, [
-      'title', 'category', 'date', 'tags', 'series', 'cover', 'excerpt', 'content'
-    ]);
-    body.content = DataTools.joinParagraphs(body.content);
-    body.tags = DataTools.toTags(body.tags);
-    if (!body.excerpt) {
-      const ps = DataTools.toParagraphs(article.content);
-      body.excerpt = ps.length ? ps[0].slice(0, 60) : '';
-    }
-    if (!body.date) { body.date = DataTools.today(); }
-    return this.req('articles', '', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: body
-    }).then(function (rows) { return DbStore.article((Array.isArray(rows) && rows[0]) || rows); });
-  },
-
-  updateArticle(id, patch) {
-    const body = this.only(patch, [
-      'title', 'category', 'date', 'tags', 'series', 'cover', 'excerpt', 'content'
-    ]);
-    if ('content' in body) { body.content = DataTools.joinParagraphs(body.content); }
-    if ('tags' in body) { body.tags = DataTools.toTags(body.tags); }
-    if (!Object.keys(body).length) { return Promise.resolve(true); }
-    return this.req('articles', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
-      .then(function () { return true; });
-  },
-
-  removeArticle(id) {
-    return this.req('articles', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  },
-
-  /* ---------------- 小诗 ---------------- */
-  getPoems() {
-    return this.req('poems', '?select=*&order=date.desc')
-      .then(function (rows) { return DbStore.poems(rows || []); });
-  },
-
-  addPoem(poem) {
-    return this.req('poems', '', {
-      method: 'POST',
-      headers: { Prefer: 'return=representation' },
-      body: {
-        title: DataTools.str(poem.title) || '无题',
-        date: DataTools.str(poem.date) || DataTools.today(),
-        text: DataTools.str(poem.text)
-      }
-    }).then(function (rows) {
-      return DbStore.poems([(Array.isArray(rows) && rows[0]) || rows])[0];
-    });
-  },
-
-  updatePoem(id, patch) {
-    const body = this.only(patch, ['title', 'date', 'text']);
-    if (!Object.keys(body).length) { return Promise.resolve(true); }
-    return this.req('poems', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
-      .then(function () { return true; });
-  },
-
-  removePoem(id) {
-    return this.req('poems', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  },
-
-  /* ---------------- 音乐 ---------------- */
-  getMusic() {
-    return this.req('music', '?select=*&order=sort.asc').then(function (rows) {
-      return (rows || []).map(DbStore.track);
-    });
-  },
-
-  addMusic(track) {
-    const body = this.only(track, ['name', 'artist', 'note', 'duration', 'genre', 'src', 'url']);
-    /* 云端 music 表按 sort 排序；没传就排到最后 */
-    const self = this;
-    return this.req('music', '?select=sort&order=sort.desc&limit=1').then(function (rows) {
-      const last = (Array.isArray(rows) && rows[0] && Number(rows[0].sort)) || 0;
-      body.sort = last + 1;
-      return self.req('music', '', {
-        method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: body
-      }).then(function (saved) { return DbStore.track((Array.isArray(saved) && saved[0]) || saved); });
-    });
-  },
-
-  updateMusic(id, patch) {
-    const body = this.only(patch, ['name', 'artist', 'note', 'duration', 'genre', 'src', 'url', 'sort']);
-    if (!Object.keys(body).length) { return Promise.resolve(true); }
-    return this.req('music', '?id=eq.' + encodeURIComponent(String(id)), { method: 'PATCH', body: body })
-      .then(function () { return true; });
-  },
-
-  removeMusic(id) {
-    return this.req('music', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  },
-
-  /* ---------------- 学习打卡进度（云端，指令 07） ----------------
-     整份进度当一个 JSON 字符串存一行，读出来原样还给页面。 */
-  getStudyProgress() {
-    return this.req('studyProgress', '?select=data&id=eq.1').then(function (rows) {
-      const row = (Array.isArray(rows) && rows[0]) ? rows[0] : null;
-      let saved = { c: {}, en: {} };
-      try { saved = JSON.parse(row && row.data) || saved; } catch (e) { /* 坏数据当没有 */ }
-      if (!saved || typeof saved !== 'object') { saved = { c: {}, en: {} }; }
-      if (!saved.c) { saved.c = {}; }
-      if (!saved.en) { saved.en = {}; }
-      return saved;
-    }).catch(function () { return { c: {}, en: {} }; });
-  },
-
-  setStudyProgress(next) {
-    const self = this;
-    const data = JSON.stringify(next || { c: {}, en: {} });
-    return this.req('studyProgress', '?select=id&id=eq.1').then(function (rows) {
-      if (Array.isArray(rows) && rows.length) {
-        return self.req('studyProgress', '?id=eq.1', { method: 'PATCH', body: { data: data } });
-      }
-      return self.req('studyProgress', '', {
-        method: 'POST',
-        headers: { Prefer: 'return=minimal' },
-        body: { id: 1, key: 'owner', data: data }
-      });
-    }).then(function () { return true; });
-  },
-
-  /* ---------------- 英语学习资料（管理员导入，全站共享） ----------------
-     words 直接存 jsonb，读出来就是数组，不用再 parse。
-     写权限走 req() 里那道管理员软闸 + RLS 的 is_shuo_admin()。 */
-  getEnMaterials() {
-    return this.req('enMaterials', '?select=*&order=date.desc').then(function (rows) {
-      return (rows || []).map(function (r) {
-        return {
-          id: String(r.id),
-          name: DataTools.str(r.name),
-          date: DataTools.str(r.date),
-          words: Array.isArray(r.words) ? r.words : [],
-          owner: DataTools.str(r.owner),   /* 空 = 管理员共享；邮箱 = 私人 */
-          store: 'cloud'
-        };
-      });
-    });
-  },
-
-  saveEnMaterial(mat) {
-    return this.req('enMaterials', '?on_conflict=id', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: {
-        id: mat.id,
-        name: mat.name,
-        date: mat.date || '',
-        words: mat.words || [],
-        owner: mat.owner || '',            /* 空 = 所有人可见；邮箱 = 只有本人可见 */
-        updatedAt: new Date().toISOString()
-      }
-    }).then(function () { return true; });
-  },
-
-  deleteEnMaterial(id) {
-    return this.req('enMaterials', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  },
-
-  /* ---------------- 相册照片（管理员上传，人人可看） ----------------
-     GET 列表只带缩略图（photos_read 策略放行所有人）；
-     大图 getPhotoFull 单独取；写走 req() 的管理员闸 + photos_write 策略。 */
-  getPhotos() {
-    /* ⚠️ 云端列名是 photo_desc（desc 是 Postgres 保留字，建表时就改了名），
-       前端字段仍叫 desc，映射一次 */
-    return this.req('photos', '?select=id,name,date,photo_desc,thumb,collection_id&order=created_at.desc')
-      .then(function (rows) {
-        return (rows || []).map(function (r) {
-          return {
-            id: String(r.id),
-            name: DataTools.str(r.name),
-            date: DataTools.str(r.date),
-            desc: DataTools.str(r.photo_desc),
-            thumb: String(r.thumb || r.data || ''),
-            collectionId: DataTools.str(r.collection_id)
-          };
-        });
-      });
-  },
-
-  getPhotoFull(id) {
-    return this.req('photos', '?select=data&id=eq.' + encodeURIComponent(String(id)))
-      .then(function (rows) { return String((rows && rows[0] && rows[0].data) || ''); });
-  },
-
-  savePhoto(photo) {
-    return this.req('photos', '', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      /* ⚠️ 云端列名是 collection_id（snake_case），别写成 collectionId ——
-         写错了照片就归不进合集，只会在照片墙上游荡 */
-      body: {
-        id: photo.id, name: photo.name, date: photo.date || '',
-        photo_desc: photo.desc || '', thumb: photo.thumb || '', data: photo.data,
-        collection_id: photo.collectionId || ''
-      }
-    }).then(function () { return true; });
-  },
-
-  deletePhoto(id) {
-    return this.req('photos', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  },
-
-  /* ---------------- 照片合集（管理员建，人人可看） ---------------- */
-  getCollections() {
-    return this.req('collections', '?select=id,name,date,note,cover&order=created_at.desc')
-      .then(function (rows) {
-        return (rows || []).map(function (r) {
-          return {
-            id: String(r.id),
-            name: DataTools.str(r.name),
-            date: DataTools.str(r.date),
-            note: DataTools.str(r.note),
-            cover: String(r.cover || '')
-          };
-        });
-      });
-  },
-
-  saveCollection(col) {
-    return this.req('collections', '', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: {
-        id: col.id, name: col.name, date: col.date || '',
-        note: col.note || '', cover: col.cover || ''
-      }
-    }).then(function () { return true; });
-  },
-
-  deleteCollection(id) {
-    return this.req('collections', '?id=eq.' + encodeURIComponent(String(id)), { method: 'DELETE' })
-      .then(function () { return true; });
-  }
-};
+   站点现在是纯静态的：所有内容读仓库里的 data/*.json（出入口统一在 js/api.js）。
+   Supabase 那套在国内经常连不上（ERR_CONNECTION_RESET），会让页面白屏或数据为空，
+   所以整块删掉了。以后要接云端（CloudBase / 任何后端），只改 js/api.js 里的
+   _load() 一个函数即可，不用再把这套搬回来。
+   -------------------------------------------------------------------------- */
 
 
 /* ==========================================================================
@@ -2227,50 +1892,40 @@ const CloudStore = {
    ========================================================================== */
 const SiteAPI = {
 
-  /* 'cloud' / 'db' / 'local'，检测完之后才准。想读它请用 whenReady() */
-  mode: 'local',
+  /* 'static'（默认，读 data/*.json） / 'db'（只有开了 localDb 开关才用）
+     检测完之后才准。想读它请用 whenReady() */
+  mode: 'static',
 
   _ready: null,
 
-  /* 检测一次，之后所有调用共用同一个结果。
-     判断依据（按优先级）：
-       ① js/config.js 填了 Supabase 配置 → 'cloud'
-       ② 现在是 http/https 打开、且后端有回应 /api/health → 'db'
-       ③ 都不满足 → 'local' */
+  /* ------------------------------------------------------------------
+     模式检测
+     ------------------------------------------------------------------
+     ★ 现在是纯静态站点：默认不发任何探测请求。
+       以前一进页面就 fetch('/api/health') 问后端在不在 —— GitHub Pages
+       上没有后端，那个请求必然 404（控制台一片红），这里直接不发了。
+
+       内容一律走 js/api.js 读仓库里的 data/*.json；
+       只有你自己开着 server.js（localhost）且在 js/config.js 里写了
+       localDb: true，才会去探一次本机数据库（用于把改动写回 sqlite）。 */
   whenReady() {
     if (this._ready) { return this._ready; }
 
     const self = this;
 
-    /* ★ 顺序很重要：本机后端 → 云端 → 浏览器
-       ------------------------------------------------------------------
-       以前是「填了 Supabase 配置就无条件走云端」，结果本机开着 server.js
-       也被拽去走云端：一旦网络不通（或免费项目被暂停），本机连内容都改不了。
-       现在改成先问本机后端在不在 ——
-         · 本机跑 server.js  → 走数据库，能正常增删改，断网也没事
-         · GitHub Pages      → 没有 server.js，探不到后端 → 走云端
-         · 双击 html（file://）→ 走浏览器本地存储
-       这样两边各得其所，不会互相拖累。 */
-
-    /* ⚠️ 这里不要直接写 location.protocol ——
-       db/seed.js 会在 Node 里把整个 data.js 跑一遍（为了读 SITE_DATA），
-       而 Node 里没有 location、也没有 fetch。
-       所以先判断「这两个东西在不在」，不在就当本地模式。
+    /* ⚠️ 不要直接写 location —— db/seed.js 会在 Node 里把整个 data.js
+       跑一遍（为了读 SITE_DATA），而 Node 里没有 location / fetch。
        （少了这个判断，跑 seed.js 会直接报 location is not defined。） */
     const proto = (typeof location !== 'undefined' && location.protocol) ? location.protocol : '';
+    const host = (typeof location !== 'undefined' && location.hostname) ? location.hostname : '';
     const canFetch = (typeof fetch === 'function');
+    const cfg = (typeof window !== 'undefined' && window.SHUOSCAPE_CONFIG) ? window.SHUOSCAPE_CONFIG : {};
+    const onLocal = (host === 'localhost' || host === '127.0.0.1');
 
-    const cloudCfg = (typeof window !== 'undefined' && window.SHUOSCAPE_CONFIG)
-      ? (window.SHUOSCAPE_CONFIG.content || {}) : {};
-    const hasCloud = !!(cloudCfg.supabaseUrl && cloudCfg.supabaseKey) && canFetch;
-
-    /* ① 先探本机后端（http/https 打开时才有可能有） */
-    if ((proto === 'http:' || proto === 'https:') && canFetch) {
-      /* 加个 3 秒超时：万一后端没响应，页面也不能一直卡着不显示 */
+    if (cfg.localDb === true && onLocal && canFetch && (proto === 'http:' || proto === 'https:')) {
       const timeout = new Promise(function (resolve) {
         setTimeout(function () { resolve(null); }, 3000);
       });
-
       const probe = fetch('/api/health', { cache: 'no-store' })
         .then(function (res) { return res.ok ? res.json() : null; })
         .catch(function () { return null; });
@@ -2279,86 +1934,41 @@ const SiteAPI = {
         if (info && info.ok) {
           self.mode = 'db';
           console.log('[SiteAPI] 已连接本机数据库', info.database, info.counts);
-        } else if (hasCloud) {
-          self.mode = 'cloud';
-          console.log('[SiteAPI] 没有本机后端，已连接云端数据库', cloudCfg.supabaseUrl);
         } else {
-          self.mode = 'local';
-          console.log('[SiteAPI] 没检测到后端，使用本地模式（数据存在浏览器里）');
+          self.mode = 'static';
         }
         return self.mode;
       });
-
       return this._ready;
     }
 
-    /* ② 双击打开的 html、或 Node 里跑脚本：没有本机后端，有云端就走云端 */
-    if (hasCloud) {
-      this.mode = 'cloud';
-      this._ready = Promise.resolve('cloud');
-      console.log('[SiteAPI] 已连接云端数据库', cloudCfg.supabaseUrl);
-      return this._ready;
-    }
-
-    this.mode = 'local';
-    this._ready = Promise.resolve('local');
+    this.mode = 'static';
+    this._ready = Promise.resolve('static');
     return this._ready;
   },
 
   /* 现在是数据库模式吗？（要在 whenReady 之后才是准的） */
   isDb() { return this.mode === 'db'; },
 
-  /* 现在是云端模式吗？（js/config.js 里填了 Supabase 配置） */
-  isCloud() { return this.mode === 'cloud'; },
+  /* 现在是云端模式吗？（Supabase 那套已经移除，永远 false，留着兼容旧调用） */
+  isCloud() { return false; },
 
-  /* 内容存在「远端」吗？—— 云端和数据库都算。
-     页面上有几处文案要区分「删掉是真的没了」还是「本地只是隐藏」，
-     判断的其实是这个，不是「是不是数据库」。 */
-  isRemote() { return this.mode === 'cloud' || this.mode === 'db'; },
+  /* 内容存在「远端」吗？—— 只有开了 localDb 开关连上本机数据库才算。
+     页面上有几处文案要区分「删掉是真的没了」还是「本机只是隐藏」。 */
+  isRemote() { return this.mode === 'db'; },
+
+  /* 现在是纯静态模式吗？（读 data/*.json） */
+  isStatic() { return this.mode === 'static'; },
 
   /* 给页面提示语用的一句中文：现在改动会写到哪 */
   storeLabel() {
-    if (this.mode === 'cloud') {
-      /* _offline = 连不上（断网/被墙/项目暂停）；_usingCopy = 连上了但表里没数据 */
-      return (CloudStore._offline || this._usingCopy)
-        ? '云端数据库（暂时显示静态副本）' : '云端数据库';
-    }
     if (this.mode === 'db') { return '数据库 <code>db/site.db</code>'; }
-    return '浏览器';
+    return '本地 JSON <code>data/</code>';
   },
 
-  /* 挑一套实现：云端 → CloudStore，数据库 → DbStore，都没有 → LocalStore */
+  /* 挑一套实现：数据库 → DbStore，其余 → LocalStore（内容由 js/api.js 供） */
   _impl() {
-    if (this.mode === 'cloud') { return CloudStore; }
     return this.mode === 'db' ? DbStore : LocalStore;
-  },
-
-  /* ------------------------------------------------------------------
-     云端「读」的兜底名单
-     ------------------------------------------------------------------
-     什么情况会用到？
-       · 刚接上云端、数据还没导进去（表是空的）
-       · Supabase 免费项目超过一周没人访问会被自动暂停，接口就不响应了
-       · 网络一时不通
-     这几种情况下不能让整站变空白，所以退回仓库里 js/data.js 的那份
-     静态副本 —— 内容可能旧一点，但至少看得见。
-     只兜「读」：写操作失败必须如实报错，不能假装成功。
-     ------------------------------------------------------------------ */
-  CLOUD_READS: { getProfile: 1, getArticles: 1, getPoems: 1, getMusic: 1 },
-
-  /* 云端这次读到的是「空的」吗？（空就算没读到，触发兜底） */
-  _isEmpty(res) {
-    if (Array.isArray(res)) { return res.length === 0; }
-    if (res && typeof res === 'object') {
-      /* profile：连主人名字和技能都没有，说明云端那张表是空的 */
-      return !res.owner && !res.siteName && !(res.skills || []).length;
-    }
-    return !res;
-  },
-
-  /* 用静态副本顶上。失败就彻底失败，不再二次兜底 */
-  _fromLocal(method, args) {
-    return LocalStore[method].apply(LocalStore, args);
   },
 
   /* 页面调用统一走这里：先等检测完成，再转给对应实现 */
@@ -2366,25 +1976,7 @@ const SiteAPI = {
     const self = this;
     return this.whenReady().then(function () {
       const impl = self._impl();
-      const p = impl[method].apply(impl, args);
-
-      /* 只有云端模式的「读」才需要兜底，写操作原样返回 */
-      if (self.mode !== 'cloud' || !self.CLOUD_READS[method]) { return p; }
-
-      return p.then(function (res) {
-        if (self._isEmpty(res)) {
-          self._usingCopy = true;
-          console.warn('[SiteAPI] 云端没读到「' + method + '」的内容，先显示仓库里的静态副本');
-          return self._fromLocal(method, args);
-        }
-        self._usingCopy = false;
-        return res;
-      }).catch(function (err) {
-        self._usingCopy = true;
-        console.warn('[SiteAPI] 云端读取失败（' + ((err && err.message) || err) +
-                     '），改用仓库里的静态副本');
-        return self._fromLocal(method, args);
-      });
+      return impl[method].apply(impl, args);
     });
   },
 
@@ -2577,88 +2169,41 @@ const SiteAPI = {
      · 本地模式 → 没有共享这回事，返回空（资料只在自己浏览器里）
      页面（js/english.js）拿到的统一是 [{id,name,date,words,store}]，
      本地资料由 EnStore 自己管理（IndexedDB），两边在页面上合并展示。 */
-  getEnMaterials() {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return []; }
-      return self._run('getEnMaterials', []);
-    }).catch(function () { return []; });
-  },
-
-  saveEnMaterial(mat) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('saveEnMaterial', [mat]);
-    });
-  },
-
-  deleteEnMaterial(id) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('deleteEnMaterial', [id]);
-    });
-  },
+  /* 静态版没有共享资料这回事（学习板块已封存在 _study-archive/），直接返回空 */
+  getEnMaterials() { return Promise.resolve([]); },
+  saveEnMaterial() { return Promise.resolve(false); },
+  deleteEnMaterial() { return Promise.resolve(false); },
 
   /* ---------------- 相册照片 ----------------
-     注意：照片不做静态副本兜底（图放 git 里太重），
-     云端读不到就返回空数组，页面上显示「还没有照片」。 */
+     静态版：照片清单在 data/photos.json，图片本体在 assets/photos/（js/api.js 读）。
+     读不到就返回空数组，页面显示「还没有照片」的空状态。 */
   getPhotos() {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return []; }
-      return self._run('getPhotos', []);
-    }).catch(function () { return []; });
+    return this._run('getPhotos', []).catch(function () { return []; });
   },
 
   savePhoto(photo) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('savePhoto', [photo]);
-    });
+    return this._run('savePhoto', [photo]);
   },
 
   getPhotoFull(id) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return ''; }
-      return self._run('getPhotoFull', [id]);
-    }).catch(function () { return ''; });
+    return this._run('getPhotoFull', [id]).catch(function () { return ''; });
   },
 
   deletePhoto(id) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('deletePhoto', [id]);
-    });
+    return this._run('deletePhoto', [id]);
   },
 
   /* ---------------- 照片合集 ---------------- */
   getCollections() {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return []; }
-      return self._run('getCollections', []);
-    }).catch(function () { return []; });
+    return this._run('getCollections', []).catch(function () { return []; });
   },
 
   saveCollection(col) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('saveCollection', [col]);
-    });
+    return this._run('saveCollection', [col]);
   },
 
   deleteCollection(id) {
-    const self = this;
-    return this.whenReady().then(function () {
-      if (self.mode === 'local') { return false; }
-      return self._run('deleteCollection', [id]);
-    });
+    return this._run('deleteCollection', [id]);
   }
 };
 

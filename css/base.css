@@ -1211,6 +1211,31 @@ body:not(.is-admin) [data-admin-only] {
 body.theme-dark .role-btn { background: rgba(255, 255, 255, 0.08); }
 body.theme-dark .role-btn.is-admin { background: linear-gradient(120deg, var(--c-pink), var(--c-purple)); }
 
+/* ---------- 右上角的数据状态点 ----------
+   绿 = 读到 data/*.json（最新）；黄 = 读不到，看的是本机缓存 */
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--ink-3);
+  opacity: 0.35;
+  cursor: help;
+  transition: background 0.2s var(--ease), box-shadow 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+.status-dot.is-ok {
+  background: #34c98a;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(52, 201, 138, 0.16);
+}
+.status-dot.is-cache {
+  background: #f2b544;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(242, 181, 68, 0.16);
+}
+
 /* 登录弹窗 */
 /* ---------- 登录弹窗（卡片式登录页） ----------
    结构：品牌区 → 英文标语 → 主标题 → 说明 → 账号/密码 → 主按钮 → 返回链接 → 底部小字

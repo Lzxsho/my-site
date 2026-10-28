@@ -37,7 +37,7 @@ const PoemsPage = {
   /* ---------- 读数据 ---------- */
   load() {
     const self = this;
-    SiteAPI.getPoems().then(function (list) {
+    Api.getPoems().then(function (list) {
       self.state.all = list;
       /* 之前展开的那条如果被删了，就收起 */
       if (self.state.openId && !list.some(function (p) { return p.id === self.state.openId; })) {
